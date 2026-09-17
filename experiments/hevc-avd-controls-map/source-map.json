@@ -1,0 +1,40 @@
+{
+  "schema": "omarchy-m1-video.hevc-avd-controls-map-sources/1",
+  "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/66",
+  "parent": "https://github.com/iconidentify/libva-v4l2_request/issues/42",
+  "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
+  "kernel_tag": "asahi-7.1.13-3",
+  "patches": {
+    "commit": "5c1b9239756bfcc0c594a1c55f4908e3b687bd73",
+    "concatenated_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390"
+  },
+  "patched_avd_hevc_c": {
+    "note": "Asahi avd-hevc.c after the 15 shipped patches only; no experimental hooks.patch",
+    "sha256": "417cd4c0d39957ab6a281b706acb298c08e5132888e8cad2a6edf5d2673824f9"
+  },
+  "avd_inst_h": {
+    "revision": "94fb23346d522edf53722357c426a3e58030beea",
+    "sha256": "c271d9f266e685dc3db3d0394dda15a9e84ff426d9f12ce10d9dc726a5625816",
+    "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/drivers/media/platform/apple/avd/avd-inst.h"
+  },
+  "v4l2_controls_h": {
+    "revision": "94fb23346d522edf53722357c426a3e58030beea",
+    "sha256": "c86036741a6b878cc2a28796c2fdd1ff18488ccdd274ea662cfadc934569d9fb",
+    "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/include/uapi/linux/v4l2-controls.h"
+  },
+  "checker": {
+    "commit": "ba66572ff7e1e380377eb2414a7eb7d7f97bb0d9",
+    "sha256": "666eacdde663e8ef890a0e974f5f0ce0f857803b25558b5e56db8f775f9d7dfa",
+    "path": "tests/hevc-reftrace-check.py"
+  },
+  "campaign": {
+    "path": "experiments/hevc-avd-trace/captures/2026-09-17-schema2",
+    "summary_sha256": "f6fbc2f5c3bf0337d8279d7e3a60cf8e1c3fcab50b3dce6d2963e2d101a9ca9e",
+    "readme_sha256": "042b327f5ffb1b2264a7a6d07b0c4be876fe0291ec1b147e82ccde79007fddf7",
+    "sources_json_sha256": "a16ebf3b486144d45ed91122ed78040dc64bbaa9901a312669e11c31bc8ff7d3",
+    "hevc_avd_map_source_map_sha256": "21533e82bc63eb3f4703ad7b4b488be1caf568fcb21e366fdebe4be39ea947c0"
+  },
+  "original_re": {
+    "note": "Instruction macros and HEVC packing comments originate in eiln/avd reverse engineering as retained by AsahiLinux/linux. This experiment copies selected MIT avd-inst.h macros and GPL-2.0 avd-hevc.c packing macros with copyright notices; it does not re-license the kernel files."
+  }
+}

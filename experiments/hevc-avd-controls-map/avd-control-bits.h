@@ -1,0 +1,43 @@
+/* SPDX-License-Identifier: MIT
+ * Verbatim selected definitions from AsahiLinux/linux avd-inst.h.
+ * Attribution: the Asahi Linux Contributors; original AVD reverse engineering
+ * by Eileen Yoon and contributors. Source/revision/hash: source-map.json.
+ * Original file carries SPDX-License-Identifier: MIT (retained above).
+ * Extracted definitions only; BIT/GENMASK/FIELD_PREP supplied by the test.
+ */
+#define AVD_OP_WEIGHTS_HDR		FIELD_PREP(GENMASK(31, 20), 0x2dd)
+#define AVD_OP_WEIGHTS_HDR_CHROMA(v)	FIELD_PREP(GENMASK(2, 0), v)
+#define AVD_OP_WEIGHTS_HDR_LUMA(v)	FIELD_PREP(GENMASK(5, 3), v)
+#define AVD_OP_WEIGHTS_HDR_FLAG0(v)	FIELD_PREP(BIT(6), !!(v))
+#define AVD_OP_WEIGHTS_HDR_FLAG1(v)	FIELD_PREP(BIT(7), !!(v))
+#define AVD_OP_WEIGHTS			FIELD_PREP(GENMASK(31, 20), 0x2de)
+#define AVD_OP_WEIGHTS_WEIGHT(v)	FIELD_PREP(GENMASK(8, 0), v)
+#define AVD_OP_WEIGHTS_INDEX(v)		FIELD_PREP(GENMASK(12, 9), v)
+#define AVD_OP_WEIGHTS_LIST_IDX(v)	FIELD_PREP(BIT(13), v)
+#define AVD_OP_WEIGHTS_IDENT(v)		FIELD_PREP(GENMASK(16, 14), v)
+#define AVD_OP_OFFSETS			FIELD_PREP(GENMASK(31, 20), 0x2df)
+#define AVD_OP_OFFSETS_OFFSET(v)	FIELD_PREP(GENMASK(15, 0), v)
+#define AVD_OP_CODED_DATA		FIELD_PREP(GENMASK(31, 20), 0x2d8)
+#define AVD_OP_CODED_DATA_ADDR(v)	FIELD_PREP(GENMASK(12, 0), v)
+#define AVD_OP_QP			FIELD_PREP(GENMASK(31, 20), 0x2d9)
+#define AVD_OP_QP_CR_OFF(v)		FIELD_PREP(GENMASK(4, 0), v)
+#define AVD_OP_QP_CB_OFF(v)		FIELD_PREP(GENMASK(9, 5), v)
+#define AVD_OP_QP_VAL(v)		FIELD_PREP(GENMASK(17, 10), v)
+#define AVD_OP_DBLK			FIELD_PREP(GENMASK(31, 20), 0x2da)
+#define AVD_OP_DBLK_FLAG_SAO_CHROMA(v)	FIELD_PREP(BIT(6), !!(v))
+#define AVD_OP_DBLK_FLAG_SAO_LUMA(v)	FIELD_PREP(BIT(7), !!(v))
+#define AVD_OP_DBLK_OFF0(v)		FIELD_PREP(GENMASK(11, 8), v)
+#define AVD_OP_DBLK_OFF1(v)		FIELD_PREP(GENMASK(16, 12), v)
+#define AVD_OP_DBLK_FLAG_EN(v)		FIELD_PREP(BIT(16), !!(v))
+#define AVD_OP_DBLK_FLAG_FULL_EN(v)	FIELD_PREP(BIT(17), !!(v))
+#define AVD_OP_DBLK_FLAG_TILES_EN(v)	FIELD_PREP(BIT(18), !!(v))
+#define AVD_OP_DBLK_FLAG_PCM_EN(v)	FIELD_PREP(BIT(19), !!(v))
+#define AVD_HDR_H26X_QP_OFFSET_CR(v)	FIELD_PREP(GENMASK(4, 0), v)
+#define AVD_HDR_H26X_QP_OFFSET_CB(v)	FIELD_PREP(GENMASK(9, 5), v)
+#define AVD_OP_SL_LOC			FIELD_PREP(GENMASK(31, 24), 0x2c)
+#define AVD_OP_SL_LOC_X(v)		FIELD_PREP(GENMASK(11, 0), v)
+#define AVD_OP_SL_LOC_Y(v)		FIELD_PREP(GENMASK(23, 12), v)
+#define AVD_SCALING_I0(v)		FIELD_PREP(GENMASK(7, 0), v)
+#define AVD_SCALING_I1(v)		FIELD_PREP(GENMASK(15, 8), v)
+#define AVD_SCALING_I2(v)		FIELD_PREP(GENMASK(23, 16), v)
+#define AVD_SCALING_I3(v)		FIELD_PREP(GENMASK(31, 24), v)
