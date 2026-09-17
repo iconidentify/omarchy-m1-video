@@ -6,6 +6,8 @@ import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
+import json
 from qualify import Campaign, frames
 
 
@@ -89,6 +91,20 @@ class Sequencing(unittest.TestCase):
         p=subprocess.run(['python3',str(root/'tests.py'),'Sequencing.test_fault_never_unloads_candidate'],capture_output=True,text=True,timeout=10)
         self.assertNotEqual(p.returncode,0)
         self.assertIn('FAILED (failures=1)',p.stderr)
+    def test_actual_output_comparison_rejects_wrong_hash(self):
+        c=Simulated(self.tmp.name)
+        c.c['environment']={}
+        job=dict(name='wrong-output',kind='frames',argv=['mock-decoder'],count=1,expected=['a'*32])
+        def fake_run(argv,**kw):
+            kw['stdout'].write('frame 0 416x240 yuv420p '+'b'*32+'\nMD5='+'c'*32+'\n')
+            kw['stdout'].flush()
+            return SimpleNamespace(returncode=0)
+        with patch('qualify.subprocess.run',side_effect=fake_run):
+            with self.assertRaisesRegex(ValueError,'selected exact output changed'):
+                c.execute('candidate',job)
+        report=json.loads((c.root/'candidate/wrong-output/comparison.json').read_text())
+        self.assertEqual(report['differences'],[0])
+        self.assertFalse(any(e=='job-accepted' for e,_ in c.events))
     def test_frame_parser_rejects_partial_or_reordered_output(self):
         good='frame 0 416x240 yuv420p '+'a'*32+'\nMD5='+'b'*32+'\n'
         self.assertEqual(len(frames(good)),1)

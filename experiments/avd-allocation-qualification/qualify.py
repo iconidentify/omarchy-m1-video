@@ -90,7 +90,7 @@ class Campaign:
         out.mkdir(parents=True)
         env = os.environ.copy()
         for key in list(env):
-            if key.startswith('LIBVA_V4L2_') or key in ('LD_PRELOAD', 'GST_DEBUG', 'GST_DEBUG_FILE'):
+            if key.startswith(('LIBVA_V4L2_', 'GST_PLUGIN_', 'GST_REGISTRY')) or key in ('LD_PRELOAD', 'LD_LIBRARY_PATH', 'GST_DEBUG', 'GST_DEBUG_FILE'):
                 env.pop(key)
         env.update(self.c['environment'])
         env.update(job.get('environment', {}))

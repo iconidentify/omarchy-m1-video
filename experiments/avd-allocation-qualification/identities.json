@@ -2,11 +2,18 @@
   "schema": "omarchy-m1-video.avd-allocator-qualification/1",
   "candidate_sha256": "8caab2852b2d838999ba3774d79faea439c48de151c2a7592c93f13d35dd454d",
   "original_sha256": "e50540e1d0fc48c7e0bf9b21ff028758bdb35f94aa7070af00de88e61e5c70e9",
-  "private_config_sha256": "d0b92f01ca8ef1da5199b66d630d54b326ac26b0c3e67122a82eec0aca7d2628",
+  "private_config_sha256": "d2327e43ddd709225e6c8f2820886ba1debac83e16c5fb2b5a875fa1486c292a",
   "source_base": "cc511ea31d171227e463add6200084ca99672b72",
   "module_notes": {
     "candidate_note_hex": "040000001400000003000000474e55004b24b8e6f76cb0053e5229918e48712e8f4a1688",
     "original_note_hex": "040000001400000003000000474e550085742eb3b2b9f0692370842ae4f3dc439825dc47"
+  },
+  "environment": {
+    "LIBVA_DRIVERS_PATH": "/usr/lib/dri",
+    "LIBVA_DRIVER_NAME": "v4l2_request",
+    "LC_ALL": "C",
+    "GST_PLUGIN_SYSTEM_PATH": "/usr/lib/gstreamer-1.0",
+    "GST_PLUGIN_PATH": ""
   },
   "files": {
     "$COMPANION/experiments/hevc-avd-trace/captures/2026-09-17-schema2/frames/B-gst-off.json": "a9041706dee0eeafb328aef06ea0687231b36c309e74731f6d0ea99b8a8ae5ae",
@@ -345,9 +352,20 @@
     "/usr/lib/libz.so.1": "f8d5729601ca8fb86a8d9d048eff241a0e349342da7a5cea11389d0e33ed0a43",
     "/usr/lib/libzmq.so.5": "cac3e369dcdc310d3877fb3a110a872c2e770f190830ebfb8e62d6c8361b4332",
     "/usr/lib/libzstd.so.1": "14d907be630eb1670d14fc104a0982cca01feac5bc75f1846e54f6278c5ee2e2",
-    "$COMPANION/experiments/avd-allocation-qualification/qualify.py": "c6bbc68d5fac2b30e86c6c8d40dab03d4980e7bec466c97f3e7bf083a7f57567",
+    "$COMPANION/experiments/avd-allocation-qualification/qualify.py": "89c9c95515126d4bf51908d661e3b492bee6e4575e16fae69ce7adc55650acc5",
     "$COMPANION/experiments/avd-allocation-qualification/PLAN.md": "6bd0ce55126838a0455523f1c7d12172cf681e7f91d7e35f7b16421c1725e1a5",
-    "$COMPANION/experiments/avd-allocation-qualification/tests.py": "271c053b2df2f529e20ae5083556b7ced0634db325e6be5df3116ddfd1ec9fa7"
+    "$COMPANION/experiments/avd-allocation-qualification/tests.py": "3a78a1031e457312286b38d357f69919e10152d9a23eb5cb3b1099eea00530fd",
+    "/usr/lib/libgstcodecs-1.0.so.0": "6416e8b34805c1d43214a2c320aa0eb8d9c3a68cdd5b64d2505551f5ed2b93c1",
+    "/usr/lib/libgstvideo-1.0.so.0": "e143c5479735e3c76256dc0f2aa28d50afdf9ff93eac477ffd186ff8c8e8ea70",
+    "/usr/lib/libgstallocators-1.0.so.0": "fbc70fab3d583a67ba76bf8321c72160b26a55b8da544f0e0d0c1631337d69a6",
+    "/usr/lib/libgstcodecparsers-1.0.so.0": "fafe643ffbc95fd11b5a603dd0c7ad75a0254be8c7d8c98e9e39b502c4916772",
+    "/usr/lib/libgstpbutils-1.0.so.0": "c1befb432f966164989ccedc3985528234ea8b5d684b73774961be7a2e15290b",
+    "/usr/lib/libgudev-1.0.so.0": "508f61dbbc432010500e7a4ca49ffa4b834a72e74c92f0d26229944629ba1cd3",
+    "/usr/lib/libgstbase-1.0.so.0": "68ea7ccbe78ed6bf5d4582138423ddf701e35f1825a5d8492efaa7622722e663",
+    "/usr/lib/liborc-0.4.so.0": "44832c1146f2d7815748fc4b2e754273b210c4ea8467cf27a1a8fed98f791b8c",
+    "/usr/lib/libgstaudio-1.0.so.0": "c4c176416b95c0a4419cfa84c1b8e0e2466c5e06a01aa3e4301f24b3d76d8f29",
+    "/usr/lib/libgsttag-1.0.so.0": "6938d3b8828f03053b71aa84540840958748ed3838cbed6af847d4fb7e2861b7",
+    "/usr/lib/libudev.so.1": "e039f972740ed58243c13e29be0675a7f51f457a5a91d6b726eb7044f22be3e7"
   },
   "jobs": [
     {
