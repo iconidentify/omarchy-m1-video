@@ -67,7 +67,7 @@
     },
     {
       "op": "decode",
-      "dst": "C",
+      "dst": "B",
       "refs": [
         "A"
       ],
