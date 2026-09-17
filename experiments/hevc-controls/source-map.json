@@ -1,0 +1,68 @@
+{
+  "schema": "hevc-controls.source-map/1",
+  "sources": [
+    {
+      "repository": "GStreamer/gstreamer",
+      "revision": "070125524a8422e29d3b69a372ed4f62fd343ffa",
+      "path": "subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c",
+      "sha256": "513af0c2f3a8b6015e5c97b0c502c8e186781b9a355bb3e7cdc35f2d24a4e4ce",
+      "url": "https://github.com/GStreamer/gstreamer/blob/070125524a8422e29d3b69a372ed4f62fd343ffa/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c"
+    },
+    {
+      "repository": "GStreamer/gstreamer",
+      "revision": "070125524a8422e29d3b69a372ed4f62fd343ffa",
+      "path": "subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c",
+      "sha256": "06f1c1151c6cd1617dcb20fc59b8fc25e51744afdb044a71d224d4718e581384",
+      "url": "https://github.com/GStreamer/gstreamer/blob/070125524a8422e29d3b69a372ed4f62fd343ffa/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c"
+    },
+    {
+      "repository": "gjasny/v4l-utils",
+      "revision": "5a666c7ce89c00d66aa8e53c8f098a0c6c401f91",
+      "path": "utils/v4l2-tracer/libv4l2tracer.cpp",
+      "sha256": "bd82d655d21f018b688d8275c7ea69ae5661450da76ba2fbdb784ca25b95878d",
+      "url": "https://github.com/gjasny/v4l-utils/blob/5a666c7ce89c00d66aa8e53c8f098a0c6c401f91/utils/v4l2-tracer/libv4l2tracer.cpp"
+    },
+    {
+      "repository": "gjasny/v4l-utils",
+      "revision": "5a666c7ce89c00d66aa8e53c8f098a0c6c401f91",
+      "path": "utils/v4l2-tracer/trace.cpp",
+      "sha256": "2d496ef4c8962cc86f3b6d31c5d0e42f27065711ac54dae624a1d0d8f4874910",
+      "url": "https://github.com/gjasny/v4l-utils/blob/5a666c7ce89c00d66aa8e53c8f098a0c6c401f91/utils/v4l2-tracer/trace.cpp"
+    },
+    {
+      "repository": "gjasny/v4l-utils",
+      "revision": "5a666c7ce89c00d66aa8e53c8f098a0c6c401f91",
+      "path": "utils/v4l2-tracer/trace-gen.cpp",
+      "sha256": "b0a2156894c968cc606153d24d8e2443022853388e85aea2bf3633488ef46aab",
+      "url": "https://github.com/gjasny/v4l-utils/blob/5a666c7ce89c00d66aa8e53c8f098a0c6c401f91/utils/v4l2-tracer/trace-gen.cpp"
+    },
+    {
+      "repository": "gjasny/v4l-utils",
+      "revision": "5a666c7ce89c00d66aa8e53c8f098a0c6c401f91",
+      "path": "utils/v4l2-tracer/v4l2-tracer.cpp",
+      "sha256": "96605a915712fa08773031334c0dfd227bec6c08d7d3d6e1638df9b5dbd14e7f",
+      "url": "https://github.com/gjasny/v4l-utils/blob/5a666c7ce89c00d66aa8e53c8f098a0c6c401f91/utils/v4l2-tracer/v4l2-tracer.cpp"
+    },
+    {
+      "repository": "gjasny/v4l-utils",
+      "revision": "5a666c7ce89c00d66aa8e53c8f098a0c6c401f91",
+      "path": "utils/v4l2-tracer/v4l2-tracer-common.cpp",
+      "sha256": "5ea8a1e75b31ef19a68e3c2e82d65c71c8703ea61e5f5e33b604bfa5628fb197",
+      "url": "https://github.com/gjasny/v4l-utils/blob/5a666c7ce89c00d66aa8e53c8f098a0c6c401f91/utils/v4l2-tracer/v4l2-tracer-common.cpp"
+    },
+    {
+      "repository": "gjasny/v4l-utils",
+      "revision": "5a666c7ce89c00d66aa8e53c8f098a0c6c401f91",
+      "path": "utils/v4l2-tracer/v4l2-tracer-common.h",
+      "sha256": "76cb6d0d1c3010c9bbbba9700065db57730b7b0f4bca95a74098cddb679397b4",
+      "url": "https://github.com/gjasny/v4l-utils/blob/5a666c7ce89c00d66aa8e53c8f098a0c6c401f91/utils/v4l2-tracer/v4l2-tracer-common.h"
+    },
+    {
+      "repository": "gjasny/v4l-utils",
+      "revision": "5a666c7ce89c00d66aa8e53c8f098a0c6c401f91",
+      "path": "utils/v4l2-tracer/v4l2-tracer-info-gen.h",
+      "sha256": "08033c45671b334caec834fba8b3b9e2b82a23f356d3f7a5ff1fa9359a68cc24",
+      "url": "https://github.com/gjasny/v4l-utils/blob/5a666c7ce89c00d66aa8e53c8f098a0c6c401f91/utils/v4l2-tracer/v4l2-tracer-info-gen.h"
+    }
+  ]
+}

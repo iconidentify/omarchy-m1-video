@@ -1,0 +1,23 @@
+name: HEVC control adapter
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: iconidentify/libva-v4l2_request
+          ref: 266269ee49d2fbb147f4983307b4b2492bd1a829
+          path: driver-checker
+          persist-credentials: false
+      - name: Synthetic and pinned driver-checker interoperability tests
+        env:
+          HEVC_REFTRACE_CHECKER: driver-checker/tests/hevc-reftrace-check.py
+        run: python3 experiments/hevc-controls/tests.py
