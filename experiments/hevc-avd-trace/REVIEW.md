@@ -4,8 +4,9 @@ AI self-review by sessions `codex-hevc-avd-trace-20260917T1515Z` and
 `codex-hevc-avd-live-20260917T1600Z` and
 `codex-hevc-avd-schema2-20260917T1705Z`, routed through
 iconidentify. **No independent kernel review has occurred.** This artifact can be
-merged as experimental source/tooling; merging it neither loads it nor establishes
-runtime safety. Parent #61 retains kernel review routing and execution acceptance.
+merged as experimental source/tooling and the bounded measured decision below;
+merging it neither loads it nor establishes general runtime safety. #61's execution
+evidence is complete; driver #42 retains correction and full qualification.
 
 ## Completed schema-2 campaign and normalizer correction
 
@@ -59,8 +60,8 @@ submission and postamble call expression unchanged; `source-tests.py` compares
 those sequences after applying the exact original stack. It also checks the
 I early return, non-I lookup before the TMVP gate, job-hook placement and close
 placement after watchdog quiescence. This is a scoped source check, not a proof
-of identical timing or all semantics. The later off/on pixel comparison remains
-required.
+of identical timing or all semantics. The completed off/on pixel comparison covers
+only the eight reported workloads.
 
 `avd_get_ref_buf_observed` performs the same single `vb2_find_buffer` and destination
 fallback as before, with an optional matched output. The original helper delegates
@@ -160,8 +161,8 @@ Candidate module:
 SHA-256: `bf890e4def112022cb1381261f51ccab747ec3e4f6184201d4776ee350e19ce3`.
 It is an experimental build, loaded once for the completed follow-up and now **unloaded**. The selected installed module
 and boot path are untouched. Recheck exact source/module/header hashes and loaded
-identity before any authorized campaign; provenance in this file describes only
-this offline build, not a future loaded state.
+identity before any authorized campaign; build provenance and the linked completed
+campaign describe their recorded states, not a future loaded state.
 
 The completed operation loaded standard dependencies, temporarily loaded this exact
 file, collected eight workloads with the documented offline-checker pause, and
