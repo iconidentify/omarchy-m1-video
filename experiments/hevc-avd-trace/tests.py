@@ -195,6 +195,13 @@ class TraceTests(unittest.TestCase):
         self.trace,_=synthetic();self.row(3)['mv_size']+=256;self.rejected()
         self.trace,_=synthetic();self.row(1)['previous_writer']+=1
         self.finding('destination-previous-writer-mismatch')
+        self.trace,_=synthetic()
+        self.row(1,300)['allocation']=999
+        self.row(2,300)['allocation']=999
+        self.row(1,300)['previous_writer']=0
+        self.assertEqual(self.result()['findings'],[])
+        self.trace,_=synthetic();self.row(3)['allocation']=999
+        self.finding('stale-or-unwritten-allocation')
 
     def test_actual_slice_poc_used(self):
         start=self.row(1);start['slice_poc']+=1

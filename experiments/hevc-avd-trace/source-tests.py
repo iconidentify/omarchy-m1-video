@@ -23,6 +23,9 @@ def calls(text, name):
 
 
 def verify(source):
+    for line in (prepare.HERE/'hooks.patch').read_text().splitlines():
+        if line.startswith('+') and not line.startswith('+++') and line[1:] and line.endswith((' ','\t')):
+            raise ValueError('new source whitespace error')
     with tempfile.TemporaryDirectory() as tmp:
         work=Path(tmp)/'candidate';prepare.prepare(source,work)
         pristine=Path(tmp)/'stack';pristine.mkdir()

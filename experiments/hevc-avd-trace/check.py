@@ -98,6 +98,7 @@ def validate(capture, expected=None):
         need(len(expected) == PICTURES, 'incomplete userspace oracle')
     rows = capture['records']
     findings, starts, histories, allocations, timestamps = [], {}, {}, {}, {}
+    current_allocations = {}
     normalized, group, next_picture = [], [], 1
 
     def finding(row, code):
@@ -123,6 +124,7 @@ def validate(capture, expected=None):
             need(allocations[row['allocation']] == row['buffer'], 'allocation identity aliases buffer indices')
         allocations[row['allocation']] = row['buffer']
         if not destination:
+            check_value(row, current_allocations.get(row['buffer']) == row['allocation'], 'stale-or-unwritten-allocation')
             writer = histories.get((row['buffer'], row['allocation']))
             check_value(row, writer == row['writer'] and writer in starts, 'stale-or-unknown-writer')
             if row['writer'] in starts:
@@ -169,6 +171,7 @@ def validate(capture, expected=None):
             check_value(start, (start['poc'], TYPES[start['type']], start['buffer']) ==
                         (pred['poc'], pred['slice_type'], pred['destination']['buffer']), 'userspace-picture-mismatch')
         starts[pic] = start
+        current_allocations[start['buffer']] = start['allocation']
         histories[(start['buffer'], start['allocation'])] = pic
         buffer(start, start, True)
         detail = FIRST <= pic <= LAST
