@@ -8,7 +8,7 @@ A selected VA profile is not a decoded frame and not hardware evidence.
 """
 from __future__ import annotations
 
-SCHEMA = "omarchy-m1-video.h264-profile-selection/1"
+SCHEMA = "omarchy-m1-video.h264-profile-selection/2"
 
 # FFmpeg n9.0.1 libavcodec/vaapi_decode.c vaapi_profile_map, H.264 rows only,
 # in source order. Baseline (66) and Extended (88) are absent.
@@ -27,8 +27,8 @@ DEFAULT_ADVERTISED = (
     "VAProfileH264High10",
 )
 
-# Driver libva-v4l2_request src/codec_h264.c h264_profiles at b9803ed.
-DRIVER_ADVERTISED = DEFAULT_ADVERTISED
+# Stub assumes modern libva and explicitly enabled, device-supported High 10.
+# Real advertisement is filtered by driver_supports_profile; no device is queried.
 
 FFMPEG_COMMIT = "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa"
 FFMPEG_TAG = "n9.0.1"
@@ -69,7 +69,6 @@ DEFAULT_CHECKS = {
     "partitions": True,
     "malformed": True,
     "scan_all_pictures": True,
-    "forbid_blanket_mismatch": True,
     "sps_compat": True,
     "slice_types": True,
 }
@@ -79,12 +78,76 @@ class FixtureError(ValueError):
     pass
 
 
+def _object(value, fields, where):
+    if not isinstance(value, dict) or set(value) != set(fields):
+        raise FixtureError(where + ": expected exactly " + ", ".join(fields))
+    for key, bounds in fields.items():
+        v = value[key]
+        if bounds == "bool":
+            good = type(v) is bool
+        elif bounds == "slice":
+            good = isinstance(v, str) and v in SLICE_TYPE_NAMES
+        else:
+            good = type(v) is int and bounds[0] <= v <= bounds[1]
+        if not good:
+            raise FixtureError(where + "." + key + ": invalid value/type")
+
+
+SPS_FIELDS = {
+    "profile_idc": (0, 255), "constraint_set1_flag": (0, 1),
+    "constraint_set3_flag": (0, 1), "frame_mbs_only_flag": (0, 1),
+    "mb_adaptive_frame_field_flag": (0, 1), "chroma_format_idc": (0, 3),
+    "bit_depth_luma_minus8": (0, 6), "bit_depth_chroma_minus8": (0, 6),
+    "parse_ok": "bool",
+}
+PPS_FIELDS = {
+    "num_slice_groups_minus1": (0, 7), "entropy_coding_mode_flag": (0, 1),
+    "redundant_pic_cnt_present_flag": (0, 1), "transform_8x8_mode_flag": (0, 1),
+    "parse_ok": "bool",
+}
+SLICE_FIELDS = {
+    "nal_unit_type": (0, 31), "slice_type": "slice", "field_pic_flag": (0, 1),
+    "first_mb_in_slice": (0, 2**32 - 1), "redundant_pic_cnt": (0, 127),
+    "parse_ok": "bool",
+}
+
+
+def validate_inventory(stream, advertised=None):
+    """Require explicit typed evidence; never coerce missing facts to safe values.
+
+    This validates the bounded inventory, not the H.264 bitstream grammar.
+    """
+    if not isinstance(stream, dict):
+        raise FixtureError("stream must be an object")
+    pictures = stream.get("pictures")
+    if not isinstance(pictures, list) or not pictures:
+        raise FixtureError("pictures must be a nonempty list")
+    for index, pic in enumerate(pictures):
+        where = "pictures[%d]" % index
+        if not isinstance(pic, dict) or set(pic) != {"sps", "pps", "slices"}:
+            raise FixtureError(where + ": sps, pps and slices required")
+        _object(pic["sps"], SPS_FIELDS, where + ".sps")
+        _object(pic["pps"], PPS_FIELDS, where + ".pps")
+        if not isinstance(pic["slices"], list) or not pic["slices"]:
+            raise FixtureError(where + ".slices must be nonempty")
+        for sl in pic["slices"]:
+            _object(sl, SLICE_FIELDS, where + ".slice")
+    profiles = stream.get("advertised") if advertised is None else advertised
+    if not isinstance(profiles, (list, tuple)) or any(
+            not isinstance(p, str) or p not in DEFAULT_ADVERTISED for p in profiles):
+        raise FixtureError("advertised must be an explicit list of modelled VA profiles")
+    if len(set(profiles)) != len(profiles):
+        raise FixtureError("duplicate advertised profiles")
+    if "allow_profile_mismatch" in stream and type(stream["allow_profile_mismatch"]) is not bool:
+        raise FixtureError("allow_profile_mismatch must be boolean")
+
+
 def ffmpeg_profile_from_sps(sps):
     """FFmpeg ff_h264_get_profile: 66+constraint_set1 is Constrained Baseline."""
-    if not sps.get("parse_ok", True):
+    if not sps["parse_ok"]:
         return None
     pidc = sps["profile_idc"]
-    cs1 = bool(sps.get("constraint_set1_flag", 0))
+    cs1 = bool(sps["constraint_set1_flag"])
     if pidc == 66:
         return "H264_CONSTRAINED_BASELINE" if cs1 else "H264_BASELINE"
     if pidc == 77:
@@ -94,7 +157,7 @@ def ffmpeg_profile_from_sps(sps):
     if pidc == 100:
         return "H264_HIGH"
     if pidc == 110:
-        intra = bool(sps.get("constraint_set3_flag", 0))
+        intra = bool(sps["constraint_set3_flag"])
         return "H264_HIGH_10_INTRA" if intra else "H264_HIGH_10"
     return "H264_UNKNOWN_%s" % pidc
 
@@ -155,31 +218,44 @@ def _nal_is_partition(nal_unit_type):
 
 def picture_disallowed(picture, checks):
     """Return a feature reason string or None. Does not decode."""
-    sps = picture.get("sps") or {}
-    pps = picture.get("pps") or {}
-    slices = picture.get("slices") or []
+    sps = picture["sps"]
+    pps = picture["pps"]
+    slices = picture["slices"]
     if checks.get("malformed", True):
-        if not sps.get("parse_ok", True) or not pps.get("parse_ok", True):
+        if not sps["parse_ok"] or not pps["parse_ok"]:
             return "malformed_header"
-        if any(not s.get("parse_ok", True) for s in slices):
+        if any(not s["parse_ok"] for s in slices):
             return "malformed_header"
         for s in slices:
             if s.get("slice_type") not in SLICE_TYPE_NAMES:
                 return "malformed_header"
     if checks.get("partitions", True):
         for s in slices:
-            if _nal_is_partition(int(s.get("nal_unit_type", 1))):
+            if _nal_is_partition(s["nal_unit_type"]):
                 return "data_partition"
     if checks.get("fmo", True):
-        if int(pps.get("num_slice_groups_minus1", 0) or 0) > 0:
+        if pps["num_slice_groups_minus1"] > 0:
             return "fmo"
     if checks.get("fields", True):
-        if not int(sps.get("frame_mbs_only_flag", 1)):
+        if not sps["frame_mbs_only_flag"]:
             return "fields"
-        if int(sps.get("mb_adaptive_frame_field_flag", 0) or 0):
+        if sps["mb_adaptive_frame_field_flag"]:
             return "fields"
-        if any(int(s.get("field_pic_flag", 0) or 0) for s in slices):
+        if any(s["field_pic_flag"] for s in slices):
             return "fields"
+    # Additional conservative exclusions; these are proposal policy, not a
+    # claim that hardware cannot implement the excluded syntax.
+    if any(sl["nal_unit_type"] not in (1, 2, 3, 4, 5) for sl in slices):
+        return "unsupported_nal"
+    if pps["redundant_pic_cnt_present_flag"] or any(sl["redundant_pic_cnt"] for sl in slices):
+        return "redundant_picture"
+    starts = [sl["first_mb_in_slice"] for sl in slices]
+    if starts[0] != 0 or any(b <= a for a, b in zip(starts, starts[1:])):
+        return "slice_order"
+    if sps["profile_idc"] in (66, 77, 88) and pps["transform_8x8_mode_flag"]:
+        return "unsupported_transform"
+    if sps["profile_idc"] in (66, 88) and pps["entropy_coding_mode_flag"]:
+        return "unsupported_entropy"
     return None
 
 
@@ -187,6 +263,8 @@ def allowed_slices_for_ff_profile(ff_profile):
     """I/P for Baseline/CB remaps; I/P/B for Main/Extended/High. Never SP/SI."""
     if ff_profile in ("H264_BASELINE", "H264_CONSTRAINED_BASELINE"):
         return SLICE_SET_IP
+    if ff_profile == "H264_HIGH_10_INTRA":
+        return frozenset({"I"})
     return SLICE_SET_IPB
 
 
@@ -212,15 +290,12 @@ def sps_incompatible_with_va(sps, va_profile):
     allowed_ff = VA_PROFILE_ALLOWED_FF.get(va_profile)
     if not allowed_ff or ff not in allowed_ff:
         return "sps_incompatible"
-    luma = int(sps.get("bit_depth_luma_minus8", 0) or 0)
-    chroma_depth = int(sps.get("bit_depth_chroma_minus8", 0) or 0)
+    luma = sps["bit_depth_luma_minus8"]
+    chroma_depth = sps["bit_depth_chroma_minus8"]
     max_depth = VA_PROFILE_MAX_BIT_DEPTH_MINUS8.get(va_profile, 0)
-    if luma > max_depth or chroma_depth > max_depth:
+    if luma != chroma_depth or luma not in (0, 2) or luma > max_depth:
         return "sps_incompatible"
-    chroma = sps.get("chroma_format_idc", 1)
-    if chroma is None:
-        chroma = 1
-    if int(chroma) != 1:
+    if sps["chroma_format_idc"] != 1:
         return "sps_incompatible"
     return None
 
@@ -254,6 +329,7 @@ def proposed_va_for_safe_stream(ff_profile, pictures):
 
 
 def select_current(stream, advertised=None, allow_profile_mismatch=False):
+    validate_inventory(stream, advertised)
     pictures = stream["pictures"]
     if not pictures:
         raise FixtureError("stream has no pictures")
@@ -268,6 +344,7 @@ def select_current(stream, advertised=None, allow_profile_mismatch=False):
 
 
 def select_proposed(stream, advertised=None, checks=None):
+    validate_inventory(stream, advertised)
     pictures = stream["pictures"]
     if not pictures:
         raise FixtureError("stream has no pictures")
@@ -298,7 +375,7 @@ def select_proposed(stream, advertised=None, checks=None):
         if reason:
             return _reject(reason, index)
         if checks.get("slice_types", True):
-            reason = picture_slice_disallowed(picture, ff_profile)
+            reason = picture_slice_disallowed(picture, ffmpeg_profile_from_sps(picture["sps"]))
             if reason:
                 return _reject(reason, index)
     va_profile, why = proposed_va_for_safe_stream(ff_profile, scan)
@@ -306,7 +383,7 @@ def select_proposed(stream, advertised=None, checks=None):
         return _reject(why)
     if checks.get("sps_compat", True):
         for index, picture in enumerate(scan):
-            reason = sps_incompatible_with_va(picture.get("sps") or {}, va_profile)
+            reason = sps_incompatible_with_va(picture["sps"], va_profile)
             if reason:
                 return _reject(reason, index)
     if va_profile not in advertised:
@@ -344,13 +421,8 @@ def run_fixture(doc, checks=None):
     expected = doc.get("expected")
     if not isinstance(expected, dict) or "status" not in expected:
         raise FixtureError("expected.status is required")
-    advertised = doc.get("advertised", list(DEFAULT_ADVERTISED))
+    advertised = doc.get("advertised")
     if path == "current":
-        if doc.get("allow_profile_mismatch") and (
-                checks or DEFAULT_CHECKS).get("forbid_blanket_mismatch", True):
-            # Current path may still *model* mismatch; proposed tests must not
-            # treat it as the recommended default.
-            pass
         got = select_current(doc, advertised=advertised)
     else:
         got = select_proposed(doc, advertised=advertised, checks=checks)

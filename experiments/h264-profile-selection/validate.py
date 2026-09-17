@@ -34,9 +34,23 @@ def fixture_paths():
     return files
 
 
+def unique_object(pairs):
+    obj = {}
+    for key, value in pairs:
+        if key in obj:
+            raise FixtureError("duplicate JSON key: " + key)
+        obj[key] = value
+    return obj
+
+
+def invalid_constant(value):
+    raise FixtureError("non-finite JSON value: " + value)
+
+
 def load_json(path):
     try:
-        return json.loads(Path(path).read_text())
+        return json.loads(Path(path).read_text(), object_pairs_hook=unique_object,
+                          parse_constant=invalid_constant)
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise FixtureError("unreadable or malformed JSON: %s" % type(exc).__name__) from exc
 

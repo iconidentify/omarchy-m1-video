@@ -14,7 +14,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 from selection import (  # noqa: E402
-    SCHEMA, DEFAULT_ADVERTISED, DEFAULT_CHECKS, DRIVER_ADVERTISED,
+    SCHEMA, DEFAULT_ADVERTISED, DEFAULT_CHECKS,
     FFMPEG_COMMIT, DRIVER_COMMIT, FixtureError, run_fixture,
     select_current, select_proposed, vaapi_current_match,
     ffmpeg_profile_from_sps,
@@ -79,8 +79,12 @@ class CurrentRefusal(unittest.TestCase):
         self.assertEqual(result["va_profile"], "VAProfileH264High")
         self.assertEqual(result["reason"], "allow_profile_mismatch")
 
-    def test_driver_advertised_profiles_match_the_stub(self):
-        self.assertEqual(tuple(DRIVER_ADVERTISED), DEFAULT_ADVERTISED)
+    def test_high10_requires_explicit_stub_advertisement(self):
+        case = load("proposed-main-exact.json")
+        case["pictures"][0]["sps"].update(profile_idc=110,
+            bit_depth_luma_minus8=2, bit_depth_chroma_minus8=2)
+        self.assertEqual(select_proposed(case, advertised=DEFAULT_ADVERTISED[:-1])["reason"],
+                         "va_profile_not_advertised")
 
 
 class ProposedRemap(unittest.TestCase):
@@ -149,6 +153,7 @@ class ProposedRejects(unittest.TestCase):
                 case["pictures"][0]["slices"] = [{
                     "nal_unit_type": 1, "slice_type": kind,
                     "field_pic_flag": 0, "parse_ok": True,
+                    "first_mb_in_slice": 0, "redundant_pic_cnt": 0,
                 }]
                 result = select_proposed(case)
                 self.assertEqual(result["status"], "reject")
@@ -247,3 +252,134 @@ class MalformedFixtures(unittest.TestCase):
         self.assertFalse(select_current(stream)["decoded_frame_evidence"])
         mismatch = vaapi_current_match("H264_BASELINE", DEFAULT_ADVERTISED, True)
         self.assertEqual(mismatch["va_profile"], "VAProfileH264High")
+
+
+class AdversarialInventory(unittest.TestCase):
+    def case(self):
+        return load("proposed-mr2.json")
+
+    def test_every_required_field_is_required_on_both_paths(self):
+        original = self.case()
+        for section in ("sps", "pps", "slices"):
+            sample = original["pictures"][0][section]
+            fields = sample[0] if section == "slices" else sample
+            for key in fields:
+                case = copy.deepcopy(original)
+                target = case["pictures"][0][section]
+                if section == "slices":
+                    target = target[0]
+                del target[key]
+                for choose in (select_current, select_proposed):
+                    with self.subTest(section=section, key=key, path=choose.__name__):
+                        with self.assertRaises(FixtureError):
+                            choose(case)
+
+    def test_missing_empty_and_wrong_nested_shapes(self):
+        for key, values in {"sps": [None, [], {}], "pps": [None, [], {}],
+                            "slices": [None, {}, []]}.items():
+            for value in values:
+                case = self.case()
+                case["pictures"][0][key] = value
+                with self.subTest(key=key, value=value), self.assertRaises(FixtureError):
+                    select_proposed(case)
+        for key in ("sps", "pps", "slices"):
+            case = self.case()
+            del case["pictures"][0][key]
+            with self.assertRaises(FixtureError):
+                select_proposed(case)
+
+    def test_no_numeric_or_boolean_coercion(self):
+        for value in (None, True, False, "0", "bad", -1, 7, 0.0):
+            case = self.case()
+            case["pictures"][0]["sps"]["bit_depth_luma_minus8"] = value
+            with self.subTest(value=value), self.assertRaises(FixtureError):
+                select_proposed(case)
+        case = self.case()
+        case["pictures"][0]["pps"]["parse_ok"] = 1
+        with self.assertRaises(FixtureError):
+            select_proposed(case)
+
+    def test_unsupported_depths_and_unequal_planes_reject(self):
+        for luma, chroma in ((1, 1), (3, 3), (2, 0), (0, 2)):
+            case = self.case()
+            case["pictures"][0]["sps"].update(profile_idc=110,
+                bit_depth_luma_minus8=luma, bit_depth_chroma_minus8=chroma)
+            self.assertEqual(select_proposed(case)["reason"], "sps_incompatible")
+
+    def test_cabac_and_high_transform_do_not_remap_baseline_or_extended(self):
+        for profile in (66, 88):
+            for field, reason in (("entropy_coding_mode_flag", "unsupported_entropy"),
+                                  ("transform_8x8_mode_flag", "unsupported_transform")):
+                case = self.case()
+                case["pictures"][0]["sps"]["profile_idc"] = profile
+                case["pictures"][0]["pps"][field] = 1
+                self.assertEqual(select_proposed(case)["reason"], reason)
+
+    def test_redundancy_and_slice_order_reject(self):
+        for target, field, value, reason in (
+                ("pps", "redundant_pic_cnt_present_flag", 1, "redundant_picture"),
+                ("slice", "redundant_pic_cnt", 1, "redundant_picture"),
+                ("slice", "first_mb_in_slice", 10, "slice_order")):
+            case = self.case()
+            pic = case["pictures"][0]
+            obj = pic["slices"][0] if target == "slice" else pic[target]
+            obj[field] = value
+            self.assertEqual(select_proposed(case)["reason"], reason)
+        case = self.case()
+        case["pictures"][0]["slices"][1]["first_mb_in_slice"] = 0
+        self.assertEqual(select_proposed(case)["reason"], "slice_order")
+
+    def test_unknown_and_extension_nals_cannot_masquerade_as_slices(self):
+        for nal in (0, 6, 7, 8, 13, 19, 20, 21, 31):
+            case = self.case()
+            case["pictures"][0]["slices"][0]["nal_unit_type"] = nal
+            self.assertEqual(select_proposed(case)["reason"], "unsupported_nal")
+
+    def test_later_baseline_sps_does_not_inherit_main_b_permission(self):
+        case = load("proposed-ba3.json")
+        later = copy.deepcopy(case["pictures"][0])
+        later["sps"]["profile_idc"] = 66
+        case["pictures"].append(later)
+        self.assertEqual(select_proposed(case)["reason"], "baseline_with_b_slices")
+        self.assertEqual(select_proposed(case)["picture_index"], 1)
+
+    def test_high10_intra_rejects_inter_slices(self):
+        case = self.case()
+        case["pictures"][0]["sps"].update(profile_idc=110, constraint_set3_flag=1,
+            bit_depth_luma_minus8=2, bit_depth_chroma_minus8=2)
+        self.assertEqual(select_proposed(case)["reason"], "disallowed_slice")
+
+    def test_every_picture_checked_for_new_exclusions(self):
+        for field, reason in (("entropy_coding_mode_flag", "unsupported_entropy"),
+                              ("redundant_pic_cnt_present_flag", "redundant_picture")):
+            case = self.case()
+            later = copy.deepcopy(case["pictures"][0])
+            later["pps"][field] = 1
+            case["pictures"].append(later)
+            result = select_proposed(case)
+            self.assertEqual((result["reason"], result["picture_index"]), (reason, 1))
+
+    def test_main_fields_are_only_rejected_by_proposed_path(self):
+        case = load("proposed-main-exact.json")
+        case["pictures"][0]["sps"]["frame_mbs_only_flag"] = 0
+        self.assertEqual(select_current(case)["status"], "select")
+        self.assertEqual(select_proposed(case)["reason"], "fields")
+
+    def test_real_default_capabilities_and_missing_capabilities(self):
+        case = self.case()
+        self.assertEqual(select_proposed(case, advertised=DEFAULT_ADVERTISED[:-1])["status"],
+                         "select")
+        self.assertEqual(select_proposed(case, advertised=[])["reason"], "va_profile_not_advertised")
+        del case["advertised"]
+        with self.assertRaises(FixtureError):
+            select_proposed(case)
+
+    def test_malformed_json_is_rejected(self):
+        import tempfile
+        from validate import load_json
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "fixture.json"
+            for text in ('{"a":1,"a":2}', '{"a":NaN}', '{"a":Infinity}'):
+                path.write_text(text)
+                with self.assertRaises(FixtureError):
+                    load_json(path)

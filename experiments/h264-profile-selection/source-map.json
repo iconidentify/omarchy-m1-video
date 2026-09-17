@@ -8,7 +8,8 @@
       "tag": "n9.0.1",
       "commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
       "files": {
-        "libavcodec/vaapi_decode.c": "vaapi_profile_map and vaapi_decode_make_config exact-match / ALLOW_PROFILE_MISMATCH"
+        "libavcodec/vaapi_decode.c": "vaapi_profile_map and vaapi_decode_make_config exact-match / ALLOW_PROFILE_MISMATCH",
+        "libavcodec/h264_parse.c": "ff_h264_get_profile, lines 533-551"
       }
     },
     "driver": {
@@ -16,14 +17,17 @@
       "ref": "avd-fixes",
       "commit": "b9803ed5290ecb4b48c09482cbc6e943aee08b63",
       "files": {
-        "src/codec_h264.c": "h264_profiles: ConstrainedBaseline, Main, High, High10 — not Baseline or Extended"
+        "src/codec_h264.c": "h264_profiles: ConstrainedBaseline, Main, High, High10 \u2014 not Baseline or Extended",
+        "src/driver.c": "driver_supports_profile: High10 opt-in and detected device support"
       }
     },
     "research": {
       "companion_plan": "docs/plans/issue-10-h264-field-mbaff.md#32-the-other-13-failures-context-outside-this-tickets-scope",
       "codec_status": "docs/CODEC_STATUS.md",
       "driver_syntax": "docs/H264_ADVANCED_SYNTAX.md",
-      "note": "Five-vector feature inventory is taken from those published records. This experiment does not copy ITU/Fluster bitstreams."
+      "note": "Five labels refer to published feature classes. Additional explicit fixture values are synthetic assumptions, not measured vector data.",
+      "companion_commit": "d1ee3c01bcdbd448703f3be82f55c533d0bbd65e",
+      "driver_commit": "b9803ed5290ecb4b48c09482cbc6e943aee08b63"
     }
   },
   "invariants": [
@@ -34,7 +38,8 @@
       "cite": {
         "file": "libavcodec/vaapi_decode.c",
         "lines": "vaapi_profile_map H264 rows",
-        "commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa"
+        "commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
+        "url": "https://github.com/FFmpeg/FFmpeg/blob/bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa/libavcodec/vaapi_decode.c"
       }
     },
     {
@@ -44,17 +49,19 @@
       "cite": {
         "file": "libavcodec/vaapi_decode.c",
         "lines": "vaapi_decode_make_config exact_match / ALLOW_PROFILE_MISMATCH",
-        "commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa"
+        "commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
+        "url": "https://github.com/FFmpeg/FFmpeg/blob/bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa/libavcodec/vaapi_decode.c"
       }
     },
     {
       "id": "driver_does_not_advertise_baseline_extended",
       "kind": "source_observed",
-      "text": "libva-v4l2_request advertises VAProfileH264ConstrainedBaseline/Main/High/High10 only.",
+      "text": "The compiled H.264 profile table has ConstrainedBaseline/Main/High and High10 with sufficiently new libva; driver_supports_profile filters High10 by opt-in and device support. No whole Baseline or Extended advertisement.",
       "cite": {
         "file": "src/codec_h264.c",
         "lines": "h264_profiles",
-        "commit": "b9803ed5290ecb4b48c09482cbc6e943aee08b63"
+        "commit": "b9803ed5290ecb4b48c09482cbc6e943aee08b63",
+        "url": "https://github.com/iconidentify/libva-v4l2_request/blob/b9803ed5290ecb4b48c09482cbc6e943aee08b63/src/codec_h264.c"
       }
     },
     {
@@ -63,16 +70,20 @@
       "text": "FMO is declared in PPS num_slice_groups_minus1. An SPS-only detector cannot find it. FM1_FT_E introduces a later PPS with one extra slice group.",
       "cite": {
         "file": "docs/H264_ADVANCED_SYNTAX.md",
-        "lines": "Client visibility / FM1_FT_E"
+        "lines": "Client visibility / FM1_FT_E",
+        "commit": "b9803ed5290ecb4b48c09482cbc6e943aee08b63",
+        "url": "https://github.com/iconidentify/libva-v4l2_request/blob/b9803ed5290ecb4b48c09482cbc6e943aee08b63/docs/H264_ADVANCED_SYNTAX.md"
       }
     },
     {
       "id": "five_override_vectors_are_plain_slices",
       "kind": "source_observed",
-      "text": "BA3_SVA_C (Extended, I/P/B, frame_mbs_only=1, no FMO) and MR2–MR5_TANDBERG (Baseline, I/P, frame_mbs_only=1, no FMO) are the profile-override class. Hardware checksums for those five stay in parent #37.",
+      "text": "BA3_SVA_C (Extended, I/P/B, frame_mbs_only=1, no FMO) and MR2\u2013MR5_TANDBERG (Baseline, I/P, frame_mbs_only=1, no FMO) are the profile-override class. Hardware checksums for those five stay in parent #37.",
       "cite": {
         "file": "docs/plans/issue-10-h264-field-mbaff.md",
-        "lines": "section 3.2"
+        "lines": "section 3.2",
+        "commit": "d1ee3c01bcdbd448703f3be82f55c533d0bbd65e",
+        "url": "https://github.com/iconidentify/omarchy-m1-video/blob/d1ee3c01bcdbd448703f3be82f55c533d0bbd65e/docs/plans/issue-10-h264-field-mbaff.md"
       }
     },
     {
@@ -88,12 +99,18 @@
     {
       "id": "remap_slice_sets_exclude_sp_si",
       "kind": "proposed_contract",
-      "text": "Baseline→Constrained Baseline allows I/P only. Extended→Main allows I/P/B only. SP and SI slices are outside every advertised subset and reject before the remap."
+      "text": "Baseline\u2192Constrained Baseline allows I/P only. Extended\u2192Main allows I/P/B only. SP and SI slices are outside every advertised subset and reject before the remap."
     },
     {
       "id": "installed_va_config_is_profile_id_only",
       "kind": "proposed_contract",
-      "text": "VA CreateConfig takes a VAProfile, not a feature inventory. FFmpeg decides the profile before later PPS changes. The installed client API cannot express this remap safely without a local FFmpeg change that inspects SPS+PPS and re-checks on parameter-set change."
+      "text": "Installed profile/mismatch configuration cannot express this proposed inventory contract. A local client needs validation of active SPS/PPS and every slice before each picture submission, plus explicit rejection/recovery on any unsupported change."
     }
-  ]
+  ],
+  "source_files_reviewed_sha256": {
+    "FFmpeg/FFmpeg:libavcodec/vaapi_decode.c": "dd9db7f515923d288935af0620498cea97054561bce67a7e797d3facc5764586",
+    "FFmpeg/FFmpeg:libavcodec/h264_parse.c": "6da29f6f210cb787b5aa2fd4550a17580669db5a458f315b6c428b7cec8a34c3",
+    "iconidentify/libva-v4l2_request:src/codec_h264.c": "e71a7be5c5e2a68eff7ba066561cf20b9d03aa39ddad62adc946ce72da654d46",
+    "iconidentify/libva-v4l2_request:src/driver.c": "0a6c973c87e360503de2b2de922d8938c539e9cda384a4eb72a152c260d69c4a"
+  }
 }
