@@ -1,0 +1,854 @@
+{
+  "set_scaling_lists": {
+    "first_line": 141,
+    "last_line": 212,
+    "members": [
+      "scaling_list_16x16",
+      "scaling_list_32x32",
+      "scaling_list_4x4",
+      "scaling_list_8x8",
+      "scaling_list_dc_coef_16x16",
+      "scaling_list_dc_coef_32x32",
+      "scaling_matrix"
+    ],
+    "reads": {
+      "run->scaling_matrix": [
+        143
+      ],
+      "s->scaling_list_dc_coef_16x16": [
+        146
+      ],
+      "s->scaling_list_4x4": [
+        147
+      ],
+      "s->scaling_list_8x8": [
+        148
+      ],
+      "s->scaling_list_16x16": [
+        149
+      ],
+      "s->scaling_list_32x32": [
+        150
+      ],
+      "s->scaling_list_dc_coef_32x32[i]": [
+        165
+      ]
+    },
+    "calls": [
+      "AVD_SCALING_I0",
+      "AVD_SCALING_I1",
+      "AVD_SCALING_I2",
+      "AVD_SCALING_I3",
+      "push",
+      "u8"
+    ],
+    "flags": []
+  },
+  "hevc_set_flags": {
+    "first_line": 214,
+    "last_line": 287,
+    "members": [
+      "decode",
+      "diff_cu_qp_delta_depth",
+      "flags",
+      "log2_diff_max_min_luma_coding_block_size",
+      "log2_diff_max_min_pcm_luma_coding_block_size",
+      "log2_min_luma_coding_block_size_minus3",
+      "log2_min_pcm_luma_coding_block_size_minus3",
+      "log2_parallel_merge_level_minus2",
+      "pcm_sample_bit_depth_chroma_minus1",
+      "pcm_sample_bit_depth_luma_minus1",
+      "pps",
+      "pps_cb_qp_offset",
+      "pps_cr_qp_offset",
+      "sps"
+    ],
+    "reads": {
+      "run->decode": [
+        216
+      ],
+      "run->sps": [
+        217
+      ],
+      "run->pps": [
+        218
+      ],
+      "sps->log2_min_luma_coding_block_size_minus3": [
+        220
+      ],
+      "sps->log2_diff_max_min_luma_coding_block_size": [
+        221
+      ],
+      "sps->flags": [
+        223,
+        239,
+        270
+      ],
+      "sps->pcm_sample_bit_depth_luma_minus1": [
+        224
+      ],
+      "sps->pcm_sample_bit_depth_chroma_minus1": [
+        226
+      ],
+      "sps->log2_min_pcm_luma_coding_block_size_minus3": [
+        228,
+        231
+      ],
+      "sps->log2_diff_max_min_pcm_luma_coding_block_size": [
+        230
+      ],
+      "pps->log2_parallel_merge_level_minus2": [
+        244
+      ],
+      "pps->flags": [
+        246,
+        248,
+        251,
+        256,
+        259,
+        262,
+        265
+      ],
+      "pps->diff_cu_qp_delta_depth": [
+        254
+      ],
+      "decode->flags": [
+        268
+      ],
+      "pps->pps_cb_qp_offset": [
+        274
+      ],
+      "pps->pps_cr_qp_offset": [
+        275
+      ]
+    },
+    "calls": [
+      "AVD_HDR_H26X_QP_OFFSET_CB",
+      "AVD_HDR_H26X_QP_OFFSET_CR",
+      "HEVC_CTB_SIZE",
+      "HEVC_CU_QP_DD",
+      "HEVC_FLAG_CI_PRED",
+      "HEVC_FLAG_CU_QP_EN",
+      "HEVC_FLAG_ENTROPY_EN",
+      "HEVC_FLAG_SDH_EN",
+      "HEVC_FLAG_TILES_EN",
+      "HEVC_FLAG_TMVP_EN",
+      "HEVC_FLAG_TQB_EN",
+      "HEVC_FLAG_TSKIP_EN",
+      "HEVC_MERGE_LV",
+      "HEVC_PCM_BD_CHROMA",
+      "HEVC_PCM_BD_LUMA",
+      "HEVC_PCM_CB_LUMA",
+      "HEVC_PCM_CB_MIN_LUMA",
+      "HEVC_PCM_EN",
+      "HEVC_UNK_ISM_EN",
+      "push"
+    ],
+    "flags": [
+      "V4L2_HEVC_DECODE_PARAM_FLAG_IDR_PIC",
+      "V4L2_HEVC_PPS_FLAG_CONSTRAINED_INTRA_PRED",
+      "V4L2_HEVC_PPS_FLAG_CU_QP_DELTA_ENABLED",
+      "V4L2_HEVC_PPS_FLAG_ENTROPY_CODING_SYNC_ENABLED",
+      "V4L2_HEVC_PPS_FLAG_SIGN_DATA_HIDING_ENABLED",
+      "V4L2_HEVC_PPS_FLAG_TILES_ENABLED",
+      "V4L2_HEVC_PPS_FLAG_TRANSFORM_SKIP_ENABLED",
+      "V4L2_HEVC_PPS_FLAG_TRANSQUANT_BYPASS_ENABLED",
+      "V4L2_HEVC_SPS_FLAG_PCM_ENABLED",
+      "V4L2_HEVC_SPS_FLAG_SPS_TEMPORAL_MVP_ENABLED",
+      "V4L2_HEVC_SPS_FLAG_STRONG_INTRA_SMOOTHING_ENABLED"
+    ]
+  },
+  "set_header": {
+    "first_line": 289,
+    "last_line": 390,
+    "members": [
+      "avd.variant",
+      "base",
+      "bit_depth_chroma_minus8",
+      "bit_depth_luma_minus8",
+      "chroma_format_idc",
+      "ctx.decoded_fmt",
+      "ctx.decomp",
+      "flags",
+      "log2_diff_max_min_luma_coding_block_size",
+      "log2_diff_max_min_luma_transform_block_size",
+      "log2_min_luma_coding_block_size_minus3",
+      "log2_min_luma_transform_block_size_minus2",
+      "max_transform_hierarchy_depth_inter",
+      "max_transform_hierarchy_depth_intra",
+      "pic_height_in_luma_samples",
+      "pic_width_in_luma_samples",
+      "slice_type",
+      "sps"
+    ],
+    "reads": {
+      "run->sps": [
+        291
+      ],
+      "ctx->dev": [
+        292
+      ],
+      "ctx->priv": [
+        293
+      ],
+      "sps->pic_width_in_luma_samples": [
+        295
+      ],
+      "sps->pic_height_in_luma_samples": [
+        296
+      ],
+      "run->sl[0].slice_type": [
+        298
+      ],
+      "ctx->decomp": [
+        300
+      ],
+      "avd->variant": [
+        303,
+        340,
+        346,
+        352,
+        354,
+        372
+      ],
+      "sps->chroma_format_idc": [
+        315
+      ],
+      "sps->bit_depth_chroma_minus8": [
+        316
+      ],
+      "sps->bit_depth_luma_minus8": [
+        317
+      ],
+      "sps->log2_min_luma_coding_block_size_minus3": [
+        319,
+        322
+      ],
+      "sps->log2_diff_max_min_luma_coding_block_size": [
+        321
+      ],
+      "sps->log2_min_luma_transform_block_size_minus2": [
+        324,
+        327
+      ],
+      "sps->log2_diff_max_min_luma_transform_block_size": [
+        326
+      ],
+      "sps->max_transform_hierarchy_depth_inter": [
+        329
+      ],
+      "sps->max_transform_hierarchy_depth_intra": [
+        331
+      ],
+      "sps->flags": [
+        332,
+        386
+      ],
+      "run->base.comp_out": [
+        367
+      ],
+      "ctx->comp.offsets": [
+        367
+      ],
+      "ctx->decoded_fmt.fmt.pix_mp.plane_fmt": [
+        371
+      ],
+      "run->base.y_out": [
+        375
+      ],
+      "run->base.uv_out": [
+        377
+      ]
+    },
+    "calls": [
+      "AVD_HDR_CODEC_MODE",
+      "AVD_HDR_COMMON_BIT_DEPTH_C",
+      "AVD_HDR_COMMON_BIT_DEPTH_L",
+      "AVD_HDR_COMMON_CHROMA_FORMAT",
+      "AVD_HDR_COMMON_FLAG0",
+      "AVD_HDR_COMMON_LUMA_CBS",
+      "AVD_HDR_COMMON_LUMA_TBS",
+      "AVD_HDR_COMMON_MIN_LUMA_CBS",
+      "AVD_HDR_COMMON_MIN_LUMA_TBS",
+      "AVD_HDR_COMMON_TR_INTER",
+      "AVD_HDR_COMMON_TR_INTRA",
+      "AVD_HDR_FEAT_PIPE_STATE_EN",
+      "AVD_HDR_HEIGHT",
+      "AVD_HDR_WIDTH",
+      "AVD_OP_HDR_FLAG_DECOMP",
+      "AVD_OP_HDR_FLAG_INTRA",
+      "AVD_OP_HDR_FLAG_PIPE_STATE",
+      "hevc_set_flags",
+      "push",
+      "push_comp",
+      "pusha",
+      "set_scaling_lists",
+      "stream_refs"
+    ],
+    "flags": [
+      "V4L2_HEVC_SLICE_TYPE_I",
+      "V4L2_HEVC_SPS_FLAG_AMP_ENABLED",
+      "V4L2_HEVC_SPS_FLAG_SCALING_LIST_ENABLED"
+    ]
+  },
+  "stream_weights": {
+    "first_line": 392,
+    "last_line": 491,
+    "members": [
+      "chroma_offset_l0",
+      "chroma_offset_l1",
+      "delta_chroma_log2_weight_denom",
+      "delta_chroma_weight_l0",
+      "delta_chroma_weight_l1",
+      "delta_luma_weight_l0",
+      "delta_luma_weight_l1",
+      "flags",
+      "luma_log2_weight_denom",
+      "luma_offset_l0",
+      "luma_offset_l1",
+      "num_ref_idx_l0_active_minus1",
+      "num_ref_idx_l1_active_minus1",
+      "pps",
+      "pred_weight_table",
+      "slice_type"
+    ],
+    "reads": {
+      "run->pps": [
+        397
+      ],
+      "sl->pred_weight_table": [
+        398
+      ],
+      "pps->flags": [
+        400,
+        402
+      ],
+      "sl->slice_type": [
+        401,
+        403,
+        430
+      ],
+      "pred->luma_log2_weight_denom": [
+        415,
+        420,
+        424
+      ],
+      "pred->delta_chroma_log2_weight_denom": [
+        416
+      ],
+      "pred->luma_offset_l0": [
+        432
+      ],
+      "pred->luma_offset_l1": [
+        433
+      ],
+      "pred->delta_luma_weight_l0": [
+        435
+      ],
+      "pred->delta_luma_weight_l1": [
+        436
+      ],
+      "pred->chroma_offset_l0": [
+        437
+      ],
+      "pred->chroma_offset_l1": [
+        438
+      ],
+      "pred->delta_chroma_weight_l0": [
+        440
+      ],
+      "pred->delta_chroma_weight_l1": [
+        441
+      ],
+      "sl->num_ref_idx_l0_active_minus1": [
+        443
+      ],
+      "sl->num_ref_idx_l1_active_minus1": [
+        444
+      ]
+    },
+    "calls": [
+      "AVD_OP_OFFSETS_OFFSET",
+      "AVD_OP_WEIGHTS_HDR_CHROMA",
+      "AVD_OP_WEIGHTS_HDR_FLAG0",
+      "AVD_OP_WEIGHTS_HDR_FLAG1",
+      "AVD_OP_WEIGHTS_HDR_LUMA",
+      "AVD_OP_WEIGHTS_IDENT",
+      "AVD_OP_WEIGHTS_INDEX",
+      "AVD_OP_WEIGHTS_LIST_IDX",
+      "AVD_OP_WEIGHTS_WEIGHT",
+      "push",
+      "s8"
+    ],
+    "flags": [
+      "V4L2_HEVC_PPS_FLAG_WEIGHTED_BIPRED",
+      "V4L2_HEVC_PPS_FLAG_WEIGHTED_PRED",
+      "V4L2_HEVC_SLICE_TYPE_B",
+      "V4L2_HEVC_SLICE_TYPE_P"
+    ]
+  },
+  "stream_slice_dqtblk": {
+    "first_line": 493,
+    "last_line": 559,
+    "members": [
+      "flags",
+      "init_qp_minus26",
+      "num_ref_idx_l0_active_minus1",
+      "num_ref_idx_l1_active_minus1",
+      "pps",
+      "pps_cb_qp_offset",
+      "pps_cr_qp_offset",
+      "ref_idx_l0",
+      "ref_idx_l1",
+      "slice_beta_offset_div2",
+      "slice_cb_qp_offset",
+      "slice_cr_qp_offset",
+      "slice_qp_delta",
+      "slice_tc_offset_div2",
+      "slice_type",
+      "sps"
+    ],
+    "reads": {
+      "run->pps": [
+        496
+      ],
+      "run->sps": [
+        497
+      ],
+      "pps->init_qp_minus26": [
+        500
+      ],
+      "sl->slice_qp_delta": [
+        501
+      ],
+      "pps->pps_cb_qp_offset": [
+        502
+      ],
+      "sl->slice_cb_qp_offset": [
+        503
+      ],
+      "pps->pps_cr_qp_offset": [
+        504
+      ],
+      "sl->slice_cr_qp_offset": [
+        505
+      ],
+      "sl->flags": [
+        510,
+        513,
+        519,
+        523,
+        529
+      ],
+      "sl->slice_tc_offset_div2": [
+        515
+      ],
+      "sl->slice_beta_offset_div2": [
+        516
+      ],
+      "sps->flags": [
+        521,
+        536,
+        537
+      ],
+      "pps->flags": [
+        525,
+        532,
+        533
+      ],
+      "sl->slice_type": [
+        541,
+        542,
+        548
+      ],
+      "sl->num_ref_idx_l0_active_minus1": [
+        543
+      ],
+      "sl->ref_idx_l0[i]": [
+        546
+      ],
+      "sl->num_ref_idx_l1_active_minus1": [
+        550
+      ],
+      "sl->ref_idx_l1[i]": [
+        554
+      ]
+    },
+    "calls": [
+      "AVD_OP_DBLK_FLAG_EN",
+      "AVD_OP_DBLK_FLAG_FULL_EN",
+      "AVD_OP_DBLK_FLAG_PCM_EN",
+      "AVD_OP_DBLK_FLAG_SAO_CHROMA",
+      "AVD_OP_DBLK_FLAG_SAO_LUMA",
+      "AVD_OP_DBLK_FLAG_TILES_EN",
+      "AVD_OP_DBLK_OFF0",
+      "AVD_OP_DBLK_OFF1",
+      "AVD_OP_QP_CB_OFF",
+      "AVD_OP_QP_CR_OFF",
+      "AVD_OP_QP_VAL",
+      "AVD_OP_REF_DBP_IDX",
+      "AVD_OP_REF_LIST_IDX",
+      "AVD_OP_REF_LOOP_IDX",
+      "push",
+      "stream_weights"
+    ],
+    "flags": [
+      "V4L2_HEVC_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT",
+      "V4L2_HEVC_PPS_FLAG_DEBLOCKING_FILTER_OVERRIDE_ENABLED",
+      "V4L2_HEVC_PPS_FLAG_LOOP_FILTER_ACROSS_TILES_ENABLED",
+      "V4L2_HEVC_PPS_FLAG_TILES_ENABLED",
+      "V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_DEBLOCKING_FILTER_DISABLED",
+      "V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_LOOP_FILTER_ACROSS_SLICES_ENABLED",
+      "V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_SAO_CHROMA",
+      "V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_SAO_LUMA",
+      "V4L2_HEVC_SLICE_TYPE_B",
+      "V4L2_HEVC_SLICE_TYPE_P",
+      "V4L2_HEVC_SPS_FLAG_PCM_ENABLED",
+      "V4L2_HEVC_SPS_FLAG_PCM_LOOP_FILTER_DISABLED",
+      "V4L2_HEVC_SPS_FLAG_STRONG_INTRA_SMOOTHING_ENABLED"
+    ]
+  },
+  "set_slice": {
+    "first_line": 632,
+    "last_line": 642,
+    "members": [
+      "base",
+      "data_byte_offset"
+    ],
+    "reads": {
+      "run->base.coded_in": [
+        637
+      ],
+      "sl->data_byte_offset": [
+        637
+      ]
+    },
+    "calls": [
+      "AVD_OP_CODED_DATA_ADDR",
+      "push"
+    ],
+    "flags": []
+  },
+  "submit_slice_segment": {
+    "first_line": 644,
+    "last_line": 707,
+    "members": [
+      "flags",
+      "pps",
+      "slice_segment_addr"
+    ],
+    "reads": {
+      "run->pps": [
+        652
+      ],
+      "sl->slice_segment_addr": [
+        656,
+        657
+      ],
+      "sl->flags": [
+        661
+      ],
+      "pps->flags": [
+        684
+      ]
+    },
+    "calls": [
+      "AVD_OP_SL_LOC_X",
+      "AVD_OP_SL_LOC_Y",
+      "AVD_SL_DIM_END_COL",
+      "AVD_SL_DIM_END_ROW",
+      "AVD_SL_DIM_END_X",
+      "AVD_SL_DIM_END_Y",
+      "push",
+      "stream_slice_dqtblk",
+      "stream_slice_mv"
+    ],
+    "flags": [
+      "V4L2_HEVC_PPS_FLAG_TILES_ENABLED",
+      "V4L2_HEVC_SLICE_PARAMS_FLAG_DEPENDENT_SLICE_SEGMENT"
+    ]
+  },
+  "stream_slices": {
+    "first_line": 822,
+    "last_line": 971,
+    "members": [
+      "bit_size",
+      "data_byte_offset",
+      "entry_point_offsets",
+      "flags",
+      "log2_diff_max_min_luma_coding_block_size",
+      "log2_min_luma_coding_block_size_minus3",
+      "num_entry_point_offsets",
+      "num_slices",
+      "num_tile_columns_minus1",
+      "pic_height_in_luma_samples",
+      "pic_width_in_luma_samples",
+      "pps",
+      "sl",
+      "slice_segment_addr",
+      "sps",
+      "tile_info"
+    ],
+    "reads": {
+      "run->sps": [
+        824
+      ],
+      "run->pps": [
+        825
+      ],
+      "ctx->priv": [
+        826
+      ],
+      "run->tile_info": [
+        828
+      ],
+      "sps->pic_width_in_luma_samples": [
+        843
+      ],
+      "sps->pic_height_in_luma_samples": [
+        844
+      ],
+      "pps->flags": [
+        846
+      ],
+      "sps->log2_min_luma_coding_block_size_minus3": [
+        848
+      ],
+      "pps->num_tile_columns_minus1": [
+        850
+      ],
+      "sps->log2_diff_max_min_luma_coding_block_size": [
+        852
+      ],
+      "run->num_slices": [
+        857
+      ],
+      "run->sl[s]": [
+        858
+      ],
+      "sl->num_entry_point_offsets": [
+        860,
+        862,
+        867,
+        877
+      ],
+      "run->num_entry_point_offsets": [
+        863,
+        866
+      ],
+      "ctx->dev": [
+        864
+      ],
+      "ctx->job.num": [
+        874
+      ],
+      "run->entry_point_offsets[entry_point_idx++]": [
+        878
+      ],
+      "sl->bit_size": [
+        882,
+        889,
+        965
+      ],
+      "sl->data_byte_offset": [
+        883,
+        886,
+        890,
+        891
+      ],
+      "sl->slice_segment_addr": [
+        896
+      ],
+      "run->sl[s-1].slice_segment_addr": [
+        902
+      ],
+      "sl->flags": [
+        949
+      ]
+    },
+    "calls": [
+      "dev_err",
+      "set_slice",
+      "submit_slice_segment"
+    ],
+    "flags": [
+      "V4L2_HEVC_PPS_FLAG_TILES_ENABLED",
+      "V4L2_HEVC_SLICE_PARAMS_FLAG_DEPENDENT_SLICE_SEGMENT"
+    ]
+  },
+  "compute_tiles_uniform": {
+    "first_line": 709,
+    "last_line": 728,
+    "members": [
+      "num_tile_columns_minus1",
+      "num_tile_rows_minus1",
+      "pps"
+    ],
+    "reads": {
+      "run->pps": [
+        714
+      ],
+      "pps->num_tile_columns_minus1": [
+        717,
+        719,
+        721
+      ],
+      "pps->num_tile_rows_minus1": [
+        723,
+        725,
+        727
+      ]
+    },
+    "calls": [],
+    "flags": []
+  },
+  "compute_tiles_non_uniform": {
+    "first_line": 730,
+    "last_line": 752,
+    "members": [
+      "column_width_minus1",
+      "num_tile_columns_minus1",
+      "num_tile_rows_minus1",
+      "pps",
+      "row_height_minus1"
+    ],
+    "reads": {
+      "run->pps": [
+        736
+      ],
+      "pps->num_tile_columns_minus1": [
+        740
+      ],
+      "pps->column_width_minus1[i]": [
+        741
+      ],
+      "pps->num_tile_rows_minus1": [
+        747
+      ],
+      "pps->row_height_minus1[i]": [
+        748
+      ]
+    },
+    "calls": [],
+    "flags": []
+  },
+  "compute_bd": {
+    "first_line": 754,
+    "last_line": 765,
+    "members": [
+      "num_tile_columns_minus1",
+      "num_tile_rows_minus1",
+      "pps"
+    ],
+    "reads": {
+      "run->pps": [
+        757
+      ],
+      "pps->num_tile_columns_minus1": [
+        760
+      ],
+      "pps->num_tile_rows_minus1": [
+        763
+      ]
+    },
+    "calls": [],
+    "flags": []
+  },
+  "compute_rs_to_ts": {
+    "first_line": 767,
+    "last_line": 796,
+    "members": [
+      "num_tile_columns_minus1",
+      "num_tile_rows_minus1",
+      "pps"
+    ],
+    "reads": {
+      "run->pps": [
+        772
+      ],
+      "pps->num_tile_columns_minus1": [
+        779
+      ],
+      "pps->num_tile_rows_minus1": [
+        782
+      ]
+    },
+    "calls": [],
+    "flags": []
+  },
+  "compute_tile_ids": {
+    "first_line": 798,
+    "last_line": 812,
+    "members": [
+      "num_tile_columns_minus1",
+      "num_tile_rows_minus1",
+      "pps"
+    ],
+    "reads": {
+      "run->pps": [
+        802
+      ],
+      "pps->num_tile_rows_minus1": [
+        805
+      ],
+      "pps->num_tile_columns_minus1": [
+        806
+      ]
+    },
+    "calls": [],
+    "flags": []
+  },
+  "avd_hevc_compute_tiles": {
+    "first_line": 1160,
+    "last_line": 1235,
+    "members": [
+      "flags",
+      "log2_diff_max_min_luma_coding_block_size",
+      "log2_min_luma_coding_block_size_minus3",
+      "pic_height_in_luma_samples",
+      "pic_width_in_luma_samples",
+      "pps",
+      "sps",
+      "tile_info"
+    ],
+    "reads": {
+      "run->sps": [
+        1162
+      ],
+      "run->pps": [
+        1163
+      ],
+      "run->tile_info": [
+        1165
+      ],
+      "sps->pic_width_in_luma_samples": [
+        1170
+      ],
+      "sps->pic_height_in_luma_samples": [
+        1171
+      ],
+      "sps->log2_min_luma_coding_block_size_minus3": [
+        1173
+      ],
+      "sps->log2_diff_max_min_luma_coding_block_size": [
+        1175
+      ],
+      "pps->flags": [
+        1181,
+        1195
+      ]
+    },
+    "calls": [
+      "compute_bd",
+      "compute_rs_to_ts",
+      "compute_tile_ids",
+      "compute_tiles_non_uniform",
+      "compute_tiles_uniform",
+      "kzalloc"
+    ],
+    "flags": [
+      "V4L2_HEVC_PPS_FLAG_TILES_ENABLED",
+      "V4L2_HEVC_PPS_FLAG_UNIFORM_SPACING"
+    ]
+  }
+}

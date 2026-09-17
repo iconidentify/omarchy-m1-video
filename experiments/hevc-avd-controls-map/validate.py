@@ -13,6 +13,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -23,7 +24,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from inventory import BINDINGS, CLASSES, SCHEMA, document  # noqa: E402
-from scan import TARGETS, scan  # noqa: E402
+from scan import TARGETS, scan, coverage  # noqa: E402
 
 
 def inventory_path():
@@ -44,30 +45,56 @@ def all_members(fields):
     return {row["member"] for row in fields if row.get("member")}
 
 
-def compare_source(hevc: Path, fields):
+def compare_source(hevc: Path, fields, check_hash=True):
+    if check_hash:
+        expected=json.loads((HERE/'source-map.json').read_text())['patched_avd_hevc_c']['sha256']
+        if hashlib.sha256(hevc.read_bytes()).hexdigest()!=expected:
+            raise ValueError('source is not the pinned 15-patch HEVC file')
     observed = scan(hevc)
-    accounted = all_members(fields)
     leftover = {}
     covered = {row["function"] for row in fields}
     missing_fn = [name for name in TARGETS if name not in covered]
     if missing_fn:
         leftover["functions"] = missing_fn
     for name in TARGETS:
+        accounted = all_members([row for row in fields if row['function']==name])
         got = set(observed[name]) - BINDINGS
         extra = sorted(got - accounted)
         if extra:
             leftover[name] = dict(unaccounted=extra, observed=sorted(got))
+    committed=json.loads((HERE/'source-coverage.json').read_text())
+    actual=coverage(hevc.read_text())
+    if actual!=committed:
+        leftover['exact_source_reads_calls_flags_locations']='differ from reviewed coverage'
     return leftover
 
 
+def check_inventory():
+    doc=load_inventory(); ids=[f['id'] for f in doc['fields']]
+    if doc['schema']!=SCHEMA or len(ids)!=len(set(ids)):
+        raise ValueError('invalid inventory identity')
+    cov=json.loads((HERE/'source-coverage.json').read_text())
+    for row in doc['fields']:
+        if row['function'] not in TARGETS or row['klass'] not in CLASSES:
+            raise ValueError('invalid classification/function')
+        if row['member'] and row['member'] not in cov[row['function']]['members']:
+            raise ValueError('field not read in named function: '+row['id'])
+        for key in ('activation','derivation','locations'):
+            if not row.get(key): raise ValueError('missing field interpretation')
+    for name in TARGETS:
+        if set(cov[name]['members'])-BINDINGS-all_members([r for r in doc['fields'] if r['function']==name]):
+            raise ValueError('unaccounted function-local read: '+name)
+
+
 def compile_packing():
-    binary = Path(tempfile.mkdtemp()) / "packing"
-    subprocess.run(
-        ["cc", "-O0", "-Wall", "-Werror", "-o", str(binary), str(HERE / "packing.c")],
-        check=True, timeout=30,
-    )
-    out = subprocess.run([str(binary)], check=True, capture_output=True, text=True, timeout=30)
-    return out.stdout
+    with tempfile.TemporaryDirectory() as temp:
+        binary = Path(temp) / "packing"
+        subprocess.run(
+            ["cc", "-O0", "-Wall", "-Werror", "-fsanitize=undefined", "-fno-sanitize-recover=all", "-o", str(binary), str(HERE / "packing.c")],
+            check=True, timeout=30,
+        )
+        out = subprocess.run([str(binary)], check=True, capture_output=True, text=True, timeout=30)
+        return out.stdout
 
 
 def public_window_facts():
@@ -99,6 +126,7 @@ def main(argv=None):
         result = unittest.TextTestRunner(verbosity=1).run(suite)
         return 0 if result.wasSuccessful() else 1
     doc = load_inventory()
+    check_inventory()
     if doc.get("schema") != SCHEMA:
         print("bad schema", file=sys.stderr)
         return 2
