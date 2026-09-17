@@ -1,0 +1,57 @@
+{
+  "schema": "omarchy-m1-video.h264-profile-selection/1",
+  "id": "current-main-exact",
+  "path": "current",
+  "classification": "ordinary_supported",
+  "vector_label": "synthetic-main-progressive",
+  "provenance": "synthetic; not a corpus bitstream",
+  "advertised": [
+    "VAProfileH264ConstrainedBaseline",
+    "VAProfileH264Main",
+    "VAProfileH264High",
+    "VAProfileH264High10"
+  ],
+  "allow_profile_mismatch": false,
+  "expected": {
+    "status": "select",
+    "va_profile": "VAProfileH264Main",
+    "reason": "exact_profile_match"
+  },
+  "pictures": [
+    {
+      "sps": {
+        "profile_idc": 77,
+        "constraint_set1_flag": 0,
+        "frame_mbs_only_flag": 1,
+        "mb_adaptive_frame_field_flag": 0,
+        "chroma_format_idc": 1,
+        "bit_depth_luma_minus8": 0,
+        "parse_ok": true
+      },
+      "pps": {
+        "num_slice_groups_minus1": 0,
+        "parse_ok": true
+      },
+      "slices": [
+        {
+          "nal_unit_type": 5,
+          "slice_type": "I",
+          "field_pic_flag": 0,
+          "parse_ok": true
+        },
+        {
+          "nal_unit_type": 1,
+          "slice_type": "P",
+          "field_pic_flag": 0,
+          "parse_ok": true
+        },
+        {
+          "nal_unit_type": 1,
+          "slice_type": "B",
+          "field_pic_flag": 0,
+          "parse_ok": true
+        }
+      ]
+    }
+  ]
+}

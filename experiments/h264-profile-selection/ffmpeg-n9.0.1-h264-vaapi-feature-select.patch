@@ -1,0 +1,45 @@
+From: z23 <3616196+z23@users.noreply.github.com>
+Subject: [PATCH] vaapi: refuse H.264 Baseline/Extended mismatch without a feature remap
+
+This is a local sketch against FFmpeg n9.0.1
+bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa for omarchy-m1-video#41.
+
+It is NOT applied to any installed FFmpeg, NOT a package default, and NOT
+an upstream submission. The executable contract lives in
+experiments/h264-profile-selection/ (Python prototype). VA-API CreateConfig
+still cannot carry a feature inventory; this patch only documents where a
+client would have to refuse the blanket ALLOW_PROFILE_MISMATCH path for
+H.264 Baseline/Extended and why a real remap needs SPS+PPS inspection
+outside this file.
+
+See experiments/h264-profile-selection/README.md.
+
+diff --git a/libavcodec/vaapi_decode.c b/libavcodec/vaapi_decode.c
+index 0000000..1111111 100644
+--- a/libavcodec/vaapi_decode.c
++++ b/libavcodec/vaapi_decode.c
+@@ -432,6 +432,24 @@ static int vaapi_decode_make_config(AVCodecContext *avctx,
+     }
+     if (!exact_match) {
+         if (avctx->hwaccel_flags &
+             AV_HWACCEL_FLAG_ALLOW_PROFILE_MISMATCH) {
++            /* omarchy-m1-video#41: for H.264, this flag does not select a
++             * Constrained-Baseline or Main subset. On a driver that
++             * advertises High, the existing loop keeps VAProfileH264High.
++             * That is unsafe for FMO/field/partition Baseline streams and
++             * must not become a user default. A feature-aware remap needs
++             * SPS+PPS (FMO is PPS-only) plus a re-check when a later
++             * parameter set introduces unsupported syntax. That inventory
++             * is not available in this function; do not add Baseline or
++             * Extended rows to vaapi_profile_map without it. */
++            if (avctx->codec_id == AV_CODEC_ID_H264 &&
++                (avctx->profile == AV_PROFILE_H264_BASELINE ||
++                 avctx->profile == AV_PROFILE_H264_EXTENDED)) {
++                av_log(avctx, AV_LOG_VERBOSE,
++                       "H.264 profile %d is not a mapped VA profile; "
++                       "allow_profile_mismatch is not a feature-safe remap.\n",
++                       avctx->profile);
++            }
+             av_log(avctx, AV_LOG_VERBOSE, "Codec %s profile %d not "
+                    "supported for hardware decode.\n",
+                    codec_desc->name, avctx->profile);

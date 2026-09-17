@@ -1,0 +1,89 @@
+{
+  "schema": "omarchy-m1-video.h264-profile-selection-source-map/1",
+  "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/41",
+  "parent": "https://github.com/iconidentify/libva-v4l2_request/issues/37",
+  "pins": {
+    "ffmpeg": {
+      "repo": "FFmpeg/FFmpeg",
+      "tag": "n9.0.1",
+      "commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
+      "files": {
+        "libavcodec/vaapi_decode.c": "vaapi_profile_map and vaapi_decode_make_config exact-match / ALLOW_PROFILE_MISMATCH"
+      }
+    },
+    "driver": {
+      "repo": "iconidentify/libva-v4l2_request",
+      "ref": "avd-fixes",
+      "commit": "b9803ed5290ecb4b48c09482cbc6e943aee08b63",
+      "files": {
+        "src/codec_h264.c": "h264_profiles: ConstrainedBaseline, Main, High, High10 — not Baseline or Extended"
+      }
+    },
+    "research": {
+      "companion_plan": "docs/plans/issue-10-h264-field-mbaff.md#32-the-other-13-failures-context-outside-this-tickets-scope",
+      "codec_status": "docs/CODEC_STATUS.md",
+      "driver_syntax": "docs/H264_ADVANCED_SYNTAX.md",
+      "note": "Five-vector feature inventory is taken from those published records. This experiment does not copy ITU/Fluster bitstreams."
+    }
+  },
+  "invariants": [
+    {
+      "id": "vaapi_map_omits_baseline_extended",
+      "kind": "source_observed",
+      "text": "FFmpeg n9.0.1 vaapi_profile_map has ConstrainedBaseline/Main/High/High10 only. Baseline (66) and Extended (88) never exact-match.",
+      "cite": {
+        "file": "libavcodec/vaapi_decode.c",
+        "lines": "vaapi_profile_map H264 rows",
+        "commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa"
+      }
+    },
+    {
+      "id": "mismatch_uses_last_advertised_map_row",
+      "kind": "source_observed",
+      "text": "Without an exact match, allow_profile_mismatch keeps the last advertised mapped H.264 VA profile (High, if advertised) rather than a feature-safe subset.",
+      "cite": {
+        "file": "libavcodec/vaapi_decode.c",
+        "lines": "vaapi_decode_make_config exact_match / ALLOW_PROFILE_MISMATCH",
+        "commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa"
+      }
+    },
+    {
+      "id": "driver_does_not_advertise_baseline_extended",
+      "kind": "source_observed",
+      "text": "libva-v4l2_request advertises VAProfileH264ConstrainedBaseline/Main/High/High10 only.",
+      "cite": {
+        "file": "src/codec_h264.c",
+        "lines": "h264_profiles",
+        "commit": "b9803ed5290ecb4b48c09482cbc6e943aee08b63"
+      }
+    },
+    {
+      "id": "fmo_is_pps_not_sps",
+      "kind": "source_observed",
+      "text": "FMO is declared in PPS num_slice_groups_minus1. An SPS-only detector cannot find it. FM1_FT_E introduces a later PPS with one extra slice group.",
+      "cite": {
+        "file": "docs/H264_ADVANCED_SYNTAX.md",
+        "lines": "Client visibility / FM1_FT_E"
+      }
+    },
+    {
+      "id": "five_override_vectors_are_plain_slices",
+      "kind": "source_observed",
+      "text": "BA3_SVA_C (Extended, I/P/B, frame_mbs_only=1, no FMO) and MR2–MR5_TANDBERG (Baseline, I/P, frame_mbs_only=1, no FMO) are the profile-override class. Hardware checksums for those five stay in parent #37.",
+      "cite": {
+        "file": "docs/plans/issue-10-h264-field-mbaff.md",
+        "lines": "section 3.2"
+      }
+    },
+    {
+      "id": "no_whole_profile_advertisement",
+      "kind": "proposed_contract",
+      "text": "Do not advertise VAProfile Baseline or Extended. Do not enable allow_profile_mismatch by default. Remap only a stream whose scanned SPS/PPS/slice features fit Constrained Baseline or Main."
+    },
+    {
+      "id": "installed_va_config_is_profile_id_only",
+      "kind": "proposed_contract",
+      "text": "VA CreateConfig takes a VAProfile, not a feature inventory. FFmpeg decides the profile before later PPS changes. The installed client API cannot express this remap safely without a local FFmpeg change that inspects SPS+PPS and re-checks on parameter-set change."
+    }
+  ]
+}
