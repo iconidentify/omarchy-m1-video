@@ -1,0 +1,60 @@
+{
+  "schema": "omarchy-m1-video.h264-profile-selection/2",
+  "id": "current-cb-exact",
+  "path": "current",
+  "classification": "ordinary_supported",
+  "vector_label": "synthetic-constrained-baseline",
+  "provenance": "Synthetic feature combinations based on the linked research classes; newly explicit flags/order are authored assumptions, not measured vector inventory or decoded frames.",
+  "advertised": [
+    "VAProfileH264ConstrainedBaseline",
+    "VAProfileH264Main",
+    "VAProfileH264High",
+    "VAProfileH264High10"
+  ],
+  "allow_profile_mismatch": false,
+  "expected": {
+    "status": "select",
+    "va_profile": "VAProfileH264ConstrainedBaseline",
+    "reason": "exact_profile_match"
+  },
+  "pictures": [
+    {
+      "sps": {
+        "profile_idc": 66,
+        "constraint_set1_flag": 1,
+        "frame_mbs_only_flag": 1,
+        "mb_adaptive_frame_field_flag": 0,
+        "chroma_format_idc": 1,
+        "bit_depth_luma_minus8": 0,
+        "parse_ok": true,
+        "constraint_set3_flag": 0,
+        "bit_depth_chroma_minus8": 0
+      },
+      "pps": {
+        "num_slice_groups_minus1": 0,
+        "parse_ok": true,
+        "entropy_coding_mode_flag": 0,
+        "redundant_pic_cnt_present_flag": 0,
+        "transform_8x8_mode_flag": 0
+      },
+      "slices": [
+        {
+          "nal_unit_type": 5,
+          "slice_type": "I",
+          "field_pic_flag": 0,
+          "parse_ok": true,
+          "first_mb_in_slice": 0,
+          "redundant_pic_cnt": 0
+        },
+        {
+          "nal_unit_type": 1,
+          "slice_type": "P",
+          "field_pic_flag": 0,
+          "parse_ok": true,
+          "first_mb_in_slice": 10,
+          "redundant_pic_cnt": 0
+        }
+      ]
+    }
+  ]
+}
