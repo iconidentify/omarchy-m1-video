@@ -1,0 +1,283 @@
+--- a/Makefile
++++ b/Makefile
+@@ -1,5 +1,5 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ 
+ apple-avd-y := avd-drv.o avd-v4l2.o avd-hw.o avd-h264.o avd-vp9.o avd-hevc.o \
+-	avd-av1.o avd-av1-entropymode.o
++	avd-av1.o avd-av1-entropymode.o avd-trace.o
+ obj-$(CONFIG_VIDEO_APPLE_AVD) += apple-avd.o
+--- a/avd-drv.c
++++ b/avd-drv.c
+@@ -20,6 +20,7 @@
+ #include <media/videobuf2-v4l2.h>
+ 
+ #include "avd.h"
++#include "avd-trace.h"
+ #include "avd-inst.h"
+ #include "avd-regs.h"
+ 
+@@ -95,7 +96,8 @@
+ }
+ 
+ struct avd_decoded_buffer *
+-avd_get_ref_buf(struct avd_ctx *ctx, struct vb2_v4l2_buffer *dst, u64 timestamp)
++avd_get_ref_buf_observed(struct avd_ctx *ctx, struct vb2_v4l2_buffer *dst,
++			 u64 timestamp, bool *matched)
+ {
+ 	struct v4l2_m2m_ctx *m2m_ctx = ctx->fh.m2m_ctx;
+ 	struct vb2_queue *cap_q = &m2m_ctx->cap_q_ctx.q;
+@@ -106,10 +108,18 @@
+ 	 * buffer is returned.
+ 	 */
+ 	buf = vb2_find_buffer(cap_q, timestamp);
++	if (matched)
++		*matched = !!buf;
+ 	if (!buf)
+ 		buf = &dst->vb2_buf;
+ 
+ 	return vb2_to_avd_decoded_buf(buf);
++}
++
++struct avd_decoded_buffer *
++avd_get_ref_buf(struct avd_ctx *ctx, struct vb2_v4l2_buffer *dst, u64 timestamp)
++{
++	return avd_get_ref_buf_observed(ctx, dst, timestamp, NULL);
+ }
+ 
+ static int avd_wait_submission_queue(struct avd_ctx *ctx, int vp)
+@@ -361,6 +371,7 @@
+ 	if (WARN_ON(!desc))
+ 		return;
+ 
++	avd_trace_job(ctx);
+ 	ret = pm_runtime_resume_and_get(avd->dev);
+ 	if (ret < 0) {
+ 		avd_job_finish_no_pm(ctx, VB2_BUF_STATE_ERROR);
+@@ -489,6 +500,7 @@
+ 		goto err_cleanup_m2m_ctx;
+ 
+ 	v4l2_fh_add(&ctx->fh, filp);
++	avd_trace_open(ctx);
+ 
+ 	return 0;
+ 
+@@ -513,6 +525,7 @@
+ 	v4l2_fh_exit(&ctx->fh);
+ 	avd_buf_free(ctx->dev, &ctx->inst);
+ 	kvfree(ctx->job.segments);
++	avd_trace_close(ctx);
+ 	kfree(ctx);
+ 
+ 	return 0;
+@@ -926,7 +939,22 @@
+ 		.pm = &avd_pm_ops,
+ 	},
+ };
+-module_platform_driver(avd_driver);
++static int __init avd_module_init(void)
++{
++	int ret;
++	avd_trace_init();
++	ret = platform_driver_register(&avd_driver);
++	if (ret)
++		avd_trace_exit();
++	return ret;
++}
++static void __exit avd_module_exit(void)
++{
++	platform_driver_unregister(&avd_driver);
++	avd_trace_exit();
++}
++module_init(avd_module_init);
++module_exit(avd_module_exit);
+ 
+ MODULE_LICENSE("GPL v2");
+ MODULE_DESCRIPTION("Apple avd v4l2 sl m2m");
+--- a/avd-hevc.c
++++ b/avd-hevc.c
+@@ -16,6 +16,7 @@
+ #include <media/videobuf2-dma-contig.h>
+ 
+ #include "avd.h"
++#include "avd-trace.h"
+ #include "avd-inst.h"
+ 
+ #define NEW_TILE_ID	BIT(0)
+@@ -104,6 +105,8 @@
+ 	const struct v4l2_hevc_dpb_entry *dpb;
+ 	struct avd_hevc_ctx *hevc_ctx = ctx->priv;
+ 	struct avd_decoded_buffer *dst, *ref_buf;
++	bool trace_matched;
++	u32 trace_word;
+ 
+ 	dst = vb2_to_avd_decoded_buf(&run->base.bufs.dst->vb2_buf);
+ 
+@@ -119,7 +122,8 @@
+ 	for (int i = 0; i < decode->num_active_dpb_entries; i++) {
+ 		dpb = &decode->dpb[i];
+ 
+-		ref_buf = avd_get_ref_buf(ctx, &dst->base.vb, dpb->timestamp);
++		ref_buf = avd_get_ref_buf_observed(ctx, &dst->base.vb,
++			dpb->timestamp, &trace_matched);
+ 
+ 		dma_addr_t comp_addr = vb2_dma_contig_plane_dma_addr(
+ 					       &ref_buf->base.vb.vb2_buf, 0) +
+@@ -134,7 +138,9 @@
+ 					       dpb->pic_order_cnt_val),
+ 		     "hdr_d0_ref_hdr");
+ 
++		trace_word = avd_trace_last_word(ctx);
+ 		push_comp(ctx, comp_addr, ref_buf->comp.offsets);
++		avd_trace_table(ctx, i, dpb, ref_buf, trace_matched, trace_word);
+ 	}
+ }
+ 
+@@ -540,19 +546,25 @@
+ 
+ 	if (sl->slice_type == V4L2_HEVC_SLICE_TYPE_B ||
+ 	    sl->slice_type == V4L2_HEVC_SLICE_TYPE_P) {
+-		for (int i = 0; i < sl->num_ref_idx_l0_active_minus1 + 1; i++)
++		for (int i = 0; i < sl->num_ref_idx_l0_active_minus1 + 1; i++) {
+ 			push(AVD_OP_REF | AVD_OP_REF_LIST_IDX(0) |
+ 				     AVD_OP_REF_LOOP_IDX(i) |
+ 				     AVD_OP_REF_DBP_IDX(sl->ref_idx_l0[i]),
+ 			     "reference_frames_l0");
++			avd_trace_list(ctx, 0, i, sl->ref_idx_l0[i],
++					avd_trace_last_word(ctx));
++		}
+ 		if (sl->slice_type == V4L2_HEVC_SLICE_TYPE_B)
+ 			for (int i = 0;
+-			     i < sl->num_ref_idx_l1_active_minus1 + 1; i++)
++			     i < sl->num_ref_idx_l1_active_minus1 + 1; i++) {
+ 				push(AVD_OP_REF | AVD_OP_REF_LIST_IDX(1) |
+ 					     AVD_OP_REF_LOOP_IDX(i) |
+ 					     AVD_OP_REF_DBP_IDX(
+ 						     sl->ref_idx_l1[i]),
+ 				     "reference_frames_l1");
++				avd_trace_list(ctx, 1, i, sl->ref_idx_l1[i],
++						avd_trace_last_word(ctx));
++			}
+ 
+ 		stream_weights(ctx, run, sl);
+ 	}
+@@ -563,7 +575,8 @@
+ {
+ 	const struct v4l2_ctrl_hevc_decode_params *decode = run->decode;
+ 	struct avd_decoded_buffer *dst, *ref;
+-	bool ref_valid;
++	bool ref_valid, trace_matched;
++	u32 trace_word;
+ 	const u8 *ref_list;
+ 
+ 	if (sl->slice_type == V4L2_HEVC_SLICE_TYPE_I) {
+@@ -571,6 +584,8 @@
+ 			     AVD_OP_SL_REF_SLICE_I(sl->slice_type ==
+ 						   V4L2_HEVC_SLICE_TYPE_I),
+ 		     "slc_a8c_cmd_ref_type");
++		avd_trace_motion(ctx, sl, is_first, NULL, false, 0, 0,
++				 false, avd_trace_last_word(ctx), false);
+ 		return;
+ 	}
+ 	/* bidirectional prediction */
+@@ -581,9 +596,10 @@
+ 							      sl->ref_idx_l1;
+ 
+ 	dst = vb2_to_avd_decoded_buf(&run->base.bufs.dst->vb2_buf);
+-	ref = avd_get_ref_buf(
++	ref = avd_get_ref_buf_observed(
+ 		ctx, &dst->base.vb,
+-		decode->dpb[ref_list[sl->collocated_ref_idx]].timestamp);
++		decode->dpb[ref_list[sl->collocated_ref_idx]].timestamp,
++		&trace_matched);
+ 
+ 	ref_valid = !(sl->flags &
+ 		      V4L2_HEVC_SLICE_PARAMS_FLAG_DEPENDENT_SLICE_SEGMENT) &&
+@@ -616,6 +632,7 @@
+ 					   V4L2_HEVC_SLICE_TYPE_P) |
+ 		     AVD_OP_SL_REF_SLICE_B(ref_valid),
+ 	     "slc_a8c_cmd_ref_type");
++	trace_word = avd_trace_last_word(ctx);
+ 
+ 	if (ref_valid) {
+ 		dma_addr_t mv_color_addr =
+@@ -627,6 +644,10 @@
+ 		      decode->dpb[ref_list[sl->collocated_ref_idx]]
+ 			      .pic_order_cnt_val);
+ 	}
++	avd_trace_motion(ctx, sl, is_first, ref, trace_matched,
++		ref_list[sl->collocated_ref_idx],
++		decode->dpb[ref_list[sl->collocated_ref_idx]].timestamp,
++		ref_valid, trace_word, ref_valid);
+ }
+ 
+ static void set_slice(struct avd_ctx *ctx, struct avd_hevc_run *run,
+@@ -1328,6 +1349,8 @@
+ 
+ 	dst = vb2_to_avd_decoded_buf(&run.base.bufs.dst->vb2_buf);
+ 	update_dec_buf_info(dst, &run.sl[0]);
++	avd_trace_start(ctx, dst, run.decode, &run.sl[0],
++			run.num_slices, run.num_entry_point_offsets);
+ 
+ 	ret = avd_hevc_compute_tiles(ctx, &run);
+ 	if (ret)
+--- a/avd-v4l2.c
++++ b/avd-v4l2.c
+@@ -18,6 +18,7 @@
+ #include <media/videobuf2-dma-contig.h>
+ 
+ #include "avd.h"
++#include "avd-trace.h"
+ 
+ static bool avd_image_fmt_match(enum avd_image_fmt fmt1,
+ 				enum avd_image_fmt fmt2)
+@@ -918,6 +919,8 @@
+ }
+ 
+ const struct vb2_ops avd_queue_ops = {
++	.buf_init = avd_trace_buf_init,
++	.buf_cleanup = avd_trace_buf_cleanup,
+ 	.queue_setup = avd_queue_setup,
+ 	.buf_prepare = avd_buf_prepare,
+ 	.buf_queue = avd_buf_queue,
+@@ -940,6 +943,8 @@
+ 	}
+ 	spin_unlock_irqrestore(&avd->job_lock, flags);
+ 
++	avd_trace_done(ctx, result);
++
+ 	if (ctx->coded_fmt_desc->ops->done) {
+ 		struct vb2_v4l2_buffer *src_buf, *dst_buf;
+ 
+--- a/avd.h
++++ b/avd.h
+@@ -116,6 +116,10 @@
+ 
+ 	struct avd_comp comp;
+ 
++	/* Experimental trace-only vb2 allocation/writer identity. */
++	u64 trace_allocation, trace_writer;
++	bool trace_completed;
++
+ 	union {
+ 		struct avd_vp9_decoded_buffer_info vp9;
+ 		struct avd_hevc_decoded_buffer_info hevc;
+@@ -131,6 +135,10 @@
+ 
+ struct avd_decoded_buffer *
+ avd_get_ref_buf(struct avd_ctx *ctx, struct vb2_v4l2_buffer *dst, u64 timestamp);
++
++struct avd_decoded_buffer *
++avd_get_ref_buf_observed(struct avd_ctx *ctx, struct vb2_v4l2_buffer *dst,
++			 u64 timestamp, bool *matched);
+ 
+ struct avd_coded_fmt_ops {
+ 	void (*adjust_decoded_fmt)(struct avd_ctx *ctx,
+@@ -246,6 +254,7 @@
+ };
+ 
+ struct avd_ctx {
++	u64 trace_context, trace_pid; /* Experimental opaque identity, never a pointer. */
+ 	struct v4l2_fh fh;
+ 	struct avd_dev *dev;
+ 

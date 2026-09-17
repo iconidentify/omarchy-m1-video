@@ -1,0 +1,19 @@
+name: HEVC AVD experimental trace
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  avd-trace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Synthetic capture rejection and sanitized shared C recorder tests
+        run: python3 experiments/hevc-avd-trace/tests.py
+      - name: Fetch exact pinned primary source (no module execution)
+        run: python3 experiments/hevc-avd-trace/fetch.py "$RUNNER_TEMP/avd-pristine"
+      - name: Verify patch application and unchanged decoder emissions
+        run: python3 experiments/hevc-avd-trace/source-tests.py "$RUNNER_TEMP/avd-pristine"
