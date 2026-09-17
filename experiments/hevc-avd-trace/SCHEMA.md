@@ -90,5 +90,28 @@ zero control array elements. Schema 2 preserves the array extent at start payloa
 it never treats that reserved zero as an observed used count or upgrades an old
 capture. One-element unused storage is valid. Any used entry point still rejects
 this single-segment experiment. Record size/capacity and status schema 1 are unchanged.
-Normalized JSON uses `hevc-avd-trace.normalized/2`, with `entry_capacity` and
+Normalized JSON uses `hevc-avd-trace.normalized/3`, with `entry_capacity` and
 `slice_entries` as distinct required fields.
+
+## Timestamp association in normalized version 3
+
+The VA client derives reference timestamps from capture buffer indices, so a
+buffer can reuse its timestamp for many successive writers. Raw schema 2 is
+unchanged. The normalizer resolves timestamps after validating each picture group
+against the latest recorded writer for each buffer index at that point in decode
+order. A new writer replaces that index's old timestamp association. Future
+writers and overwritten timestamps cannot supply an earlier record's identity.
+An allocation replacement remains independently checked by the allocation token.
+These are latest recorded writers, not an assertion that unobserved buffer cleanup
+has not occurred; the trace does not export standalone cleanup events.
+
+Each present timestamp becomes `timestamp_writer` / `requested_timestamp_writer`
+plus a corresponding `_writer_candidates` array. One candidate yields its picture;
+zero or multiple candidates yield null. Multiple latest-recorded candidates also
+produce an explicit `*-ambiguous-current-writers` finding instead of guessing a
+writer or discarding the measured collision. Actual returned buffer, allocation
+and writer fields remain distinct evidence and all prior discrepancy checks run.
+I-picture motion records did not perform lookup: their zero placeholders always
+produce null/empty associations, even when a real picture has timestamp zero.
+Raw timestamps never appear in normalized output. Earlier normalized versions used
+a global timestamp map and are not suitable for reused-buffer association.
