@@ -1,22 +1,33 @@
 {
+  "schema": "hevc-avd-command-trace.corrected-offline-build/1",
+  "source_manifest_sha256": "a16ebf3b486144d45ed91122ed78040dc64bbaa9901a312669e11c31bc8ff7d3",
   "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
   "patch_stack_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390",
   "hooks_sha256": "3950037a6838eaba2fa92cd63f350d1bc16b87da6d4dc3347f25291d6868d713",
-  "module_sha256": "3f17561f44fdf578c14c79e0d0dd55190aa63b70f6ad07908536807e030e8bb4",
+  "hardware_used": false,
+  "installed": false,
+  "loaded": false,
+  "cmdtrace_files": {
+    "avd-cmdtrace.c": "11808ae38055a1b0d00e69b22c788c212cfcc7e4cd95df556b81fb94cf5230aa",
+    "avd-cmdtrace.h": "4440c875f565ab2325731a53eb1dda94b96150940468cf3a06751eef62e97ccc",
+    "cmd-core.h": "1601e2d140bd05a60abbe8c4493cc4debd0406519a3f610d533b3f712268ddf4",
+    "bounded-snapshot.h": "d904d2ea2bbcfb67f826e33efef279bbe33ac267b57a3de61d9a07e933249b18",
+    "control-layout.inc": "6aac180d7d356ba24dd9447cc3f0a96bf7bceac5811dede9dfb90966bf225f79"
+  },
+  "command_trace": true,
+  "module_sha256": "7a00ffa548e89d4316eb2b1454c7e153128906f099729efb58b77c26fadcdf02",
+  "headers_used": true,
+  "headers_config_sha256": "5bcf435f6be7dc4eda10daca087b0697bc4e581b6308510a9152b5caf90f0352",
   "headers": {
     ".config": "5bcf435f6be7dc4eda10daca087b0697bc4e581b6308510a9152b5caf90f0352",
     "Module.symvers": "e78fab7f70a53240c5145f76b4265aee5018e4fc7eb2ed42f738135d92a7177f",
     "include/generated/autoconf.h": "f5d82842456723dd6e24b365d382ecd573782a28ddcc6e4dde275c39761f1f73",
     "include/generated/utsrelease.h": "bc525e00ce245e9a0c5ab6663b4c5c29eb89f323cd3e876d39fa7f60308d5bcb"
   },
-  "headers_release": "7.1.13-3-1-ARCH",
   "compiler": "cc (GCC) 16.1.1 20260430",
   "vermagic": "7.1.13-3-1-ARCH SMP preempt mod_unload aarch64",
-  "build_log_sha256": "2d8cb3185dfb4656e158797aeefb4f529bd5d1c18cd09a6a7106363cf00a659d",
-  "schema": "hevc-avd-command-trace.offline-review/1",
-  "hardware_used": false,
-  "installed": false,
-  "loaded": false,
+  "headers_release": "7.1.13-3-1-ARCH",
+  "build_log_sha256": "3fd12f043174eba82ff27cf47c9d38a50640205f4b3e1a38d7a68b2d0a25c612",
   "candidate_source_sha256": {
     "Makefile": "179b26916bd82494564961a70852e8dec56c67c0700959fffe893e48447e2375",
     "apple-avd.mod.c": "161cf03ffe9f337ea18d922fd95e038561b6f644b28cfe0784d7c7b98cb9a3b0",
@@ -25,7 +36,7 @@
     "avd-av1.c": "4b0d73d916073977410be386a6f3080f462adb8d5ee3f7fa49eba3b2e443f301",
     "avd-cmdtrace.c": "11808ae38055a1b0d00e69b22c788c212cfcc7e4cd95df556b81fb94cf5230aa",
     "avd-cmdtrace.h": "4440c875f565ab2325731a53eb1dda94b96150940468cf3a06751eef62e97ccc",
-    "avd-drv.c": "24fc9f448b7cccaf514f3f538591eab13d3ae25c6f55c2934d3d2c642b4bfb0b",
+    "avd-drv.c": "68402e39f4d51270b4d0e23a058c7b04db393c81e2c0d3250f2df3891932cf3a",
     "avd-h264.c": "20632b724f846ec882f1c3e0e28996776923594ca1305a9580c902df0587ac9a",
     "avd-hevc.c": "8e8efddccd7a91d3c0d900c8d72c831684748d8b9e8a0d9ab73fdbfbbec98c33",
     "avd-hw.c": "c9b15028adae725cf9a4fcfc1a928cba0d26b894210c34a4dc8d8c21b6b8dc6f",
@@ -41,43 +52,11 @@
     "cmd-core.h": "1601e2d140bd05a60abbe8c4493cc4debd0406519a3f610d533b3f712268ddf4",
     "control-layout.inc": "6aac180d7d356ba24dd9447cc3f0a96bf7bceac5811dede9dfb90966bf225f79"
   },
-  "oracle_source_sha256": "417cd4c0d39957ab6a281b706acb298c08e5132888e8cad2a6edf5d2673824f9",
-  "oracle_extraction_sha256": {
-    "baseline": "603b5e55959e86ad926fb25fc6d837195740a95d560960cdc44e7bd2a571265c",
-    "candidate": "0ad3b87b948214dba32addd80246617590bcb0f72a2f7467c12304533eebcc96"
-  },
-  "tool_sha256": {
-    "oracle.py": "22ae95cc1e7f464402c6c473b08f25ee188b07e03b20cc6c6d9600bf61064376",
-    "parser.py": "0a2cf31b34fee23464baff841c84eede9499d2cd98ab4a648f7983c8a4ed15d4",
-    "packing.py": "1845fc17dbe6b115eaa807eaf676292f3cd24f556b088971d09fa5be16a595ee"
-  },
-  "packing_host_sha256": "f088f7bc6e1dba53a02ab94bafd2bb8791766d77cc4401182d3160d87c9c1ba6",
-  "kernel_build_warnings": 0,
-  "capture_bytes": {
-    "reference": 1261648,
-    "command": 90824,
-    "reserve": 131072,
-    "cap": 2097152
-  },
-  "local_checks": {
-    "core_and_parser_groups": 9,
-    "exact_c_cases": 32,
-    "complete_synthetic_windows": 11,
-    "actual_source_mutants_detected": 5,
-    "reader_free_guard_mutant_detected": true,
-    "wrapper_recorders": [
-      "reference",
-      "command"
-    ],
-    "required_bash_and_rebuild": true,
-    "installer_mocks": true
-  },
-  "limitations": [
-    "Offline synthetic evidence; no firmware/pixel/corruption claim.",
-    "Maintainer self-review after contribution review, not independent specialist approval.",
-    "No module load or campaign71 execution."
-  ],
-  "status": "withdrawn-do-not-load",
-  "withdrawn_after_campaign": "../hevc-avd-command-capture/failed-attempt-2026-09-17/README.md",
-  "withdrawal_reason": "Generated module init prematurely freed reference debugfs, then unload Oopsed; original reviewed preparation fields below are historical."
+  "status": "offline-only-not-runtime-qualified",
+  "fix": "Braced paired recorder cleanup only when platform registration fails; separate matched normal exit.",
+  "generator_sha256": "8a8dba08201a207f4c30865a75c196340d6da5f20b26c8c935f51418299c25f2",
+  "lifecycle_test_sha256": "42b88cbefbb219828fed61af90690e01b5fc98b4b95455a8ba39cca13ec1ddab",
+  "original_defect_mutation_rejected": true,
+  "hardware_loaded": false,
+  "old_candidate_withdrawn": "3f17561f44fdf578c14c79e0d0dd55190aa63b70f6ad07908536807e030e8bb4"
 }

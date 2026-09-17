@@ -1,0 +1,35 @@
+{
+  "schema": "hevc-avd-command-capture.execution/1",
+  "run": 1,
+  "enabled": false,
+  "child_exit": null,
+  "child_reaped": false,
+  "child_released": false,
+  "errors": [
+    {
+      "stage": "execution",
+      "recorder": null,
+      "error": "Command '['sudo', '-n', 'cat', '/sys/kernel/debug/apple_avd_hevc_trace/status']' returned non-zero exit status 1."
+    }
+  ],
+  "status": {},
+  "snapshots": {},
+  "events": [
+    {
+      "stage": "preflight",
+      "recorder": null,
+      "seconds": 0.0
+    },
+    {
+      "stage": "execution-failed",
+      "recorder": null,
+      "seconds": 0.0198
+    },
+    {
+      "stage": "complete",
+      "recorder": null,
+      "seconds": 0.0203
+    }
+  ],
+  "elapsed_seconds": 0.02
+}

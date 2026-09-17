@@ -1,0 +1,15 @@
+name: HEVC paired capture supervisor
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  paired-capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Actual child lifecycle and paired evidence failures (no device)
+        run: python3 experiments/hevc-avd-command-capture/tests.py

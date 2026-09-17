@@ -1,0 +1,26 @@
+{
+  "kernel-failure.log": {
+    "bytes": 10347,
+    "sha256": "97de4ebb956586e6329721fa9452f29b7136617e19aa2b081ebf47b1227e411d"
+  },
+  "post-failure-state.json": {
+    "bytes": 276,
+    "sha256": "713ce4fe14d176346c924b19da87c0336d6683d5923789f4bd8ae77ac2aa4244"
+  },
+  "guard.jsonl": {
+    "bytes": 817,
+    "sha256": "c75e60c34197e9a8c15a53ff55bc5077e210c18efe702bff9cfa84b915f0d6de"
+  },
+  "campaign-events.jsonl": {
+    "bytes": 2402,
+    "sha256": "86e522b65099bb59922ded4db75df4a14a4a3fe42d686d1ce6f1995ae3c04972"
+  },
+  "B-va-off/kernel/execution.json": {
+    "bytes": 746,
+    "sha256": "6cee43c166cbb440bbf52a19115e7addcd2413f33ab9e7115167aebf8b5fdf15"
+  },
+  "config.json": {
+    "bytes": 2957,
+    "sha256": "9e02d37bf0ae34227f8e6d8a909d50e192738725ce792647fd5f7067600d8e9b"
+  }
+}
