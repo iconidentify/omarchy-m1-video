@@ -1,0 +1,15 @@
+name: AVD AV1 lifecycle
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  av1-lifecycle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Extracted AV1 start unwind leak and isolated patch
+        run: python3 experiments/avd-av1-lifecycle/tests.py
