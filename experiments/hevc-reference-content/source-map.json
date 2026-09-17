@@ -5,5 +5,8 @@
   "contract": "experiments/hevc-reference-memory/next-observation.md",
   "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
   "patches_concatenated_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390",
-  "capture": "e5b226e843a145eabd846816d51a43ae9a58fee5"
+  "capture": "e5b226e843a145eabd846816d51a43ae9a58fee5",
+  "implementation": "synthetic-only; real_client_adapter always rejects",
+  "driver_revision": "3570a2e09d232a5a541c63df7d2cf699fa4b096b",
+  "limitations": "Source pointers are review references, not verified live allocation or client evidence. See BLOCKED.md."
 }
