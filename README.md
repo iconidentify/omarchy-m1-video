@@ -31,7 +31,7 @@ With the stock `linux-asahi` 7.1.13 AVD driver and `libva-v4l2_request-avd` 1.3:
 | Problem | Fixed by |
 |---|---|
 | H.264 streams are rejected after 4096 slices, so longer videos stop decoding | kernel patch 0004 |
-| A 16 MiB contiguous allocation per frame that fails once memory is fragmented | kernel patch 0003 |
+| The per-job instruction-segment table needs a large physically contiguous allocation | kernel patch 0003 uses `kvcalloc` for that CPU table |
 | A job-completion race that can oops the kernel and lock `/dev/video0` until reboot | kernel patch 0005 |
 | HEVC wavefront streams fail with firmware "H0 error", much more often with several HEVC videos at once | kernel patch 0006 |
 | Monochrome (4:0:0) H.264 video shows green | kernel patches 0008, 0014 |
@@ -52,6 +52,11 @@ With the stock `linux-asahi` 7.1.13 AVD driver and `libva-v4l2_request-avd` 1.3:
 | Two VP9 resize streams trigger firmware timeouts after decoder-context replacement | VA-API driver 1.3.r10 rejects unavailable references before hardware submission; resize support remains incomplete |
 | Destroying an active render target leaves a freed pointer; failed API calls can still submit incomplete pictures or clear an earlier error | VA-API driver 1.3.r11 |
 | Reference buffer indices from different decoder contexts can alias | VA-API driver 1.3.r11 validates reference ownership and status |
+
+Patch 0003 changes the CPU job table, not the decoded capture plane. Large capture
+planes can still fail contiguous allocation after fragmentation; this remains
+[#52](https://github.com/iconidentify/omarchy-m1-video/issues/52). Changing exported
+buffer cache policy also requires a verified CPU/importer coherence contract.
 
 Conformance on an M1 (bit-exact against the reference decoders):
 
