@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
 """Mutated published-evidence tests; no hardware, raw trace or media input."""
-import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -87,6 +86,10 @@ class CampaignTests(unittest.TestCase):
 
     def test_wrong_same_run_source(self):
         self.alter('kernel-meta.json', lambda data: data['E-gst-on'].__setitem__('raw_sha256', data['B-gst-on']['raw_sha256']))
+        self.reject()
+
+    def test_boolean_is_not_a_raw_scalar(self):
+        self.alter('kernel/E-gst-on.jsonl', lambda rows: rows[0].__setitem__('copied', True), True)
         self.reject()
 
     def test_failed_restoration(self):

@@ -23,7 +23,7 @@ The 24 test groups include five new counterexamples. Review checked chronology,
 allocation-token checks, unchanged raw schema, numeric timestamp privacy and the
 fact that unrecorded standalone cleanup is not proven by writer association.
 The public report uses symbolic tokens to recheck writer/control/word consistency;
-it does not claim to reconstruct private timestamp values. Twelve mutated-evidence
+it does not claim to reconstruct private timestamp values. Thirteen mutated-evidence
 checks exercise the report's failure paths and preserved guard exception.
 
 All recorded lookups, intra states, ranges and source-predicted reference/motion

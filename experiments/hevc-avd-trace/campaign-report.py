@@ -42,6 +42,7 @@ def symbolic_replay(meta, records, expected):
     need(meta['structural_validation'] == 'passed' and meta['findings'] == [], 'not a negative measured result')
     replay = []
     for row in records:
+        need(type(row['kind']) is int and row['kind'] in check.FIELDS, 'invalid record kind')
         raw = row.copy()
         for field in ('timestamp', 'requested_timestamp'):
             if field not in check.FIELDS[row['kind']]:
@@ -53,6 +54,9 @@ def symbolic_replay(meta, records, expected):
             # Distinct logical writer ordinals are synthetic tokens, NOT raw values.
             raw[field] = 0 if writer is None else writer
         need(set(raw) == set(check.FIELDS[row['kind']]) | {'kind', 'picture'}, 'missing/extra normalized fields')
+        for key, value in raw.items():
+            low, high = (-2**31, 2**31) if key in ('poc', 'slice_poc') else (0, 2**64)
+            need(type(value) is int and low <= value < high, 'invalid normalized scalar')
         replay.append(raw)
     verified = check.validate(dict(run=meta['run'], context=meta['context'], records=replay), expected)
     need(verified['findings'] == [] and verified['records'] == records, 'symbolic writer/command replay differs')
