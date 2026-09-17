@@ -1,0 +1,19 @@
+name: H.264 client admission
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  admission:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install libva headers
+        run: sudo apt-get update && sudo apt-get install -y libva-dev pkg-config
+      - name: Offline admission tests
+        run: python3 experiments/h264-client-admission/tests.py
+      - name: Build VAAPI-off and patched VAAPI-on ffmpeg
+        run: python3 experiments/h264-client-admission/build.py "$RUNNER_TEMP/h264-admission-build"
