@@ -71,6 +71,8 @@ def summarize(root, checker):
     inventory = {f["path"]: f for f in read(root / "private-artifacts.json")["files"]}
     inputs = {"B": "a5e2097201740c15824b75540b6d0d5050763681bedf7209cde80d93a3b88996",
               "E": "b82c5c8c251943cc41b59e7f63f72890641fdcdbcec8e916223e4ee28a16c7ad"}
+    commands = read(root / "commands.json")["runs"]
+    require(len(commands) == 10 and len({c["id"] for c in commands}) == 10)
     runs = manifest["runs"]
     expected_ids = {f"{v}-{c}-{t}" for v in ("B", "E") for c in ("va", "gst")
                     for t in (("off", "on") if c == "va" else ("off", "on", "on-outputlog"))}
@@ -83,6 +85,10 @@ def summarize(root, checker):
         require(run["input_sha256"] == inputs[run["vector"]])
         require(boundary < run["start_unix"] < run["end_unix"])
         require(run["frames"] == 300)
+        command = next(c for c in commands if c["id"] == run["id"])
+        require(command["command_source_sha256"] == inventory[run["id"] + "/command.json"]["sha256"])
+        require(command["guard"]["run_id"] == run["guard_run_id"])
+        require(command["guard"]["journal_since"] == provenance["recovery_boundary"])
         expected = reference[run["vector"]]["frame_md5"]
         require(all(re.fullmatch(r"[0-9a-f]{32}", h) for h in expected + run["frame_md5"]))
         # Whole-stream MD5 is recorded, not derivable from separate frame hashes.
@@ -97,6 +103,8 @@ def summarize(root, checker):
         require(datetime.fromisoformat(guard[1]["time"]).timestamp() <= run["start_unix"])
         require(run["end_unix"] < datetime.fromisoformat(guard[-1]["time"]).timestamp() + 1)
 
+        selected_path = command["environment"].get("LIBVA_DRIVERS_PATH")
+        require(guard[0]["userspace"]["libva_drivers_path"] == ("<redacted>" if selected_path else ""))
         require(guard[0]["event"] == "preflight" and guard[0]["idle"])
         require(guard[-1]["event"] == "final" and guard[-1]["status"] == "ok")
         require(guard[-1]["returncode"] == 0 and guard[-1]["idle"] and not guard[-1]["wedged"])
@@ -179,7 +187,10 @@ def main():
     checker = os.environ.get("HEVC_REFTRACE_CHECKER")
     if not checker:
         parser.error("set HEVC_REFTRACE_CHECKER to the trusted pinned checker")
-    summary = summarize(args.directory, checker)
+    try:
+        summary = summarize(args.directory, checker)
+    except (ValueError, KeyError, TypeError, IndexError, StopIteration, OSError, subprocess.TimeoutExpired) as exc:
+        parser.exit(2, f"capture metadata rejected: {exc}\n")
     if args.verify:
         require(summary == read(args.directory / "summary.json"), "published summary differs")
         print("10 complete 300-frame captures, associations and comparison summary verified")

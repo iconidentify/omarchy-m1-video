@@ -161,7 +161,8 @@ used 90-second deadlines for the first eight runs and 45 seconds for the two
 supplemental runs, 0.1-second guard polling and the recovery boundary in
 [provenance.json](provenance.json). Input SHA-256 values are recorded per run.
 [commands.json](commands.json) retains the captured argv with named path placeholders
-and explicit environment/guard options from the retained runner scripts. It is not
+and explicit environment/guard options from retained runner scripts and session/guard
+records. Supplemental direct-V4L2 runs did not select a libva driver path. It is not
 a complete dump of the inherited process environment.
 [recovery.json](recovery.json) records the single approved recovery. Provenance
 includes exact package revisions, userspace/module/helper binary hashes and

@@ -1,5 +1,5 @@
 {
-  "note": "Captured argv with private absolute prefixes replaced by named placeholders; explicit environment and guard options reconstructed from retained capture scripts, not a complete inherited environment dump.",
+  "note": "Captured argv with private absolute prefixes replaced by named placeholders; explicit environment and guard options reconstructed from retained capture scripts and session/guard records, not a complete inherited environment dump. Supplemental direct-V4L2 runs had no explicit LIBVA_DRIVERS_PATH selection (guard observed empty); they do not use libva.",
   "runs": [
     {
       "id": "B-va-off",
@@ -163,7 +163,6 @@
       "environment": {
         "LC_ALL": "C",
         "LIBVA_DRIVER_NAME": "v4l2_request",
-        "LIBVA_DRIVERS_PATH": "$SELECTED_DRIVER_DIR",
         "GST_DEBUG_NO_COLOR": "1",
         "GST_DEBUG": "v4l2codecs*:6",
         "GST_DEBUG_FILE": "$PRIVATE_RUN_DIR/gst.log",
@@ -339,7 +338,6 @@
       "environment": {
         "LC_ALL": "C",
         "LIBVA_DRIVER_NAME": "v4l2_request",
-        "LIBVA_DRIVERS_PATH": "$SELECTED_DRIVER_DIR",
         "GST_DEBUG_NO_COLOR": "1",
         "GST_DEBUG": "v4l2codecs*:6",
         "GST_DEBUG_FILE": "$PRIVATE_RUN_DIR/gst.log",
