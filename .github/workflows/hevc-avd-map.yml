@@ -1,0 +1,25 @@
+name: HEVC AVD source map
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  avd-map:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: iconidentify/libva-v4l2_request
+          ref: ba66572ff7e1e380377eb2414a7eb7d7f97bb0d9
+          path: driver-checker
+          persist-credentials: false
+      - name: Source-derived model, counterexamples and upstream C macro parity
+        run: python3 experiments/hevc-avd-map/tests.py
+      - name: Reproduce public metadata decision (no hardware)
+        env:
+          HEVC_REFTRACE_CHECKER: driver-checker/tests/hevc-reftrace-check.py
+        run: python3 experiments/hevc-avd-map/report.py --verify

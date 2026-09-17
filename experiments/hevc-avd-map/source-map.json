@@ -1,0 +1,372 @@
+{
+  "schema": "hevc-avd-map.sources/1",
+  "kernel": [
+    {
+      "path": "drivers/media/platform/apple/avd/avd-hevc.c",
+      "revision": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": "a9cc1dd4303ac8c482f1dd8aa6a5de866f0c4e11a9fdf98796fe479e1e260bb9",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/drivers/media/platform/apple/avd/avd-hevc.c"
+    },
+    {
+      "path": "drivers/media/platform/apple/avd/avd-inst.h",
+      "revision": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": "c271d9f266e685dc3db3d0394dda15a9e84ff426d9f12ce10d9dc726a5625816",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/drivers/media/platform/apple/avd/avd-inst.h"
+    },
+    {
+      "path": "drivers/media/platform/apple/avd/avd.h",
+      "revision": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": "283e311bc9108d734b2217e01fdcd950edd6f65a013b8e78a9c4a256a51a2739",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/drivers/media/platform/apple/avd/avd.h"
+    },
+    {
+      "path": "drivers/media/platform/apple/avd/avd-v4l2.c",
+      "revision": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/drivers/media/platform/apple/avd/avd-v4l2.c"
+    },
+    {
+      "path": "drivers/media/platform/apple/avd/avd-drv.c",
+      "revision": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": "134264a2c7ed8779077ff3ee9e8e733c2cddb5cc1b6e3d4def673e40b87083ca",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/drivers/media/platform/apple/avd/avd-drv.c"
+    },
+    {
+      "path": "drivers/media/platform/apple/avd/avd-hw.c",
+      "revision": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": "c9b15028adae725cf9a4fcfc1a928cba0d26b894210c34a4dc8d8c21b6b8dc6f",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/drivers/media/platform/apple/avd/avd-hw.c"
+    },
+    {
+      "path": "include/uapi/linux/v4l2-controls.h",
+      "revision": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": "c86036741a6b878cc2a28796c2fdd1ff18488ccdd274ea662cfadc934569d9fb",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/include/uapi/linux/v4l2-controls.h"
+    },
+    {
+      "path": "drivers/media/common/videobuf2/videobuf2-v4l2.c",
+      "revision": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": "60b388cd10837ae13187f9047f7e5c9b03af46a1116485789fef57a7ba682844",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/drivers/media/common/videobuf2/videobuf2-v4l2.c"
+    },
+    {
+      "path": "include/media/videobuf2-v4l2.h",
+      "revision": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": "35c2a1d147de60b5e8b90978a8c507ebefac439ed5daef116c9adc0bb70a0237",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/include/media/videobuf2-v4l2.h"
+    },
+    {
+      "path": "include/linux/bitfield.h",
+      "revision": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": "e98046198bfaa7e05909cc88986c66c87b9638881fdcf88b5e090552d8d2eb77",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/include/linux/bitfield.h"
+    },
+    {
+      "path": "LICENSES/preferred/MIT",
+      "revision": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": "323c587d0ccf10e376f8bf9a7f31fb4ca6078105194b42e0b1e0ee2bc9bde71f",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/LICENSES/preferred/MIT"
+    }
+  ],
+  "capture_commit": "5c1b9239756bfcc0c594a1c55f4908e3b687bd73",
+  "capture_inputs": [
+    {
+      "path": "hevc-controls/captures/2026-09-17/README.md",
+      "sha256": "e6d4ddb69ebe9fadc11a6841b7dcf699c07de22a902987cba3067632d7c76427"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/associations/B-gst.json",
+      "sha256": "ecf96ada51bb2ca854b4442f1810ed597fcd66ca8ea46ae263c20c130f191875"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/associations/B-va.json",
+      "sha256": "5e36692af48ff06345c6d288ae290e6daadb4fa9522ef4a871ef387e0a0b32dd"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/associations/E-gst.json",
+      "sha256": "b86f1c3411ecf68f62b10bf69cb52a5a88f2ac4ca95e539f0dff4881b2ee6a03"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/associations/E-va.json",
+      "sha256": "d25b9c19de2f3e387d255d711d380f3fd8a424f730b686fb141f2436381318dc"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/commands.json",
+      "sha256": "30250bd3c14aa395b6a1229d044d478641661ad5824e780cc81b861597cc0f0e"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/guards/guard-B-gst-off.jsonl",
+      "sha256": "69f6cdcd1cbb9c82274dbe85ad3da6ab798cd6aa52bb986d4ffba0a315b1e3ca"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/guards/guard-B-gst-on.jsonl",
+      "sha256": "fb74673532aa9df35f054907dedf7163ad3607cace55f903d0e83e18b497be46"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/guards/guard-B-gst-outputlog.jsonl",
+      "sha256": "510511b1c19b4abd3eee29ba2ef24456cee281058de592db357218e68adbb8fb"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/guards/guard-B-va-off.jsonl",
+      "sha256": "4a8d55aabafaabedcddf6ac27b245c99827e4ff4ab567b5def1a26bf2c6c3f1f"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/guards/guard-B-va-on.jsonl",
+      "sha256": "84a8c222c29be8a0e061276af8d55143c0173f2b95f3452b564b445b092f1912"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/guards/guard-E-gst-off.jsonl",
+      "sha256": "cbf40869edffa75b9e64097f1714e31c8791b89746a2c40d1906113a0537099d"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/guards/guard-E-gst-on.jsonl",
+      "sha256": "6a918364a7a8a05b154eee7a06ba17e8cc26c259c375d594618788777f2d9be3"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/guards/guard-E-gst-outputlog.jsonl",
+      "sha256": "d8252de9358f4b160efae80d00ea2e9e383f587c8eddcc89467234ace81d4d1a"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/guards/guard-E-va-off.jsonl",
+      "sha256": "65d800b07197d0ecae0fd82f5bc5b73168d3386e91ec72668db7e3137407a2bc"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/guards/guard-E-va-on.jsonl",
+      "sha256": "973325aadfc45427fa31917e1624efc3811587a7cb13ea115b624095a170f801"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/private-artifacts.json",
+      "sha256": "c134f8f3a5d7bc0631ae36011983bd8d0bb2daa2947590c00fe80f5f8d81eda8"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/provenance.json",
+      "sha256": "fb004514b565d134dc45e8bc0886066139485fa2ab627863764e5a23871366db"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/recovery.json",
+      "sha256": "ecdeb127d8fcfe3c543f05c8e7d9782963a5990285e1755b0b67f347bdb162bd"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/reference-frames.json",
+      "sha256": "6f25d3ad30b99ac0e8ee5c9cf2338b19f89dd3b884ed6607ef438bf8977a8cbf"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/refs/B-gst.jsonl",
+      "sha256": "abae34a39cb1aa65c786e34f15e356d233f7eedc691ce26acee1d52b96aa1bce"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/refs/B-va.jsonl",
+      "sha256": "bcd820851c2ea470bb398d0781db1ac2d4c6c509d017f699e084a5b9381bf752"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/refs/E-gst.jsonl",
+      "sha256": "141bceb8893f77b2942883d3007183d5c6efc0759f3a91a46ee906252f44a2ad"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/refs/E-va.jsonl",
+      "sha256": "557efceb25b4fd54aa8cf1911fc659062b602870e88043e4162d6174f36882d1"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/results.json",
+      "sha256": "a849b508bea5cdb77bffa2e3165d698070c507cfe4012c1178a22c4f417ba2b3"
+    },
+    {
+      "path": "hevc-controls/captures/2026-09-17/summary.json",
+      "sha256": "cfc4c8ff5cc5e95f0f4fba8b84245ab840b9d841637dd6152a9bd53f9a6cbbdb"
+    }
+  ],
+  "checker": {
+    "commit": "ba66572ff7e1e380377eb2414a7eb7d7f97bb0d9",
+    "sha256": "666eacdde663e8ef890a0e974f5f0ce0f857803b25558b5e56db8f775f9d7dfa"
+  },
+  "patches": {
+    "commit": "5c1b9239756bfcc0c594a1c55f4908e3b687bd73",
+    "concatenated_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390",
+    "files": [
+      {
+        "path": "patches/0001-media-apple-avd-allow-cacheable-non-coherent-MMAP-bu.patch",
+        "sha256": "ba229ea748d245b608b74732176707295c3ac115cb812f0f58d8d5a46a010a42",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-drv.c"
+        ]
+      },
+      {
+        "path": "patches/0002-media-apple-avd-h264-reject-slices-that-reference-in.patch",
+        "sha256": "8f722f3cfa6ab35d1b5eeb68824dc0bf9516e3861c807b420588be37857349fe",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-h264.c"
+        ]
+      },
+      {
+        "path": "patches/0003-media-apple-avd-allocate-the-job-segment-table-with-.patch",
+        "sha256": "471ce7972442aa6e70a3abd373aa1ba83857e74be44d102e5d40f8fcdc80ff03",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-drv.c"
+        ]
+      },
+      {
+        "path": "patches/0004-media-apple-avd-h264-reset-slice_num-when-a-frame-is.patch",
+        "sha256": "69629df64e3ec36483d5d88b9b39fa1bc94438620efafac8ff376492b2bfa5fb",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-h264.c"
+        ]
+      },
+      {
+        "path": "patches/0005-media-apple-avd-track-job-state-so-completion-cannot-race-the-run.patch",
+        "sha256": "11765f7d944084fdee035893d39d3cde92db57e471c67fc28c15d98dccecfa4d",
+        "files": []
+      },
+      {
+        "path": "patches/0006-media-apple-avd-hevc-read-controls-after-applying-th.patch",
+        "sha256": "21074da57d6f9a9d15ff0eaa175d9dab05ed618b136af4e891bd2937dcae2987",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-hevc.c"
+        ]
+      },
+      {
+        "path": "patches/0007-media-apple-avd-size-the-compressed-chroma-plane-for.patch",
+        "sha256": "8a5d030804fa7e341b59a2132bc0efd9c18dbf1da5d0fe6ecc467c8d3fc6b8d7",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-drv.c"
+        ]
+      },
+      {
+        "path": "patches/0008-media-apple-avd-h264-fill-chroma-with-grey-for-4-0-0.patch",
+        "sha256": "9e425c1d76a8d22b2d7d0bbdda91301e91183b93bec8c1a5c65cfa76780ceac0",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-h264.c"
+        ]
+      },
+      {
+        "path": "patches/0009-media-apple-avd-hevc-reject-unequal-bit-depths-and-n.patch",
+        "sha256": "f9f4b24c0b32705f7e43ed986ea55178f9eda1dccd9cb7f54584ac6d80b14967",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-hevc.c"
+        ]
+      },
+      {
+        "path": "patches/0010-media-apple-avd-hevc-copy-the-slice-and-entry-point-.patch",
+        "sha256": "10db180122a9e78fbe305f457cdb2c6f07fd1b50c42bd72f91d1674167e78397",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-hevc.c"
+        ]
+      },
+      {
+        "path": "patches/0011-media-apple-avd-hevc-bound-entry-points-and-complete.patch",
+        "sha256": "bdf25202b4f1da6646c9c1a71b8492501c51d2a2b2dec7361195e363b8a69a39",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-hevc.c"
+        ]
+      },
+      {
+        "path": "patches/0012-media-apple-avd-free-job-tables-that-were-never-subm.patch",
+        "sha256": "9093958708815f7f26749f329b2e3660d8a516d17977f96f39b1343365b16c42",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-drv.c",
+          "drivers/media/platform/apple/avd/avd-v4l2.c"
+        ]
+      },
+      {
+        "path": "patches/0013-media-apple-avd-h264-keep-slice-data-and-the-job-tab.patch",
+        "sha256": "1ed97c455869cfd108d8dbe0eee5c33afb97ee46597c8a2738ca811f57c7c2cf",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-h264.c"
+        ]
+      },
+      {
+        "path": "patches/0014-media-apple-avd-h264-use-the-10-bit-grey-value-for-1.patch",
+        "sha256": "a1c7a0aee01fa16b6d9365ee42898f0c2c8ffa0d79a1254bdede5724f7782cd1",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-h264.c"
+        ]
+      },
+      {
+        "path": "patches/0015-media-apple-avd-accept-HEVC-4-2-2-again-reject-forma.patch",
+        "sha256": "39dbcb5de5c1296f0355fce6b5e6ba916cf1fb06d0a5b260b3696c364ad2e1d8",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-h264.c",
+          "drivers/media/platform/apple/avd/avd-hevc.c"
+        ]
+      }
+    ]
+  },
+  "mapped_functions": [
+    {
+      "file": "avd-hevc.c",
+      "name": "mv_color_size"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "stream_refs"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "set_header"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "stream_slice_dqtblk"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "stream_slice_mv"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "stream_slices"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "update_dec_buf_info"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "avd_hevc_adjust_decoded_fmt"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "avd_hevc_run_preamble"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "avd_hevc_run"
+    },
+    {
+      "file": "avd-drv.c",
+      "name": "avd_get_ref_buf"
+    },
+    {
+      "file": "avd-drv.c",
+      "name": "fill_comp"
+    },
+    {
+      "file": "avd-v4l2.c",
+      "name": "avd_fill_decoded_pixfmt"
+    },
+    {
+      "file": "avd-v4l2.c",
+      "name": "avd_run_preamble"
+    },
+    {
+      "file": "videobuf2-v4l2.c",
+      "name": "vb2_find_buffer"
+    }
+  ],
+  "patch_reconciliation": {
+    "0001": "MMAP cacheability and queue attributes; not reference/header/list/MV bit expressions.",
+    "0002": "H264 reference validation; not the HEVC helper fallback.",
+    "0003": "Job segment allocation, not these command definitions.",
+    "0004": "H264 slice counter reset.",
+    "0005": "Shared job submission/completion synchronization; runtime correctness still unobserved by this model.",
+    "0006": "Apply HEVC request before reading controls; use applied array counts.",
+    "0007": "Compressed chroma sizing changes for 422; current 420 behavior retained. Addresses/offsets remain unknown here.",
+    "0008": "H264 monochrome handling.",
+    "0009": "HEVC SPS format validation, later narrowed by0015.",
+    "0010": "Copy applied slice/entry-point arrays under control lock; no reference/MV formula change.",
+    "0011": "Entry-point bounds, initialized run, request completion/error handling; first-slice selection unchanged.",
+    "0012": "Free unsubmitted job tables at lifecycle boundaries.",
+    "0013": "H264 job-table and emulation-byte bounds.",
+    "0014": "H264 10-bit monochrome value.",
+    "0015": "HEVC format validation; no reference/MV formula change."
+  }
+}
