@@ -236,4 +236,3 @@ def normalize(events, expected, run):
         associations.append(dict(pic=pic, poc=poc, system_frame_number=req["timestamp"] // 1000))
         last_writer[req["target"]] = pic
     return records, associations
-
