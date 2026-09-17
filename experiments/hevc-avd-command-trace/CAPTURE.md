@@ -18,24 +18,50 @@ is blocked on this recorder. Completing #70 does not complete #71.
 ## Runs
 
 Eight guarded 300-picture workloads: `{B,E} × {va,gst} × {cmdtrace off,on}`.
+Use the accepted capture supervisor's parent-death protection, arm-before-exec
+pipe, actual waited child status, finite termination/reaping and sticky-status
+monitoring as the design baseline. Its one-recorder interface must be adapted
+and tested for two recorders in #71 before use: successful arm of one alone is
+not enough, and failure must preserve both attempted states. Store exact source,
+module, oracle, userspace tools and supervisor hashes with every run.
+
 Child exits, per-frame off/on equality and the prior exact wrong sets (0 / 26 /
 25) must match schema-2. Finite deadline, fixed journal boundary, stop on
 fault/foreign client/wedge. Restore the original module only when healthy and
 idle. Preserve failed attempts; never automatically replay a fault.
 
-Arm `apple_avd_hevc_cmdtrace` (and the accepted reference recorder if still
-needed for writer identity) with a strictly increasing run id and the decoder
-TGID. Seal after all contexts close. Reject tiles, extra slices, nonzero used
+For each on run, arm **both** `apple_avd_hevc_cmdtrace` and
+`apple_avd_hevc_trace` with the identical strictly increasing run id and decoder
+TGID, before releasing the child to open the decoder. The paired reference
+history is mandatory. For off runs disable both. Always preserve/read/close the
+previous snapshots, then explicitly write `off` to each before another `arm`;
+this candidate refuses replacement while a capture or pinned reader exists.
+Seal only after all contexts close. Reject tiles, extra slices, nonzero used
 entry points, overflow, or missing window pictures 24–34.
 
 ## Distinguishing outcomes
 
-1. Copied controls differ from #67 ioctl observations → request copy/ownership.
+1. Copied controls differ from complete **same-run** ioctl observations (use #67 tooling, not an old-run oracle) → request copy/ownership.
 2. Actual words differ from packing copied controls → kernel construction, or
    model bug (adjudicate against pinned C).
 3. Words and inputs agree across clients, RPS_E still wrong → compressed
    reference / DMA / firmware; still not a firmware proof by elimination.
 4. Tracing changes pixels or faults → reject causal interpretation.
+
+Before any run: verify the supported machine, installed/loaded original module
+identity, matching headers/candidate build, fixed justified journal boundary and
+private corpus lock. Hold the hardware guard's exclusive device lease through
+temporary swap, all bounded runs and healthy-idle restoration. Persist every
+attempt and guard status. Record off/on hashes for all 300 outputs and the full
+wrong-picture sets; do not use totals alone. Decode execution must remain
+unprivileged. Bound each workload at 90 seconds and the whole campaign separately.
+A new fault, foreign decoder client or failure is a stop, not an automatic retry.
+
+No instrumentation result is interpretable if it changes pixels, loses records,
+uses a wrong writer generation or lacks exact same-run control/output binding.
+Read both snapshots fully, validate the reference history and command schema,
+then invoke the recorded C oracle for all 11 windows. Preserve source/packing
+mismatches as findings; equality still does not prove the firmware contract.
 
 Parent [driver #42](https://github.com/iconidentify/libva-v4l2_request/issues/42)
 retains the correction and fault gates.

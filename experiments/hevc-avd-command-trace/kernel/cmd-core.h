@@ -14,7 +14,7 @@
 #define CMD_SLICE 275
 #define CMD_FLAGS 8
 #define CMD_PACKED (CMD_SPS + CMD_PPS + CMD_SCALING + CMD_SLICE + CMD_FLAGS)
-#define TRACE_CAPTURE_BYTES 1261568u
+#define TRACE_CAPTURE_BYTES 1261648u
 
 enum cmd_phase { CMD_OFF, CMD_ARMED, CMD_ACTIVE, CMD_DRAINED, CMD_SEALED };
 enum cmd_error {
@@ -31,7 +31,7 @@ enum cmd_site {
 	CMD_SITE_QP, CMD_SITE_DBLK, CMD_SITE_WT_HDR, CMD_SITE_WT_LUMA,
 	CMD_SITE_WT_LUMA_OFF, CMD_SITE_WT_CHR, CMD_SITE_WT_CHR_OFF,
 	CMD_SITE_WT_SKIP, CMD_SITE_LOC_CABAC, CMD_SITE_LOC_CTB,
-	CMD_SITE_LOC_MV, CMD_SITE_SLICE_META,
+	CMD_SITE_LOC_MV, CMD_SITE_SLICE_META, CMD_SITE_HDR_STRIDE,
 };
 
 struct cmd_hist {
@@ -40,6 +40,7 @@ struct cmd_hist {
 struct cmd_window {
 	unsigned int picture, poc, type, nwords, nbytes, inactive;
 	unsigned int slice_size, slice_rel, slice_flags, slice_coded;
+	unsigned int decomp, revision, quirks, bytesperline, meta_seen;
 	unsigned char controls[CMD_CONTROL];
 	unsigned int words[CMD_WORDS];
 	unsigned short sites[CMD_WORDS];
@@ -50,8 +51,11 @@ struct cmd_capture {
 	struct cmd_hist hist[CMD_PICTURES];
 	struct cmd_window window[CMD_WINDOW];
 };
-/* Peak while both recorders are live and both snapshots are open. */
-#define PEAK_ALLOC_BYTES (2u * TRACE_CAPTURE_BYTES + 2u * (unsigned)sizeof(struct cmd_capture))
+/* One immutable capture per recorder; readers pin it, no replacement/copy.
+ * Streaming seq readers render one bounded row at a time. 64 KiB reserves
+ * their buffers/seq bookkeeping; capture allocation rounding gets 64 KiB. */
+#define PEAK_ALLOC_BYTES (TRACE_CAPTURE_BYTES + (unsigned)sizeof(struct cmd_capture) + 131072u)
+#define ALLOCATION_LIMIT_BYTES 2097152u
 
 static inline int cmd_selected(const struct cmd_capture *c,
 			       unsigned long long context)
@@ -160,6 +164,10 @@ static inline void cmd_word(struct cmd_capture *c, unsigned int site,
 	struct cmd_window *w = cmd_slot(c);
 	if (!w)
 		return;
+	if (!site || site > CMD_SITE_HDR_STRIDE) {
+		c->errors |= CMD_SHAPE;
+		return;
+	}
 	if (w->nwords >= CMD_WORDS) {
 		c->errors |= CMD_WORDS_FULL | CMD_OVERFLOW;
 		return;
@@ -176,6 +184,10 @@ static inline void cmd_slice_meta(struct cmd_capture *c, unsigned int size,
 	struct cmd_window *w = cmd_slot(c);
 	if (!w)
 		return;
+	if (w->meta_seen++ || !size || rel > ~0u - data_byte_offset) {
+		c->errors |= CMD_SHAPE;
+		return;
+	}
 	w->slice_size = size;
 	w->slice_rel = rel;
 	w->slice_flags = flags;
@@ -191,7 +203,12 @@ static inline void cmd_inactive(struct cmd_capture *c, unsigned int site)
 	struct cmd_window *w = cmd_slot(c);
 	if (!w)
 		return;
-	w->inactive |= 1u << (site % 32);
+	if ((site != CMD_SITE_SCL_OFF && site != CMD_SITE_WT_SKIP) ||
+	    (w->inactive & (1u << site))) {
+		c->errors |= CMD_SHAPE;
+		return;
+	}
+	w->inactive |= 1u << site;
 }
 
 static inline void cmd_done(struct cmd_capture *c, unsigned long long context,

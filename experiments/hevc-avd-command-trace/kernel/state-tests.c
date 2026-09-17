@@ -21,9 +21,9 @@ int main(void)
 
 	assert(CMD_PACKED == 1380);
 	assert(CMD_PACKED < CMD_CONTROL);
-	assert(PEAK_ALLOC_BYTES == 2u * TRACE_CAPTURE_BYTES +
-	       2u * (unsigned)sizeof(struct cmd_capture));
-	assert(PEAK_ALLOC_BYTES > 2097152u);
+	assert(PEAK_ALLOC_BYTES <= ALLOCATION_LIMIT_BYTES);
+	assert(sizeof(struct cmd_window) == 7596);
+	assert(sizeof(struct cmd_capture) == 90824);
 
 	cmd_bind(&c, 123, 8, 1);
 	assert(c.phase != CMD_ACTIVE);
@@ -134,6 +134,14 @@ int main(void)
 	cmd_done(&c, 8, 0);
 	assert(c.errors & CMD_FAILED);
 	assert(c.errors & CMD_ORDER);
+
+	arm(); cmd_bind(&c, 123, 8, 1);
+	for (i = 1; i < CMD_FIRST; i++) { cmd_start(&c,8,1,1,0,0); cmd_done(&c,8,1); }
+	cmd_start(&c,8,1,1,0,0);
+	cmd_word(&c,0,1); assert(c.errors & CMD_SHAPE); assert(c.window[0].nwords == 0);
+	cmd_word(&c,33,1); assert(c.window[0].nwords == 0);
+	cmd_slice_meta(&c,1,~0u,0,1); assert(c.window[0].nwords == 0);
+	cmd_inactive(&c,99); assert(c.window[0].inactive == 0);
 
 	puts("PASS: command recorder bounds, CRA window, overflow, shape and inactive records");
 	return 0;

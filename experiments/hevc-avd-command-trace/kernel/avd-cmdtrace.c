@@ -7,6 +7,7 @@
 #include <linux/sched.h>
 #include "avd.h"
 #include "avd-cmdtrace.h"
+#include "avd-trace-core.h"
 
 static DEFINE_MUTEX(cmd_control_lock);
 static DEFINE_SPINLOCK(cmd_lock);
@@ -64,94 +65,23 @@ static unsigned int pack_controls(unsigned char *out,
 	const struct v4l2_hevc_pred_weight_table *w = &sl->pred_weight_table;
 	unsigned int n = 0;
 
-	out[n++] = sps->video_parameter_set_id;
-	out[n++] = sps->seq_parameter_set_id;
-	pack_u16(out, &n, sps->pic_width_in_luma_samples);
-	pack_u16(out, &n, sps->pic_height_in_luma_samples);
-	out[n++] = sps->bit_depth_luma_minus8;
-	out[n++] = sps->bit_depth_chroma_minus8;
-	out[n++] = sps->log2_max_pic_order_cnt_lsb_minus4;
-	out[n++] = sps->sps_max_dec_pic_buffering_minus1;
-	out[n++] = sps->sps_max_num_reorder_pics;
-	out[n++] = sps->sps_max_latency_increase_plus1;
-	out[n++] = sps->log2_min_luma_coding_block_size_minus3;
-	out[n++] = sps->log2_diff_max_min_luma_coding_block_size;
-	out[n++] = sps->log2_min_luma_transform_block_size_minus2;
-	out[n++] = sps->log2_diff_max_min_luma_transform_block_size;
-	out[n++] = sps->max_transform_hierarchy_depth_inter;
-	out[n++] = sps->max_transform_hierarchy_depth_intra;
-	out[n++] = sps->pcm_sample_bit_depth_luma_minus1;
-	out[n++] = sps->pcm_sample_bit_depth_chroma_minus1;
-	out[n++] = sps->log2_min_pcm_luma_coding_block_size_minus3;
-	out[n++] = sps->log2_diff_max_min_pcm_luma_coding_block_size;
-	out[n++] = sps->num_short_term_ref_pic_sets;
-	out[n++] = sps->num_long_term_ref_pics_sps;
-	out[n++] = sps->chroma_format_idc;
-	out[n++] = sps->sps_max_sub_layers_minus1;
-	pack_u64(out, &n, sps->flags);
-
-	out[n++] = pps->pic_parameter_set_id;
-	out[n++] = pps->num_extra_slice_header_bits;
-	out[n++] = pps->num_ref_idx_l0_default_active_minus1;
-	out[n++] = pps->num_ref_idx_l1_default_active_minus1;
-	out[n++] = (unsigned char)pps->init_qp_minus26;
-	out[n++] = pps->diff_cu_qp_delta_depth;
-	out[n++] = (unsigned char)pps->pps_cb_qp_offset;
-	out[n++] = (unsigned char)pps->pps_cr_qp_offset;
-	out[n++] = pps->num_tile_columns_minus1;
-	out[n++] = pps->num_tile_rows_minus1;
-	pack_bytes(out, &n, pps->column_width_minus1, 20);
-	pack_bytes(out, &n, pps->row_height_minus1, 22);
-	out[n++] = (unsigned char)pps->pps_beta_offset_div2;
-	out[n++] = (unsigned char)pps->pps_tc_offset_div2;
-	out[n++] = pps->log2_parallel_merge_level_minus2;
-	pack_u64(out, &n, pps->flags);
-
-	pack_bytes(out, &n, sc->scaling_list_4x4, 6 * 16);
-	pack_bytes(out, &n, sc->scaling_list_8x8, 6 * 64);
-	pack_bytes(out, &n, sc->scaling_list_16x16, 6 * 64);
-	pack_bytes(out, &n, sc->scaling_list_32x32, 2 * 64);
-	pack_bytes(out, &n, sc->scaling_list_dc_coef_16x16, 6);
-	pack_bytes(out, &n, sc->scaling_list_dc_coef_32x32, 2);
-
-	pack_u32(out, &n, sl->bit_size);
-	pack_u32(out, &n, sl->data_byte_offset);
-	pack_u32(out, &n, sl->num_entry_point_offsets);
-	out[n++] = sl->nal_unit_type;
-	out[n++] = sl->nuh_temporal_id_plus1;
-	out[n++] = sl->slice_type;
-	out[n++] = sl->colour_plane_id;
-	pack_u32(out, &n, (u32)sl->slice_pic_order_cnt);
-	out[n++] = sl->num_ref_idx_l0_active_minus1;
-	out[n++] = sl->num_ref_idx_l1_active_minus1;
-	out[n++] = sl->collocated_ref_idx;
-	out[n++] = sl->five_minus_max_num_merge_cand;
-	out[n++] = (unsigned char)sl->slice_qp_delta;
-	out[n++] = (unsigned char)sl->slice_cb_qp_offset;
-	out[n++] = (unsigned char)sl->slice_cr_qp_offset;
-	out[n++] = (unsigned char)sl->slice_act_y_qp_offset;
-	out[n++] = (unsigned char)sl->slice_act_cb_qp_offset;
-	out[n++] = (unsigned char)sl->slice_act_cr_qp_offset;
-	out[n++] = (unsigned char)sl->slice_beta_offset_div2;
-	out[n++] = (unsigned char)sl->slice_tc_offset_div2;
-	out[n++] = sl->pic_struct;
-	pack_u32(out, &n, sl->slice_segment_addr);
-	pack_bytes(out, &n, sl->ref_idx_l0, 16);
-	pack_bytes(out, &n, sl->ref_idx_l1, 16);
-	pack_u16(out, &n, sl->short_term_ref_pic_set_size);
-	pack_u16(out, &n, sl->long_term_ref_pic_set_size);
-	pack_u64(out, &n, sl->flags);
-	out[n++] = w->luma_log2_weight_denom;
-	out[n++] = (unsigned char)w->delta_chroma_log2_weight_denom;
-	pack_bytes(out, &n, w->delta_luma_weight_l0, 16);
-	pack_bytes(out, &n, w->luma_offset_l0, 16);
-	pack_bytes(out, &n, w->delta_chroma_weight_l0, 32);
-	pack_bytes(out, &n, w->chroma_offset_l0, 32);
-	pack_bytes(out, &n, w->delta_luma_weight_l1, 16);
-	pack_bytes(out, &n, w->luma_offset_l1, 16);
-	pack_bytes(out, &n, w->delta_chroma_weight_l1, 32);
-	pack_bytes(out, &n, w->chroma_offset_l1, 32);
-	pack_u64(out, &n, flags);
+#define W_U8(v, count) out[n++] = (unsigned char)(v)
+#define W_S8(v, count) W_U8(v, count)
+#define W_U16(v, count) pack_u16(out, &n, (v))
+#define W_U32(v, count) pack_u32(out, &n, (u32)(v))
+#define W_S32(v, count) W_U32(v, count)
+#define W_U64(v, count) pack_u64(out, &n, (v))
+#define W_BYTES(v, count) pack_bytes(out, &n, (v), (count))
+#define FIELD(kind, name, member, count) W_##kind(member, count);
+#include "control-layout.inc"
+#undef FIELD
+#undef W_U8
+#undef W_S8
+#undef W_U16
+#undef W_U32
+#undef W_S32
+#undef W_U64
+#undef W_BYTES
 	return n;
 }
 
@@ -182,7 +112,8 @@ void avd_cmdtrace_job(struct avd_ctx *ctx)
 	spin_lock_irqsave(&cmd_lock, flags);
 	if (capture)
 		cmd_bind(capture, ctx->trace_pid, ctx->trace_context,
-			 ctx->job.codec == AVD_CODEC_HEVC);
+			 ctx->coded_fmt_desc &&
+			 ctx->coded_fmt_desc->fourcc == V4L2_PIX_FMT_HEVC_SLICE);
 	spin_unlock_irqrestore(&cmd_lock, flags);
 }
 
@@ -198,8 +129,6 @@ void avd_cmdtrace_start(struct avd_ctx *ctx,
 	unsigned long flags;
 	unsigned char packed[CMD_PACKED];
 	unsigned int i;
-	for (i = 0; i < CMD_PACKED; i++)
-		packed[i] = 0;
 	spin_lock_irqsave(&cmd_lock, flags);
 	if (!selected(ctx)) {
 		spin_unlock_irqrestore(&cmd_lock, flags);
@@ -212,6 +141,13 @@ void avd_cmdtrace_start(struct avd_ctx *ctx,
 		     dst->base.vb.vb2_buf.index, decode->flags,
 		     sl->slice_type == V4L2_HEVC_SLICE_TYPE_I);
 	if (cmd_detail(capture)) {
+		struct cmd_window *w = cmd_slot(capture);
+		w->decomp = ctx->decomp;
+		w->revision = ctx->dev->variant->revision;
+		w->quirks = ctx->dev->variant->quirks;
+		w->bytesperline = ctx->decoded_fmt.fmt.pix_mp.plane_fmt[0].bytesperline;
+		for (i = 0; i < CMD_PACKED; i++)
+			packed[i] = 0;
 		if (pack_controls(packed, sps, pps, sc, sl, decode->flags) != CMD_PACKED)
 			capture->errors |= CMD_OVERFLOW;
 		else
@@ -429,7 +365,8 @@ void avd_cmdtrace_init(void)
 {
 	BUILD_BUG_ON(CMD_PACKED > CMD_CONTROL);
 	BUILD_BUG_ON(CMD_PACKED != 1380);
-	BUILD_BUG_ON(PEAK_ALLOC_BYTES < 2u * TRACE_CAPTURE_BYTES);
+	BUILD_BUG_ON(PEAK_ALLOC_BYTES > ALLOCATION_LIMIT_BYTES);
+	BUILD_BUG_ON(sizeof(struct atr_capture) != TRACE_CAPTURE_BYTES);
 	cmd_dir = debugfs_create_dir("apple_avd_hevc_cmdtrace", NULL);
 	debugfs_create_file("control", 0200, cmd_dir, NULL, &control_fops);
 	debugfs_create_file("snapshot", 0400, cmd_dir, NULL, &snapshot_fops);

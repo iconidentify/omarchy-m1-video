@@ -1,122 +1,84 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""Offline command-trace tests. No device, no module load."""
-from __future__ import annotations
-
+"""No-device shared-core and strict input-domain tests."""
+import copy
 import hashlib
 import json
-import os
+from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from pathlib import Path
+import fixtures
+import parser
 
-HERE = Path(__file__).resolve().parent
-REPO = HERE.parent.parent
-
+HERE=Path(__file__).resolve().parent
+REPO=HERE.parent.parent
 
 class Core(unittest.TestCase):
     def test_sanitized_state_machine(self):
         with tempfile.TemporaryDirectory() as tmp:
-            binary = Path(tmp) / "state"
-            subprocess.run(
-                ["cc", "-O0", "-g", "-fsanitize=address,undefined", "-Wall", "-Werror",
-                 "-I", str(HERE / "kernel"),
-                 str(HERE / "kernel/state-tests.c"), "-o", str(binary)],
-                check=True, timeout=30)
-            out = subprocess.check_output([str(binary)], text=True, timeout=10)
-            self.assertIn("PASS:", out)
+            binary=Path(tmp)/'state'
+            subprocess.run(['cc','-O0','-g','-fsanitize=address,undefined','-fno-sanitize-recover=all',
+                            '-Wall','-Werror','-I',str(HERE/'kernel'),str(HERE/'kernel/state-tests.c'),'-o',str(binary)],
+                           check=True,timeout=30)
+            subprocess.run([str(binary)],check=True,timeout=10)
 
+    def test_accepted_sources_unchanged(self):
+        pins=json.loads((HERE/'sources.json').read_text())
+        self.assertEqual(hashlib.sha256((HERE.parent/'hevc-avd-trace/hooks.patch').read_bytes()).hexdigest(),pins['trace_hooks_sha256'])
+        manifest=json.loads((HERE.parent/'hevc-avd-trace/sources.json').read_text())
+        blobs=b''.join((REPO/item['path']).read_bytes() for item in manifest['patches']['files'])
+        self.assertEqual(hashlib.sha256(blobs).hexdigest(),pins['patches_concatenated_sha256'])
 
-class Pins(unittest.TestCase):
-    def test_trace_hooks_unchanged(self):
-        src = json.loads((HERE / "sources.json").read_text())
-        hooks = HERE.parent / "hevc-avd-trace" / "hooks.patch"
-        self.assertEqual(hashlib.sha256(hooks.read_bytes()).hexdigest(),
-                         src["trace_hooks_sha256"])
-        manifest = json.loads((HERE.parent / "hevc-avd-trace" / "sources.json").read_text())
-        blobs = b"".join((REPO / item["path"]).read_bytes() for item in manifest["patches"]["files"])
-        self.assertEqual(hashlib.sha256(blobs).hexdigest(),
-                         src["patches_concatenated_sha256"])
+class Controls(unittest.TestCase):
+    def test_layout_and_roundtrip(self):
+        self.assertEqual(sum(size for _,_,size in parser.LAYOUT),1380)
+        for seed in range(32):
+            raw=fixtures.row(seed)['controls'];ctrl=parser.unpack_controls(raw)
+            self.assertEqual(parser.pack_controls(ctrl),raw)
+            parser.validate_controls(ctrl)
+        self.assertEqual(parser.unpack_controls(fixtures.row(0)['controls'])['pps_cb_qp_offset'],-6)
 
-    def test_peak_allocation_is_explicit(self):
-        text = (HERE / "kernel/cmd-core.h").read_text()
-        self.assertIn("#define CMD_CONTROL 1392", text)
-        self.assertIn("#define TRACE_CAPTURE_BYTES 1261568u", text)
-        self.assertIn("PEAK_ALLOC_BYTES", text)
-        self.assertNotIn("sizeof(struct cmd_capture) + 1261568u <= 2097152u",
-                         (HERE / "kernel/avd-cmdtrace.c").read_text())
+    def test_extent_and_padding(self):
+        raw=fixtures.row()['controls']
+        for bad in (raw[:-1],raw+bytes(1),raw[:-1]+b'\x01',list(raw)):
+            with self.assertRaises(ValueError):parser.unpack_controls(bad)
 
+    def test_unknown_missing_and_scalar_overflow(self):
+        c=parser.unpack_controls(fixtures.row()['controls'])
+        for bad in ({},dict(c,unknown=1),dict(c,pps_cb_qp_offset=-129),dict(c,bit_size=1<<32),dict(c,sps_flags=True)):
+            with self.assertRaises(ValueError):parser.pack_controls(bad)
 
-class Predictor(unittest.TestCase):
-    def test_unknown_is_not_default_zero(self):
-        from parser import predict_qp, MissingInput
-        with self.assertRaises(MissingInput):
-            predict_qp({})
-        self.assertEqual(predict_qp({"init_qp_minus26": 0, "slice_qp_delta": 0,
-                                     "pps_cb_qp_offset": 0, "pps_cr_qp_offset": 0,
-                                     "slice_cb_qp_offset": 0, "slice_cr_qp_offset": 0}) >> 20,
-                         0x2d9)
+    def test_unsafe_source_execution_domains(self):
+        c=parser.unpack_controls(fixtures.row()['controls'])
+        for name,value in [('sps_flags',512),('pps_flags',1<<11),('slice_flags',1024),('decode_flags',8),
+                           ('slice_type',3),('chroma_format_idc',3),('bit_depth_chroma_minus8',2),
+                           ('pic_width_in_luma_samples',0),('num_ref_idx_l0_active_minus1',16),
+                           ('luma_log2_weight_denom',31),('delta_chroma_log2_weight_denom',-1),
+                           ('num_entry_point_offsets',1),('bit_size',1<<31),('data_byte_offset',1<<30),
+                           ('slice_segment_addr',1<<31),('slice_tc_offset_div2',7)]:
+            with self.subTest(name=name),self.assertRaises(ValueError):parser.validate_controls(dict(c,**{name:value}))
 
-    def test_interior_scaling_corruption_is_visible(self):
-        from parser import window_ok
-        words = [{"site": 15, "word": 1}] * 10
-        words[4] = {"site": 15, "word": 99}
-        self.assertFalse(window_ok({"nwords": 10, "words": [w["word"] for w in words],
-                                    "sites": [w["site"] for w in words],
-                                    "expected": [1] * 10}))
+    def test_weight_states(self):
+        self.assertEqual(parser.classify_weights(dict(sites=[],words=[],inactive=1<<27)),'skipped')
+        self.assertEqual(parser.classify_weights(dict(sites=[22],words=[0x2dd00000],inactive=1<<19)),'default-header')
+        for r in [dict(sites=[],words=[],inactive=1<<19),dict(sites=[22],words=[0x2dd00000],inactive=1<<27)]:
+            with self.assertRaises(ValueError):parser.classify_weights(r)
 
-    def test_skipped_weight_record_is_not_zero_word(self):
-        from parser import classify_weights, CMD_SITE_WT_SKIP
-        self.assertEqual(classify_weights({"inactive": 1 << (CMD_SITE_WT_SKIP % 32),
-                                           "nwords": 0}), "skipped")
-        self.assertNotEqual(classify_weights({"inactive": 1 << 22, "nwords": 1,
-                                              "sites": [22], "words": [0x2dd00000]}),
-                            "skipped")
+class Binding(unittest.TestCase):
+    def test_complete_history_and_wrong_job(self):
+        own=dict(run=7,context=3,pictures=[dict(picture=i,poc=i,type=2,target=i%16,intra=1) for i in range(1,301)])
+        ref=dict(run=7,context=3,records=[dict(kind=1,picture=i,poc=i,type=2,buffer=i%16,intra=1) for i in range(1,301)])
+        parser.bind_history(own,ref)
+        for mode in ('run','context','missing','writer'):
+            bad=copy.deepcopy(ref)
+            if mode in ('run','context'):bad[mode]+=1
+            if mode=='missing':bad['records'].pop()
+            if mode=='writer':bad['records'][28]['buffer']=99
+            with self.subTest(mode=mode),self.assertRaises(ValueError):parser.bind_history(own,bad)
 
-    def test_unpack_rejects_short_and_predicts_from_named_fields(self):
-        from parser import unpack_controls, predict_qp, MissingInput, CMD_PACKED
-        with self.assertRaises(MissingInput):
-            unpack_controls(bytes(10))
-        buf = bytearray(CMD_PACKED)
-        buf[34 + 4] = (-26) & 0xff  # init_qp_minus26 in PPS
-        ctrl = unpack_controls(buf)
-        self.assertEqual(ctrl["init_qp_minus26"], -26)
-        self.assertEqual(predict_qp({
-            "init_qp_minus26": -26, "slice_qp_delta": 0,
-            "pps_cb_qp_offset": 0, "pps_cr_qp_offset": 0,
-            "slice_cb_qp_offset": 0, "slice_cr_qp_offset": 0,
-        }) >> 20, 0x2d9)
+    def test_original_fail_open_reproducer(self):
+        bad='H 1\n'+''.join('P 1 0 0 0 0 0\n' for _ in range(300))+'GARBAGE\n'
+        with self.assertRaises(ValueError):parser.parse_snapshot(bad,7)
 
-    def test_snapshot_parser_requires_version_and_300_history(self):
-        from parser import parse_snapshot, MissingInput
-        with self.assertRaises(MissingInput):
-            parse_snapshot("H 2 0\n")
-        with self.assertRaises(MissingInput):
-            parse_snapshot("H 1 0 0 0 0 0 0 0 0 0 0 0 0\n")
-
-    def test_reserved_pps_byte_is_not_in_packed_length(self):
-        from parser import pack_le, CMD_PACKED
-        fields = ([("u8", 0)] * 10 + [("bytes", bytes(20))] +
-                  [("bytes", bytes(22))] + [("s8", 0), ("s8", 0), ("u8", 0),
-                                            ("u64", 0)])
-        pps = pack_le(fields)
-        self.assertEqual(len(pps), 63)
-        poison = bytes([0xaa])
-        self.assertNotIn(poison, pps)
-        self.assertEqual(CMD_PACKED, 34 + 63 + 1000 + 275 + 8)
-
-
-class Docs(unittest.TestCase):
-    def test_capture_plan_and_limits(self):
-        cap = (HERE / "CAPTURE.md").read_text()
-        readme = (HERE / "README.md").read_text()
-        self.assertIn("eight", cap.lower())
-        self.assertIn("#71", cap)
-        self.assertIn("does not authorize module load", readme.lower())
-        self.assertIn("PEAK_ALLOC", readme)
-        self.assertNotIn("Fixes https://github.com/iconidentify/libva-v4l2_request/issues/42", readme)
-
-
-if __name__ == "__main__":
-    unittest.main()
+if __name__=='__main__':unittest.main()
