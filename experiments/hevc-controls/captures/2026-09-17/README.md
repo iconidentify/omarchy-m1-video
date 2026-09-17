@@ -106,7 +106,7 @@ L1 `[32,30]` and collocated POC 30. These referenced VA outputs are still correc
 
 ## AVD source lead and next bounded experiment
 
-Pinned [`hevc.c`](https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/drivers/media/platform/apple/avd/hevc.c)
+Pinned [`avd-hevc.c`](https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/drivers/media/platform/apple/avd/avd-hevc.c)
 from tag `asahi-7.1.13-3` shows:
 
 - `stream_refs()` emits firmware reference headers and buffer addresses in submitted
