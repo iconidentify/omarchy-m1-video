@@ -27,15 +27,15 @@ hashes use `ffmpeg`. Nothing is installed or opened on a decoder. The off build
 verifies the guards compile out; it is not a software playback qualification.
 
 After linking, `end-gate-test.py` compiles the actual patched helper and extracts
-the actual `vaapi_h264_end_frame` callback using real FFmpeg types. Only issue,
-cancel and drawing calls are intercepted. Synthetic states cover empty/end-only,
-start-without-slice, nested start, repeated end, I/P/B, sticky rejection after an
-accepted slice, partition/extension/unknown NALs, FMO, redundant slices, field/MBAFF,
-SP/SI, count overflow and non-VA private-data canaries. Four real-source mutations
-remove backend, slice-count, sticky-start and unsupported-NAL guards; each fails.
-This is stronger than a rewritten end-state model, but **does not execute the NAL
-parser, VA configuration negotiation or a real backend**. Main/High/High10 fixture
-states do not prove negotiated profiles or real playback.
+the actual `vaapi_h264_end_frame` callback using real FFmpeg types. `parser-test.py`
+extracts patched `decode_nal_units` and compiles it with the tree's
+`ff_h2645_packet_split`. Annex-B/AVCC bytes drive that dispatch; issue/cancel are
+intercepted. Slice-header parse (`ff_h264_queue_decode_slice`) remains stubbed.
+Accepted SPS/PPS/IDR issues once; empty input issues zero; DPA/aux after or instead
+of a picture cancel without issue. Removing `admit_nal` from the extracted dispatch
+fails. This still **does not execute VA configuration negotiation, frame threading,
+flush/reinit, or a real backend**. Main/High/High10 fixture states do not prove
+negotiated profiles or real playback.
 
 [Local build evidence](build-evidence.json) records source/archive/patch identities,
 compiler, libva, configure options, binaries, actual function hashes and log hashes.
@@ -55,8 +55,9 @@ Remap stays disabled. Baseline/Extended are not added to `vaapi_profile_map`, an
 and slice NALs. These guards cannot establish that a complete access unit was
 validated before configuration or submission. In particular #79 still requires:
 
-- Actual parser-to-issue tests with Annex-B/AVCC bytes, packet/chunk boundaries,
-  accepted prefixes followed by malformed/unsupported suffixes, and both error modes.
+- Parser-to-issue now runs actual `decode_nal_units`/`ff_h2645_packet_split` on
+  Annex-B/AVCC with a stubbed slice-queue. Remaining: real `ff_h264_queue_decode_slice`,
+  packet/chunk/frame-thread/flush/reinit, and both error-recognition modes.
 - Proof for NALs encountered before VAAPI selection, access-unit/frame boundaries,
   frame threading, configuration changes, flush/reinitialization and sticky lifetime.
 - Complete SPS/PPS/slice feature and profile/configuration binding; unchanged
