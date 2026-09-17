@@ -53,3 +53,13 @@ has not been loaded. Its module SHA-256 is `7a00ffa548e89d4316eb2b1454c7e1531289
 No complete campaign, new pixel evidence or support-count gain is claimed.
 Historical controls only test field conversion, never serve as a same-run oracle.
 Run offline tests with `python3 experiments/hevc-avd-command-capture/tests.py`.
+
+## Recovery lifecycle probe
+
+After a verified clean boot and original loaded-module identity, a fresh private
+config may run `campaign.py CONFIG --smoke-only` inside a finite exclusive guard.
+It loads the corrected candidate, requires both recorder status endpoints to be
+OFF with zero contexts, then unloads it and verifies original restoration. It
+runs zero decoder workloads and reports that count explicitly. A failure stops
+follow-up. The full campaign uses a different single-use config/root and repeats
+the endpoint preflight before releasing any decoder.

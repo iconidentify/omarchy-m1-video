@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
 """Single-use temporary experiment, entirely inside one outer hwguard lease."""
+import argparse
 import dataclasses
+import capture
 import hashlib
 import json
 import os
@@ -57,7 +59,14 @@ class Campaign:
         self.record('terminal-state',**dataclasses.asdict(state),
                     module_initstate=path.read_text().strip() if path.exists() else None,
                     original_restored=self.restored)
-    def run(self):
+    def recorder_preflight(self):
+        for name in capture.PATHS:
+            state=capture.KernelTrace(name).status()
+            capture.check_state(state,1,False)
+            if state['opens']:raise RuntimeError('recorder has an open context: '+name)
+            self.record('recorder-preflight',recorder=name,status=state)
+
+    def run(self,smoke_only=False):
         if os.geteuid()==0 or not os.environ.get('LIBVA_HW_GUARD_LEASE'):raise RuntimeError('ordinary user under hardware guard required')
         with (self.root/'campaign-attempted').open('x') as f:f.write('Single use; no replay.\n');f.flush();os.fsync(f.fileno())
         if subprocess.check_output(['uname','-m'],text=True).strip()!='aarch64' or b'apple,' not in Path('/proc/device-tree/compatible').read_bytes():raise RuntimeError('unsupported host')
@@ -71,8 +80,9 @@ class Campaign:
             self.command('rmmod','apple_avd');self.changed=True
             self.healthy(require_present=False)
             self.command('insmod',self.c['candidate']);self.identity('candidate');self.healthy()
+            self.recorder_preflight()
             number=0
-            for vector in 'BE':
+            for vector in (() if smoke_only else 'BE'):
                 for client in ('va','gst'):
                     for mode in ('off','on'):
                         number+=1;self.identity('candidate');self.healthy()
@@ -93,7 +103,10 @@ class Campaign:
             self.record_final_state()
         if failure:raise failure
         if not self.restored:raise RuntimeError('original restoration not proved')
-        self.record('complete',runs=8,restored=True)
-        (self.root/'campaign-complete').write_text('Eight validated runs and original module restored.\n')
+        self.record('complete',runs=number,restored=True,smoke_only=smoke_only)
+        (self.root/'campaign-complete').write_text(f'{number} validated decoder runs; smoke_only={smoke_only}; original restored.\n')
 
-if __name__=='__main__':Campaign(Path(sys.argv[1]).resolve()).run()
+if __name__=='__main__':
+    ap=argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('config',type=Path);ap.add_argument('--smoke-only',action='store_true')
+    args=ap.parse_args();Campaign(args.config.resolve()).run(args.smoke_only)
