@@ -1,0 +1,50 @@
+{
+  "schema": "omarchy-m1-video.avd-allocation-retry-build/1",
+  "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
+  "shipped_patches_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390",
+  "candidate_patches": {
+    "candidate.patch": "eaaae996ba504b55b56b10e8b50ccc6e8ac213fb947f6180a2539388a9286648",
+    "alternative-reuse.patch": "775ce7e3ba1056be247b9d0b590f9ab2d0f08f7265b3373a1eb4b3d32f310d0a"
+  },
+  "candidate_sources": {
+    "Kconfig": "160a8cd3fe4984bb37266261a5c877b08e53f406fa2623271a07c969acf74b26",
+    "Makefile": "0cc139bfd28826ab905062ec83499f7982dd29bd5ca6d15204edc1d5789b5243",
+    "avd-av1-entropymode.c": "9508eaa9733faa95d2f0868b93aa1bd3bdbcda4e77cc27a997e47ccd0c5c619c",
+    "avd-av1-entropymode.h": "2d848076d83d7426cf2e3eea7f5fa2aa2e03183fae79586bda56110375b330bb",
+    "avd-av1.c": "4b0d73d916073977410be386a6f3080f462adb8d5ee3f7fa49eba3b2e443f301",
+    "avd-drv.c": "53b097cbce842496ffbb0c79d93d2efbad9c3a47dc1960e804119fbd34e69f93",
+    "avd-h264.c": "c73b5835e645192bddaec497e9c6db2ef9c1c49fb8c12f64af65b790857c471b",
+    "avd-hevc.c": "c292f694afd14084d7d9942bfa4429e2a3cea5c74f312e98a40abec333b35db5",
+    "avd-hw.c": "c9b15028adae725cf9a4fcfc1a928cba0d26b894210c34a4dc8d8c21b6b8dc6f",
+    "avd-inst.h": "c271d9f266e685dc3db3d0394dda15a9e84ff426d9f12ce10d9dc726a5625816",
+    "avd-regs.h": "a000d3e57e32b00b2e7b9edb10d3491c2200dda5efc179e4d7c109b5af84ad4a",
+    "avd-v4l2.c": "85876c1206b2d46760923362320947b11b230ae64b84428002d6b5d24d1b961e",
+    "avd-vp9.c": "9cfc985c40d0d53baa96c948aab3134b9500e62be4a4268d0b0f9f46aecc1a5a",
+    "avd.h": "ea36da9d0fa0ccf76534a98ad45585e0ba625148ed2c305a6c70206524a098ec"
+  },
+  "header_identities": {
+    ".config": "5bcf435f6be7dc4eda10daca087b0697bc4e581b6308510a9152b5caf90f0352",
+    "Module.symvers": "e78fab7f70a53240c5145f76b4265aee5018e4fc7eb2ed42f738135d92a7177f",
+    "include/config/kernel.release": "341d6b784a50c74085add41c5687d3be570a19e4b1194a1374f1e2feadf24779",
+    "include/generated/utsrelease.h": "bc525e00ce245e9a0c5ab6663b4c5c29eb89f323cd3e876d39fa7f60308d5bcb",
+    "include/generated/compile.h": "950d6123f36e92a8b85544bbfcaf40856b6025821f2d076c8e162b46e1e44fbf"
+  },
+  "header_release": "7.1.13-3-1-ARCH",
+  "vermagic": "7.1.13-3-1-ARCH SMP preempt mod_unload aarch64",
+  "compiler": "cc (GCC) 16.1.1 20260430",
+  "command": [
+    "make",
+    "-C",
+    "/usr/lib/modules/7.1.13-3-1-ARCH/build",
+    "M=/home/chrisk/codec-integration-20260917/allocation84-build/candidate",
+    "CONFIG_VIDEO_APPLE_AVD=m",
+    "KCFLAGS=-Werror",
+    "-j4",
+    "modules"
+  ],
+  "build_log_sha256": "887f9a3c029097aba4762e545fa4060b711245a1586d8329a75a138b4c12864f",
+  "module_sha256": "4ef3eb7d09edc4540cd5bf24d9a1e0e03819181e9c90554ce42d9e0e8542c65f",
+  "load_performed": false,
+  "installed_changes": false,
+  "hardware_qualified": false
+}

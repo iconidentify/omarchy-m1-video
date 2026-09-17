@@ -1,0 +1,17 @@
+name: AVD allocation retry
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  allocation-retry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Actual allocator and codec-start fault regressions
+        env:
+          AVD_SANITIZE: '1'
+        run: python3 experiments/avd-allocation-retry/tests.py
