@@ -1,0 +1,15 @@
+name: HEVC reference content
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  reference-content:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fake queue pause/drain/retention and adapter admissions
+        run: python3 experiments/hevc-reference-content/tests.py

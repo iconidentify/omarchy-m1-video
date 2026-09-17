@@ -1,0 +1,9 @@
+{
+  "schema": "omarchy-m1-video.hevc-reference-content-sources/1",
+  "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/82",
+  "parent": "https://github.com/iconidentify/libva-v4l2_request/issues/42",
+  "contract": "experiments/hevc-reference-memory/next-observation.md",
+  "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
+  "patches_concatenated_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390",
+  "capture": "e5b226e843a145eabd846816d51a43ae9a58fee5"
+}
