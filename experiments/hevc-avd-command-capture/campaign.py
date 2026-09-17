@@ -27,6 +27,8 @@ class Campaign:
         state=self.backend.state()
         self.record('state',**dataclasses.asdict(state))
         if state.busy or state.wedged or state.faults:raise RuntimeError('STOP: not healthy/idle; no module recovery')
+        if state.module_loaded and Path('/sys/module/apple_avd/initstate').read_text().strip()!='live':
+            raise RuntimeError('STOP: module is not live; no recovery')
         if require_present and not (state.module_loaded and state.video_node):raise RuntimeError('decoder missing')
         return state
     def identity(self,which):
@@ -46,6 +48,15 @@ class Campaign:
         self.command('modprobe','apple_avd')
         self.identity('original');self.healthy();self.restored=True
         self.record('original-restored',installed_sha256=sha(self.c['original']))
+
+    def record_final_state(self):
+        # Guard may observe process exit before its next polling interval.
+        # Always retain the terminal fault/module state even on a quick failure.
+        state=self.backend.state()
+        path=Path('/sys/module/apple_avd/initstate')
+        self.record('terminal-state',**dataclasses.asdict(state),
+                    module_initstate=path.read_text().strip() if path.exists() else None,
+                    original_restored=self.restored)
     def run(self):
         if os.geteuid()==0 or not os.environ.get('LIBVA_HW_GUARD_LEASE'):raise RuntimeError('ordinary user under hardware guard required')
         with (self.root/'campaign-attempted').open('x') as f:f.write('Single use; no replay.\n');f.flush();os.fsync(f.fileno())
@@ -79,6 +90,7 @@ class Campaign:
                 except Exception as exc:
                     self.record('restoration-not-completed',error=str(exc))
                     if failure is None:failure=exc
+            self.record_final_state()
         if failure:raise failure
         if not self.restored:raise RuntimeError('original restoration not proved')
         self.record('complete',runs=8,restored=True)

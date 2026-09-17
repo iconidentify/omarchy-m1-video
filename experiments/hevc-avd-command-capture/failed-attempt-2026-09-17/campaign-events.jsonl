@@ -1,0 +1,15 @@
+{"event": "state", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "module_loaded": true, "video_node": "/dev/video0", "media_node": "/dev/media0", "holders": [], "stuck_tasks": [], "faults": []}
+{"event": "transition-attempt", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "argv": ["rmmod", "apple_avd"]}
+{"event": "transition-result", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "argv": ["rmmod", "apple_avd"], "returncode": 0, "stdout": "", "stderr": ""}
+{"event": "state", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "module_loaded": false, "video_node": null, "media_node": null, "holders": [], "stuck_tasks": [], "faults": []}
+{"event": "transition-attempt", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "argv": ["insmod", "<candidate-build>/apple-avd.ko"]}
+{"event": "transition-result", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "argv": ["insmod", "<candidate-build>/apple-avd.ko"], "returncode": 0, "stdout": "", "stderr": ""}
+{"event": "state", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "module_loaded": true, "video_node": "/dev/video0", "media_node": "/dev/media0", "holders": [], "stuck_tasks": [], "faults": []}
+{"event": "state", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "module_loaded": true, "video_node": "/dev/video0", "media_node": "/dev/media0", "holders": [], "stuck_tasks": [], "faults": []}
+{"event": "run-start", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "name": "B-va-off", "run_id": 1}
+{"event": "run-result", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "name": "B-va-off", "run_id": 1, "returncode": 1}
+{"event": "campaign-failed", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "error": "capture/validation failed: B-va-off"}
+{"event": "state", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "module_loaded": true, "video_node": "/dev/video0", "media_node": "/dev/media0", "holders": [], "stuck_tasks": [], "faults": []}
+{"event": "transition-attempt", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "argv": ["rmmod", "apple_avd"]}
+{"event": "transition-result", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "argv": ["rmmod", "apple_avd"], "returncode": -11, "stdout": "", "stderr": ""}
+{"event": "restoration-not-completed", "lease": "984aeb4d-9d47-4354-a3fa-6ea5a6d8d5c5", "error": "module transition failed; no retry: rmmod"}

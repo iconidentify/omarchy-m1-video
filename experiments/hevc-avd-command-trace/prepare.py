@@ -61,8 +61,16 @@ def apply_cmd_hooks(destination: Path):
                       '#include "avd-trace.h"\n#include "avd-cmdtrace.h"\n', 1)
     drv = drv.replace("\tavd_trace_init();\n",
                       "\tavd_trace_init();\n\tavd_cmdtrace_init();\n", 1)
-    drv = drv.replace("\tavd_trace_exit();\n",
-                      "\tavd_cmdtrace_exit();\n\tavd_trace_exit();\n")
+    # Match the entire conditional. Replacing the nested call alone would
+    # leave the second cleanup unconditional on successful registration.
+    old = "\tif (ret)\n\t\tavd_trace_exit();\n"
+    if drv.count(old) != 1:
+        raise ValueError("module registration cleanup source drift")
+    drv = drv.replace(old, "\tif (ret) {\n\t\tavd_cmdtrace_exit();\n\t\tavd_trace_exit();\n\t}\n", 1)
+    old = "\tplatform_driver_unregister(&avd_driver);\n\tavd_trace_exit();\n"
+    if drv.count(old) != 1:
+        raise ValueError("module exit cleanup source drift")
+    drv = drv.replace(old, "\tplatform_driver_unregister(&avd_driver);\n\tavd_cmdtrace_exit();\n\tavd_trace_exit();\n", 1)
     drv = drv.replace("\tavd_trace_open(ctx);\n",
                       "\tavd_trace_open(ctx);\n\tavd_cmdtrace_open(ctx);\n", 1)
     drv = drv.replace("\tavd_trace_close(ctx);\n",

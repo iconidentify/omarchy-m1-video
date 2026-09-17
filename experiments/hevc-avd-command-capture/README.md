@@ -37,6 +37,19 @@ pixel. Preserve every attempt; no automatic replay. Restore the existing module
 only after fresh healthy/idle checks and verify its build-ID and installed hash.
 If those checks fail, preserve the state and report it; never force an unload.
 
-At this draft stage, no hardware campaign results are claimed. Historical
-controls are used only to test field conversion, not as a same-run oracle.
+## Failed attempt and corrected candidate
+
+The first attempt stopped before a decoder was forked. The original command
+candidate above is **withdrawn; do not load it**. Its generated init function
+prematurely removed the reference recorder, and unload Oopsed on a second removal.
+The installed original file is intact, but loaded restoration failed; the module
+remains unloading and hardware follow-up needs a clean boot. See the [preserved
+incident](failed-attempt-2026-09-17/README.md) and reproduce its decision with
+`python3 experiments/hevc-avd-command-capture/incident-report.py`.
+
+The source generator is fixed, with an actual generated lifecycle regression and
+an original-defect mutation. The [corrected matching-header build](../hevc-avd-command-trace/corrected-build.json)
+has not been loaded. Its module SHA-256 is `7a00ffa548e89d4316eb2b1454c7e153128906f099729efb58b77c26fadcdf02`.
+No complete campaign, new pixel evidence or support-count gain is claimed.
+Historical controls only test field conversion, never serve as a same-run oracle.
 Run offline tests with `python3 experiments/hevc-avd-command-capture/tests.py`.

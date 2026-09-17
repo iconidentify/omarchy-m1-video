@@ -1,0 +1,8 @@
+{
+  "status": "child-error",
+  "returncode": 1,
+  "timed_out": false,
+  "wedged": false,
+  "abort_reason": null,
+  "busy_owner": null
+}

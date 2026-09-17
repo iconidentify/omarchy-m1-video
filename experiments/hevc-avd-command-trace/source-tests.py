@@ -26,6 +26,15 @@ def verify(source):
     with tempfile.TemporaryDirectory() as tmp:
         root=Path(tmp);candidate=root/'candidate'
         prepare.prepare(source,candidate)
+        spec=importlib.util.spec_from_file_location('lifecycle_tests',HERE/'lifecycle-tests.py')
+        lifecycle=importlib.util.module_from_spec(spec);spec.loader.exec_module(lifecycle)
+        lifecycle.verify(candidate,root/'module-lifecycle')
+        bad=root/'module-lifecycle-mutant';shutil.copytree(candidate,bad)
+        drv=bad/'avd-drv.c';code=drv.read_text()
+        old="\tif (ret) {\n\t\tavd_cmdtrace_exit();\n\t\tavd_trace_exit();\n\t}\n"
+        assert old in code
+        drv.write_text(code.replace(old,"\tif (ret)\n\t\tavd_cmdtrace_exit();\n\tavd_trace_exit();\n",1))
+        lifecycle.verify(bad,root/'module-lifecycle-mutation-check',negative=True)
         base=oracle.source_base(source,root/'baseline')
         compiled=oracle.build(base,candidate,root/'compiled')
         for seed in range(32):oracle.predict(compiled,fixtures.row(seed),check_hooks=True)

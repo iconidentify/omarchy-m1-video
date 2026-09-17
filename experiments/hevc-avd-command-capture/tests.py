@@ -12,9 +12,13 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
+from types import SimpleNamespace
+import importlib.util
 
 import capture
 import compare
+import campaign
 
 class Fake:
     def __init__(self,name,events,marker,fail=None,context=55):
@@ -167,5 +171,31 @@ class ControlBinding(unittest.TestCase):
     def test_unknown_flag_fails_closed(self):
         row=copy.deepcopy(self.rows[23]);row['controls']['SPS']['flags'].append('unknown')
         with self.assertRaises(ValueError):compare.copied_fields(row,self.flags)
+
+class FailureEvidence(unittest.TestCase):
+    def test_preserved_incident_and_false_restoration_mutation(self):
+        here=Path(__file__).resolve().parent
+        spec=importlib.util.spec_from_file_location('incident',here/'incident-report.py')
+        report=importlib.util.module_from_spec(spec);spec.loader.exec_module(report)
+        source=here/'failed-attempt-2026-09-17'
+        result=report.summarize(source)
+        self.assertEqual(result['decoder_workloads_started'],0)
+        self.assertFalse(result['original_loaded_module_restored'])
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            for p in source.iterdir():
+                if p.is_file():(root/p.name).write_bytes(p.read_bytes())
+            with (root/'campaign-events.jsonl').open('a') as f:f.write('{"event":"original-restored"}\n')
+            with self.assertRaises(ValueError):report.summarize(root)
+
+    def test_faulted_or_unloading_module_never_retried(self):
+        for faults,initstate in ((['kernel Oops'],'live'),([], 'going')):
+            c=campaign.Campaign.__new__(campaign.Campaign)
+            c.record=mock.Mock();c.command=mock.Mock();c.identity=mock.Mock()
+            state=SimpleNamespace(faults=faults,busy=False,wedged=False,module_loaded=True)
+            c.backend=SimpleNamespace(state=lambda:state)
+            with mock.patch.object(campaign.dataclasses,'asdict',return_value={}),mock.patch.object(Path,'read_text',return_value=initstate):
+                with self.assertRaises(RuntimeError):c.restore()
+            c.command.assert_not_called();c.identity.assert_not_called()
 
 if __name__=='__main__':unittest.main()

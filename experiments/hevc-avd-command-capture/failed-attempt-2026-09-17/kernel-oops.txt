@@ -1,0 +1,49 @@
+2026-09-17T14:02:35-07:00 <host> kernel: Unable to handle kernel NULL pointer dereference at virtual address <address>
+2026-09-17T14:02:35-07:00 <host> kernel: Mem abort info:
+2026-09-17T14:02:35-07:00 <host> kernel:   ESR = 0x0000000096000004
+2026-09-17T14:02:35-07:00 <host> kernel:   EC = 0x25: DABT (current EL), IL = 32 bits
+2026-09-17T14:02:35-07:00 <host> kernel:   SET = 0, FnV = 0
+2026-09-17T14:02:35-07:00 <host> kernel:   EA = 0, S1PTW = 0
+2026-09-17T14:02:35-07:00 <host> kernel:   FSC = 0x04: level 0 translation fault
+2026-09-17T14:02:35-07:00 <host> kernel: Data abort info:
+2026-09-17T14:02:35-07:00 <host> kernel:   ISV = 0, ISS = 0x00000004, ISS2 = 0x00000000
+2026-09-17T14:02:35-07:00 <host> kernel:   CM = 0, WnR = 0, TnD = 0, TagAccess = 0
+2026-09-17T14:02:35-07:00 <host> kernel:   GCS = 0, Overlay = 0, DirtyBit = 0, Xs = 0
+2026-09-17T14:02:35-07:00 <host> kernel: user pgtable: 16k pages, 48-bit VAs, pgdp=<address>
+2026-09-17T14:02:35-07:00 <host> kernel: [<address>] pgd=<address>, p4d=<address>
+2026-09-17T14:02:35-07:00 <host> kernel: Internal error: Oops: <address> [#1]  SMP
+2026-09-17T14:02:35-07:00 <host> kernel: Modules linked in: apple_avd(O-) v4l2_vp9 videobuf2_dma_contig v4l2_h264 v4l2_mem2mem nf_conntrack_netlink veth bridge stp llc xt_set ip_set overlay xt_connmark xt_MASQUERADE xt_mark nft_chain_nat nf_nat rfcomm snd_seq_dummy snd_hrtimer snd_seq snd_seq_device uinput bnep brcmfmac_wcc nls_iso8859_1 hci_bcm4377 brcmfmac aop_als brcmutil snd_soc_aop bluetooth dwc3_apple ecdh_generic apple_isp cfg80211 dwc3 videobuf2_dma_sg ecc rfkill snd_soc_macaudio udc_core mux_apple_display_crossbar aop videobuf2_memops gpio_shared_proxy ofpart videobuf2_v4l2 snd_soc_cs42l83_i2c apple_z2 snd_soc_cs42l42 videodev spi_nor snd_soc_tas2770 videobuf2_common snd_soc_apple_mca mc joydev ip6t_REJECT nf_reject_ipv6 tun xt_hl ip6t_rt ipt_REJECT xt_LOG nf_log_syslog nft_limit xt_limit xt_addrtype xt_conntrack nf_conntrack nf_defrag_ipv6 nf_defrag_ipv4 nft_compat nf_tables nfnetlink i2c_dev crypto_user fuse dm_crypt panel_summit phy_apple_atc apple_tunable tps6598x tps6598x_core appledrm typec adpdrm drm_display_helper cec
+2026-09-17T14:02:35-07:00 <host> kernel:  drm_dma_helper adpdrm_mipi hid_magicmouse hid_apple btrfs xor raid6_pq xhci_plat_hcd xhci_hcd [last unloaded: apple_avd(O)]
+2026-09-17T14:02:35-07:00 <host> kernel: CPU: 6 UID: 0 PID: <redacted> Comm: rmmod Tainted: G S         O        7.1.13-3-1-ARCH #1 PREEMPT(full) 
+2026-09-17T14:02:35-07:00 <host> kernel: Tainted: [S]=CPU_OUT_OF_SPEC, [O]=OOT_MODULE
+2026-09-17T14:02:35-07:00 <host> kernel: Hardware name: Apple Inc. MacBookPro17,1/J293, BIOS 2026.07 07/01/2026
+2026-09-17T14:02:35-07:00 <host> kernel: pstate: 21400009 (nzCv daif +PAN -UAO -TCO +DIT -SSBS BTYPE=--)
+2026-09-17T14:02:35-07:00 <host> kernel: pc : down_write+0x2c/0xc0
+2026-09-17T14:02:35-07:00 <host> kernel: lr : down_write+0x20/0xc0
+2026-09-17T14:02:35-07:00 <host> kernel: sp : <address>
+2026-09-17T14:02:35-07:00 <host> kernel: x29: <address> x28: <address> x27: <address>
+2026-09-17T14:02:35-07:00 <host> kernel: x26: <address> x25: <address> x24: <address>
+2026-09-17T14:02:35-07:00 <host> kernel: x23: <address> x22: <address> x21: <address>
+2026-09-17T14:02:35-07:00 <host> kernel: x20: <address> x19: <address> x18: <address>
+2026-09-17T14:02:35-07:00 <host> kernel: x17: <address> x16: <address> x15: <address>
+2026-09-17T14:02:35-07:00 <host> kernel: x14: <address> x13: <address> x12: <address>
+2026-09-17T14:02:35-07:00 <host> kernel: x11: <address> x10: <address> x9 : <address>
+2026-09-17T14:02:35-07:00 <host> kernel: x8 : <address> x7 : <address> x6 : <address>
+2026-09-17T14:02:35-07:00 <host> kernel: x5 : <address> x4 : <address> x3 : <address>
+2026-09-17T14:02:35-07:00 <host> kernel: x2 : <address> x1 : <address> x0 : <address>
+2026-09-17T14:02:35-07:00 <host> kernel: Call trace:
+2026-09-17T14:02:35-07:00 <host> kernel:  down_write+0x2c/0xc0 (P)
+2026-09-17T14:02:35-07:00 <host> kernel:  __simple_recursive_removal+0x5c/0x1fc
+2026-09-17T14:02:35-07:00 <host> kernel:  simple_recursive_removal+0x14/0x20
+2026-09-17T14:02:35-07:00 <host> kernel:  debugfs_remove+0x58/0x7c
+2026-09-17T14:02:35-07:00 <host> kernel:  avd_trace_exit+0x20/0x38 [apple_avd]
+2026-09-17T14:02:35-07:00 <host> kernel:  avd_module_exit+0x20/0x28fc [apple_avd]
+2026-09-17T14:02:35-07:00 <host> kernel:  __arm64_sys_delete_module+0x190/0x2a4
+2026-09-17T14:02:35-07:00 <host> kernel:  invoke_syscall.constprop.0+0x48/0xe8
+2026-09-17T14:02:35-07:00 <host> kernel:  do_el0_svc+0xa8/0xb8
+2026-09-17T14:02:35-07:00 <host> kernel:  el0_svc+0x3c/0x1d8
+2026-09-17T14:02:35-07:00 <host> kernel:  el0t_64_sync_handler+0xa0/0xe4
+2026-09-17T14:02:35-07:00 <host> kernel:  el0t_64_sync+0x198/0x19c
+2026-09-17T14:02:35-07:00 <host> kernel: Code: 97c56342 d503201f d2800000 d2800021 (c8e07e61) 
+2026-09-17T14:02:35-07:00 <host> kernel: ---[ end trace <address> ]---
+2026-09-17T14:02:35-07:00 <host> kernel: note: rmmod[<redacted>] exited with preempt_count 1
