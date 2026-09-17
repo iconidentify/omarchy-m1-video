@@ -1,0 +1,119 @@
+{
+  "schema_version": "1.0.0",
+  "kind": "conformance-suite-result",
+  "suite": "VP9-TEST-VECTORS-HIGH",
+  "suite_key": "",
+  "mode": "hardware",
+  "complete": true,
+  "abort": null,
+  "passed": 1,
+  "total": 1,
+  "passing_frames": 10,
+  "high10": "off",
+  "profile_mismatch": false,
+  "subset": {
+    "rationale": "explicit --vectors selection; not a full-suite total",
+    "selected": [
+      "vp92-2-20-10bit-yuv420.webm"
+    ]
+  },
+  "provenance": {
+    "source_commit": "27da69dd5fcb438deab970061a2edcc68a9e1d93",
+    "driver": "<redacted>"
+  },
+  "command": {
+    "redacted": true,
+    "argv": [
+      "conformance.py",
+      "VP9-TEST-VECTORS-HIGH",
+      "<resources>",
+      "vaapi"
+    ]
+  },
+  "vectors": [
+    {
+      "name": "vp92-2-20-10bit-yuv420.webm",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "a16b99df180c584e8db2ffeda987d293",
+      "actual_md5": "a16b99df180c584e8db2ffeda987d293",
+      "frames": 10,
+      "native_sizes": [
+        "160x90"
+      ],
+      "frame_summaries": [
+        {
+          "index": 0,
+          "width": 160,
+          "height": 90,
+          "md5": "c3964ed9065de7f839b8d878444c6140",
+          "format": "yuv420p10le"
+        },
+        {
+          "index": 1,
+          "width": 160,
+          "height": 90,
+          "md5": "87595f7f53d6e84af9708dba72422cc4",
+          "format": "yuv420p10le"
+        },
+        {
+          "index": 2,
+          "width": 160,
+          "height": 90,
+          "md5": "5cadbce099363a71040919e6f1cec496",
+          "format": "yuv420p10le"
+        },
+        {
+          "index": 3,
+          "width": 160,
+          "height": 90,
+          "md5": "0e3cab2b26b936de245a94b4128a368f",
+          "format": "yuv420p10le"
+        },
+        {
+          "index": 4,
+          "width": 160,
+          "height": 90,
+          "md5": "07bde452ca50655717a85cd9fdb3f7ce",
+          "format": "yuv420p10le"
+        },
+        {
+          "index": 5,
+          "width": 160,
+          "height": 90,
+          "md5": "00bee090fe849fee5fd4eb169c62c897",
+          "format": "yuv420p10le"
+        },
+        {
+          "index": 6,
+          "width": 160,
+          "height": 90,
+          "md5": "4564a423df89d7e9dea1226873ce9a51",
+          "format": "yuv420p10le"
+        },
+        {
+          "index": 7,
+          "width": 160,
+          "height": 90,
+          "md5": "7580af6956360112191380a677f5e625",
+          "format": "yuv420p10le"
+        },
+        {
+          "index": 8,
+          "width": 160,
+          "height": 90,
+          "md5": "c9d05c5aadf8a372acfc2c93094d003e",
+          "format": "yuv420p10le"
+        },
+        {
+          "index": 9,
+          "width": 160,
+          "height": 90,
+          "md5": "6c08ea732cda06cf9a12f2e1a089d401",
+          "format": "yuv420p10le"
+        }
+      ],
+      "returncode": 0
+    }
+  ]
+}
