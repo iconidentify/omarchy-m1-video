@@ -4,8 +4,10 @@ This is offline tooling for [child #50](https://github.com/iconidentify/omarchy-
 of [driver #42](https://github.com/iconidentify/libva-v4l2_request/issues/42).
 It converts a narrowly supported `v4l2-tracer` capture to the reference subset
 used by the driver's `hevc-reftrace-check.py`. It also associates GStreamer
-output-log events with decode-order pictures. **The committed tests are synthetic.
-No new hardware result, cause, fix or codec support is established here.**
+output-log events with decode-order pictures. The adapter tests are synthetic.
+The [2026-09-17 paired capture report](captures/2026-09-17/README.md) separately
+publishes guarded hardware evidence for child #53: RPS_B remains correct, RPS_E
+remains corrupt, and no fix or increased codec support is claimed.
 
 ## Supported contract
 
@@ -50,6 +52,14 @@ or certify the contents of other controls. Source URLs and SHA-256 hashes are in
 | DPB timestamp uses the same system frame number | `gstv4l2codech265dec.c:gst_v4l2_codec_h265_dec_fill_decode_params` |
 | Output event occurs before completion/error checks | `gstv4l2codech265dec.c:gst_v4l2_codec_h265_dec_output_picture` |
 
+Real captures also expose uninitialized strings in the tracer's pre-call
+`VIDIOC_QUERYCAP` arguments. This output-only ioctl has no meaningful input
+fields. Parsing discards only its `from_userspace` object, leaving original raw
+bytes unchanged; invalid UTF-8 anywhere else still rejects. An initial current-value
+SPS is used for GStreamer negotiation; the first queued request must still provide
+its own SPS. I-slices may retain the temporal-MVP flag without selecting a
+collocated picture; their unused raw index byte is preserved.
+
 ## Identity and comparison
 
 Timestamp zero is a valid first GStreamer picture. POC alone is not a unique
@@ -80,13 +90,13 @@ Equal records mean equal **recorded reference fields** over the stated extent.
 They do not compare all SPS/PPS, weights, entry points or bitstream bytes, and do
 not establish kernel/firmware sufficiency. Extra unused DPB entries/order can
 differ legitimately between clients. Investigate a reported difference; do not
-assume it causes corruption. The parent still owns real paired captures, an
-accepted cause/correction, RPS_B preservation and full HEVC qualification.
+assume it causes corruption. The parent still owns an accepted cause/correction, RPS_B preservation and full
+HEVC qualification; child #53 supplies the paired reference evidence.
 
 ## Offline use and tests
 
 With a trusted checkout of driver commit
-`266269ee49d2fbb147f4983307b4b2492bd1a829` (or a reviewed compatible successor):
+`ba66572ff7e1e380377eb2414a7eb7d7f97bb0d9` (or a reviewed compatible successor):
 
 ```sh
 HEVC_REFTRACE_CHECKER=/absolute/driver/tests/hevc-reftrace-check.py \
@@ -134,7 +144,7 @@ The GStreamer pipeline to put under a finite `tests/hwguard.py` lease is:
 
 ```sh
 v4l2-tracer -u trace sh -c '
-  GST_DEBUG_NO_COLOR=1 GST_DEBUG=v4l2codecs:6 GST_DEBUG_FILE="$2/gst.log" \
+  GST_DEBUG_NO_COLOR=1 GST_DEBUG="v4l2codecs*:6" GST_DEBUG_FILE="$2/gst.log" \
     gst-launch-1.0 -e filesrc location="$1" ! h265parse ! \
     v4l2slh265dec name=refprobe ! videoconvert ! video/x-raw,format=I420 ! \
     filesink location="$2/output.yuv"

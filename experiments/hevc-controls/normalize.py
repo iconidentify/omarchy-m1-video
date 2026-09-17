@@ -57,7 +57,11 @@ def parse(raw):
     def constant(_):
         raise Reject("non-JSON numeric constant")
     try:
-        events = json.loads(raw, object_pairs_hook=unique, parse_constant=constant)
+        # With -u, this pinned tracer serializes uninitialized QUERYCAP input
+        # strings, even though QUERYCAP has no input fields. Keep the raw file
+        # unchanged; discard only that meaningless pre-call argument object.
+        events = json.loads(raw.decode("utf-8", "surrogateescape"),
+                            object_pairs_hook=unique, parse_constant=constant)
     except (ValueError, RecursionError, UnicodeError) as exc:
         raise Reject("invalid JSON trace") from exc
     require(isinstance(events, list) and 0 < len(events) <= 500000,
@@ -65,6 +69,14 @@ def parse(raw):
     require(all(isinstance(e, dict) for e in events), "non-object event")
     require(events[0].get("package_version") == "1.32.0",
             "only v4l2-tracer 1.32.0 is supported")
+    for event in events:
+        if event.get("ioctl") == "VIDIOC_QUERYCAP":
+            event.pop("from_userspace", None)
+    # No replacement decoding: invalid strings anywhere else still reject.
+    try:
+        json.dumps(events, ensure_ascii=False).encode("utf-8")
+    except UnicodeError as exc:
+        raise Reject("invalid UTF-8 outside unused QUERYCAP inputs") from exc
     return events
 
 
@@ -224,8 +236,11 @@ def normalize(events, expected, run):
         if op == "VIDIOC_S_EXT_CTRLS":
             ext, cs = controls(e)
             if ext["which"] != "V4L2_CTRL_WHICH_REQUEST_VAL":
-                require(not pictures and not any(CID + n in cs for n in SIZES),
+                require(ext["which"] == "V4L2_CTRL_WHICH_CUR_VAL" and not pictures
+                        and not any(CID + n in cs for n in ("DECODE_PARAMS", "SLICE_PARAMS")),
                         "non-request HEVC payload")
+                if CID + "SPS" in cs:
+                    payload(cs, "SPS")  # Negotiation only; first request must supply its own SPS.
                 continue
             require(not stopped, "controls after stream stop")
             reqfd = integer(ext["request_fd"])
@@ -327,9 +342,10 @@ def normalize(events, expected, run):
                   l0=refs(sl["ref_idx_l0"], l0), l1=refs(sl["ref_idx_l1"], l1),
                   tmvp=int("SLICE_TEMPORAL_MVP_ENABLED" in lf))
         if st["tmvp"]:
-            st.update(col_l0=int("COLLOCATED_FROM_L0" in lf), col=integer(sl["collocated_ref_idx"], high=15))
+            st.update(col_l0=int("COLLOCATED_FROM_L0" in lf), col=integer(sl["collocated_ref_idx"], high=255))
             selected = st["l0"] if typ == 1 or st["col_l0"] else st["l1"]
-            require(st["col"] < len(selected), "unresolved collocated reference")
+            # I slices can carry the flag, but do not use a collocated picture.
+            require(typ == 2 or st["col"] < len(selected), "unresolved collocated reference")
         records.append(dict(schema=SCHEMA, run=run, seq=pic, ctx=1, va_context="direct-v4l2",
                             pic=pic, req=pic, first=1, last=1, target=req["target"], poc=poc,
                             irap=int("IRAP_PIC" in df), idr=int("IDR_PIC" in df),
