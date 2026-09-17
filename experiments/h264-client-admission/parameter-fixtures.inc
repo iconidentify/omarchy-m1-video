@@ -1,0 +1,3 @@
+/* SPDX-License-Identifier: LGPL-2.1-or-later; hand-encoded SPS/PPS described in harness. */
+static const uint8_t sps_nal[]={0x67,0x42,0x0,0xa,0xf4,0x23,0xc8};
+static const uint8_t pps_nal[]={0x68,0xce,0x3c,0x80};

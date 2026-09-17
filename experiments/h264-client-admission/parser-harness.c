@@ -1,44 +1,36 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
- * Actual patched decode_nal_units + ff_h2645_packet_split, no device.
- * start/slice hwaccel entry calls admit_*; end_frame is the extracted callback.
- * VA parameter buffers are not filled. Issue/cancel are intercepted. */
+ * Actual patched NAL dispatch, packet splitter and SPS/PPS parsers.
+ * Slice queuing/header parse, picture ownership and hw callbacks are substituted.
+ * No end_frame callback or VA issue occurs: this is not submission-timing proof. */
 #include <stdio.h>
 #include <string.h>
 #include "config_components.h"
 #include "hwaccel_internal.h"
+#include "libavutil/refstruct.h"
 #include "glue.inc"
 
-static int issues, cancels, starts, slices;
-int ff_vaapi_decode_issue(AVCodecContext *avctx, VAAPIDecodePicture *pic)
-{ (void)avctx; (void)pic; ++issues; return 0; }
-int ff_vaapi_decode_cancel(AVCodecContext *avctx, VAAPIDecodePicture *pic)
-{ (void)avctx; (void)pic; ++cancels; return 0; }
-void ff_h264_draw_horiz_band(const H264Context *h, H264SliceContext *sl, int y, int height)
-{ (void)h; (void)sl; (void)y; (void)height; }
-
+static int starts, slices, executes;
+static H264Picture *owned_pic;
 static int start_frame(AVCodecContext *avctx, const AVBufferRef *ref,
                        const uint8_t *buf, uint32_t size)
 {
-    H264Context *h = avctx->priv_data;
     (void)ref; (void)buf; (void)size;
     ++starts;
-    return ff_h264_vaapi_admit_start(avctx, h);
+    return ff_h264_vaapi_admit_start(avctx, avctx->priv_data);
 }
 static int decode_slice(AVCodecContext *avctx, const uint8_t *buf, uint32_t size)
 {
-    H264Context *h = avctx->priv_data;
     (void)buf; (void)size;
     ++slices;
-    return ff_h264_vaapi_admit_slice(avctx, h);
+    return ff_h264_vaapi_admit_slice(avctx, avctx->priv_data);
 }
-#include "end.inc"
-
-static H264Picture *owned_pic;
 int ff_h264_queue_decode_slice(H264Context *h, const H2645NAL *nal)
 {
-    (void)nal;
-    if (!h->cur_pic_ptr)
-        h->cur_pic_ptr = owned_pic;
+    (void)nal; /* Deliberately does not parse a slice header. */
+    if (!h->ps.pps_list[0]) return AVERROR_INVALIDDATA;
+    if (!h->ps.pps) h->ps.pps = av_refstruct_ref_c(h->ps.pps_list[0]);
+    h->ps.sps = h->ps.pps->sps;
+    h->cur_pic_ptr = owned_pic;
     h->current_slice++;
     h->nb_slice_ctx_queued = 1;
     h->slice_ctx[0].slice_type = AV_PICTURE_TYPE_I;
@@ -46,29 +38,9 @@ int ff_h264_queue_decode_slice(H264Context *h, const H2645NAL *nal)
 }
 int ff_h264_execute_decode_slices(H264Context *h)
 {
-    if (!h->cur_pic_ptr || !h->has_slice || !FF_HW_HAS_CB(h->avctx, end_frame))
-        return 0;
-    return FF_HW_SIMPLE_CALL(h->avctx, end_frame);
-}
-int ff_h264_decode_seq_parameter_set(GetBitContext *gb, AVCodecContext *avctx,
-                                     H264ParamSets *ps, int ignore)
-{
-    static SPS sps;
-    (void)gb; (void)avctx; (void)ignore;
-    memset(&sps, 0, sizeof(sps));
-    sps.frame_mbs_only_flag = 1;
-    sps.bit_depth_luma = sps.bit_depth_chroma = 8;
-    ps->sps = &sps;
-    return 0;
-}
-int ff_h264_decode_picture_parameter_set(GetBitContext *gb, AVCodecContext *avctx,
-                                         H264ParamSets *ps, int bit_length)
-{
-    static PPS pps;
-    (void)gb; (void)avctx; (void)bit_length;
-    memset(&pps, 0, sizeof(pps));
-    pps.slice_group_count = 1;
-    ps->pps = &pps;
+    (void)h;
+    ++executes;
+    /* The real function returns 0 immediately for hwaccel. Never invent end_frame. */
     return 0;
 }
 int ff_h264_sei_decode(H264SEIContext *sei, GetBitContext *gb, const H264ParamSets *ps,
@@ -86,13 +58,12 @@ void ff_er_add_slice(ERContext *s, int startx, int starty, int endx, int endy, i
 void ff_er_frame_end(ERContext *s, int *decode_error_flags)
 { (void)s; (void)decode_error_flags; }
 
-#include "decode_nal.inc"
 
+#include "decode_nal.inc"
 static const FFHWAccel va = {
     .p = { .pix_fmt = AV_PIX_FMT_VAAPI },
     .start_frame = start_frame,
     .decode_slice = decode_slice,
-    .end_frame = vaapi_h264_end_frame,
 };
 static AVCodecContext avctx;
 static AVCodecInternal internal;
@@ -100,104 +71,101 @@ static VAAPIDecodeContext ctx;
 static H264Context h;
 static H264SliceContext sl;
 static H264Picture picture;
-static VAAPIDecodePicture pic;
-static SPS sps;
-static PPS pps;
 
-static void reset(void)
+static void cleanup(void)
 {
-    memset(&ctx, 0, sizeof(ctx));
-    memset(&h, 0, sizeof(h));
-    memset(&sl, 0, sizeof(sl));
-    memset(&sps, 0, sizeof(sps));
-    memset(&pps, 0, sizeof(pps));
-    memset(&picture, 0, sizeof(picture));
-    internal.hwaccel_priv_data = &ctx;
-    avctx.internal = &internal;
-    avctx.hwaccel = &va.p;
-    avctx.priv_data = &h;
-    avctx.codec_id = AV_CODEC_ID_H264;
-    avctx.err_recognition = 0;
-    avctx.active_thread_type = 0;
-    h.avctx = &avctx;
-    h.cur_pic_ptr = &picture;
-    owned_pic = &picture;
-    picture.hwaccel_picture_private = &pic;
-    h.ps.sps = &sps;
-    h.ps.pps = &pps;
-    h.slice_ctx = &sl;
-    h.nb_slice_ctx = 1;
-    sps.frame_mbs_only_flag = 1;
-    pps.slice_group_count = 1;
-    h.picture_structure = PICT_FRAME;
-    sl.slice_type = AV_PICTURE_TYPE_I;
-    issues = cancels = starts = slices = 0;
+    ff_h2645_packet_uninit(&h.pkt);
+    ff_h264_ps_uninit(&h.ps);
 }
-
-static int annexb(uint8_t *dst, int type, const uint8_t *pay, int n)
+static void reset(int avcc, int explode)
 {
-    dst[0] = dst[1] = dst[2] = 0;
-    dst[3] = 1;
-    dst[4] = (uint8_t)(0x60 | type);
-    if (n)
-        memcpy(dst + 5, pay, n);
-    return 5 + n;
+    cleanup();
+    memset(&ctx,0,sizeof(ctx)); memset(&h,0,sizeof(h));
+    memset(&sl,0,sizeof(sl)); memset(&picture,0,sizeof(picture));
+    memset(&avctx,0,sizeof(avctx)); memset(&internal,0,sizeof(internal));
+    internal.hwaccel_priv_data=&ctx;
+    avctx.internal=&internal; avctx.hwaccel=&va.p; avctx.priv_data=&h;
+    avctx.codec_id=AV_CODEC_ID_H264;
+    avctx.err_recognition=explode ? AV_EF_EXPLODE : 0;
+    h.avctx=&avctx; h.slice_ctx=&sl; h.nb_slice_ctx=1;
+    h.picture_structure=PICT_FRAME;
+    h.is_avc=avcc; h.nal_length_size=avcc ? 4 : 0;
+    owned_pic=&picture;
+    starts=slices=executes=0;
 }
+static int nal(uint8_t *dst, int avcc, const uint8_t *data, int size)
+{
+    memset(dst,0,4);
+    dst[3]=avcc ? size : 1;
+    memcpy(dst+4,data,size);
+    return 4+size;
+}
+/* Hand-encoded baseline SPS: 64x48, 8-bit progressive, one reference.
+ * PPS0 refers to SPS0 with one slice group. IDR bytes are a dispatch token only;
+ * the substituted slice queue does not validate its header/picture semantics. */
+#include "parameter-fixtures.inc"
+#define CHECK(c) do { if (!(c)) { fprintf(stderr,"failed line %d: %s\n",__LINE__,#c); failed=1; goto done; } } while(0)
+static int cases(int avcc,int explode)
+{
+    uint8_t buf[512]={0};
+    const uint8_t idr[]={0x65,0x80,0x11,0x22};
+    const uint8_t dpa[]={0x62,0x80,0x11,0x22};
+    const uint8_t aux[]={0x73,0x80,0x11,0x22};
+    const uint8_t bad_sps[]={0x67,0x80};
+    const uint8_t bad_pps[]={0x68,0x00};
+    int failed=0,n,ret;
+    reset(avcc,explode);
+    ret=decode_nal_units(&h,NULL,buf,0);
+    CHECK(starts==0 && slices==0); (void)ret;
 
-#define CHECK(c) do { if (!(c)) { fprintf(stderr, "failed line %d: %s\n", __LINE__, #c); return 1; } } while (0)
+    reset(avcc,explode); memset(buf,0,sizeof(buf)); n=0;
+    n+=nal(buf+n,avcc,sps_nal,sizeof(sps_nal));
+    n+=nal(buf+n,avcc,pps_nal,sizeof(pps_nal));
+    n+=nal(buf+n,avcc,idr,sizeof(idr));
+    ret=decode_nal_units(&h,NULL,buf,n);
+    CHECK(ret==n && starts==1 && slices==1 && executes==1);
+    CHECK(h.ps.sps && h.ps.sps->mb_width==4 && h.ps.sps->mb_height==3);
+    CHECK(h.ps.pps && h.ps.pps->slice_group_count==1);
+    CHECK(ctx.h264_admit_in_picture==1 && ctx.h264_admit_slices==1);
 
+    /* Accepted syntax prefix, then rejected suffix; actual dispatcher must stop.
+     * It has already called our start/slice mocks. No claim about real VA issue. */
+    for(int which=0;which<4;which++) {
+        reset(avcc,explode); memset(buf,0,sizeof(buf)); n=0;
+        n+=nal(buf+n,avcc,sps_nal,sizeof(sps_nal));
+        n+=nal(buf+n,avcc,pps_nal,sizeof(pps_nal));
+        n+=nal(buf+n,avcc,idr,sizeof(idr));
+        const uint8_t *suffix=which==0?dpa:which==1?aux:which==2?bad_sps:bad_pps;
+        int size=which<2?4:2;
+        n+=nal(buf+n,avcc,suffix,size);
+        ret=decode_nal_units(&h,NULL,buf,n);
+        CHECK(ret<0 && starts==1 && slices==1 && executes==0);
+        CHECK(ctx.h264_admit_sticky==1 && ff_h264_vaapi_admit_start(&avctx,&h)<0);
+    }
+    reset(avcc,explode); memset(buf,0,sizeof(buf));
+    n=nal(buf,avcc,aux,sizeof(aux));
+    ret=decode_nal_units(&h,NULL,buf,n);
+    CHECK(ret<0 && starts==0 && slices==0 && executes==0);
+
+    if(avcc) {
+        reset(avcc,explode); memset(buf,0,sizeof(buf));
+        buf[3]=10;buf[4]=0x65; /* Declared NAL exceeds actual packet. */
+        ret=decode_nal_units(&h,NULL,buf,5);
+        CHECK(ret<0 && starts==0 && slices==0 && ctx.h264_admit_sticky);
+    }
+    reset(avcc,explode); memset(buf,0,sizeof(buf)); avctx.hwaccel=NULL;
+    n=nal(buf,avcc,dpa,sizeof(dpa));
+    ret=decode_nal_units(&h,NULL,buf,n);
+    CHECK(ret==n && starts==0 && slices==0 && ctx.h264_admit_sticky==0);
+done:
+    cleanup();
+    return failed;
+}
 int main(void)
 {
-    uint8_t buf[128], extra[8] = {0x80, 0x11, 0x22};
-    int n, ret;
-
-    reset();
-    ret = decode_nal_units(&h, NULL, buf, 0);
-    CHECK(issues == 0);
-    (void)ret;
-
-    reset();
-    n = 0;
-    n += annexb(buf + n, 7, extra, 3);
-    n += annexb(buf + n, 8, extra, 3);
-    extra[0] = 0x80;
-    n += annexb(buf + n, 5, extra, 3);
-    ret = decode_nal_units(&h, NULL, buf, n);
-    CHECK(ret >= 0 && issues == 1 && starts == 1 && slices >= 1 && cancels == 0);
-
-    reset();
-    n = 0;
-    n += annexb(buf + n, 7, extra, 3);
-    n += annexb(buf + n, 8, extra, 3);
-    n += annexb(buf + n, 5, extra, 3);
-    n += annexb(buf + n, 2, extra, 3); /* DPA suffix after accepted prefix */
-    ret = decode_nal_units(&h, NULL, buf, n);
-    CHECK(ret < 0 && issues == 0);
-    CHECK(ff_h264_vaapi_admit_start(&avctx, &h) < 0); /* sticky */
-
-    reset();
-    n = annexb(buf, 19, extra, 3); /* auxiliary NAL alone */
-    ret = decode_nal_units(&h, NULL, buf, n);
-    CHECK(ret < 0 && issues == 0);
-
-    reset();
-    /* AVCC: 4-byte lengths */
-    h.nal_length_size = 4;
-    h.is_avc = 1;
-    buf[0] = buf[1] = buf[2] = 0;
-    buf[3] = 4;
-    buf[4] = 0x65;
-    buf[5] = buf[6] = buf[7] = 0;
-    ret = decode_nal_units(&h, NULL, buf, 8);
-    CHECK(issues == 1 || (issues == 0 && ret < 0)); /* one AU or rejected empty-config */
-    /* configuration still uses avctx profile, not these NALs; remap stays disabled */
-
-    reset();
-    avctx.hwaccel = NULL;
-    n = annexb(buf, 2, extra, 3);
-    ret = decode_nal_units(&h, NULL, buf, n);
-    CHECK(issues == 0);
-
-    puts("PASS actual decode_nal_units/packet_split: empty, prefix+slice issue, DPA suffix, aux NAL, AVCC, non-VA");
+    for(int avcc=0;avcc<2;avcc++)
+        for(int explode=0;explode<2;explode++)
+            if(cases(avcc,explode)) return 1;
+    puts("PASS actual NAL dispatch/splitter/SPS/PPS: Annex-B/AVCC, both error modes; slice queue and hardware callbacks mocked; no issue-timing proof");
     return 0;
 }

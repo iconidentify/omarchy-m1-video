@@ -11,6 +11,62 @@
     "parser_exercised": false,
     "device_used": false
   },
+  "parser_test": {
+    "decode_nal_units_sha256": "61e672bb0ec2c002b00ab5817eb00cd1af257b3e5b1b64a5496e022f821edc32",
+    "h2645_parse_sha256": "6a4cade0f22e2320db8f958df87d4af24f6e2f9b84d0fc70802e1012d27f6fac",
+    "h264_ps_sha256": "bdc4866c3f3b9aea1759c8bf2655a8706bd9e297600ed1982a31d6e9f608d3a9",
+    "harness_sha256": "2d8ba27e5e9af362ff8bf31dce5ec918518a9f23786e71c639280d08152d15c1",
+    "parameter_fixtures_sha256": "e7dd2471aa7b6ea2163c7eb6483c1ce6e8626158780e5258de7c20e6107efea3",
+    "results": {
+      "actual": {
+        "returncode": 0,
+        "stdout_sha256": "1ae56b3f6748d05bb9f9633df52cc4e1871c814658c3a735e8d4d5a3cdd46018",
+        "expected_failure": false,
+        "sanitizer_failure_expected": false
+      },
+      "admit-nal": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "sanitizer_failure_expected": false
+      },
+      "sps-strict": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "sanitizer_failure_expected": false
+      },
+      "pps-strict": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "sanitizer_failure_expected": false
+      },
+      "split-sticky": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "sanitizer_failure_expected": false
+      },
+      "cleanup": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "sanitizer_failure_expected": true
+      }
+    },
+    "dispatch_calls": 34,
+    "device_used": false,
+    "remap": "disabled",
+    "limitations": [
+      "slice header/queue and picture ownership substituted",
+      "start/slice callbacks call actual stop helpers only",
+      "no end_frame or issue callback; no real submission timing",
+      "SEI/IDR/thread/error-concealment services stubbed",
+      "no AU/chunk/thread/config/flush proof",
+      "linked FFmpeg libraries not fully sanitizer-instrumented"
+    ]
+  },
   "compiler": "cc (GCC) 16.1.1 20260430",
   "libva_version": "1.24.0",
   "configure_off": [
@@ -36,14 +92,14 @@
   "ffmpeg_commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
   "source_archive_sha256": "fb1931fd4eb29297ee1c1017a24f800c4d8fbea35b4f2aaeb28308a48a9149b4",
   "patch_sha256": "dfd45a65cb3a4e94b7c46493ca555600a8614e20c851a2d0d8d1b5effb8754af",
-  "vaapi_off_ffmpeg_sha256": "55785786696a28f005f20c43510778a7424ec4d390102f1f1a7cdd431be2c866",
-  "vaapi_on_ffmpeg_sha256": "635f3a46a3b94e9bd9095eb4d4a333daa5af366fb9872e9cf7c85436fbcac6da",
+  "vaapi_off_ffmpeg_sha256": "2ccdfbd173e10bd7040329677f6886458160a0ee70a941c0e83863c88287f205",
+  "vaapi_on_ffmpeg_sha256": "947f586ca93458f144f21e70ce3a84941eb3c4579bfe4414af17b877810fb934",
   "remap": "disabled",
   "hardware": "none",
   "installed_changes": "none",
   "logs": {
-    "build-off.log": "9422a0d9c26d47f6a101bb2cedf6bb5bd501fde1a3f7f0869cd895b8c8f35cad",
-    "build-on.log": "53d53ef8076760ea1cfa9149c99b3d6a5f857c0657f737a4304eda3b7e670191",
+    "build-off.log": "5fc7d118a72025430b9394ad2c6022e31b9bd3ecf948c42fd07bde67cc2307b0",
+    "build-on.log": "f35034ca9e48052a11217ab0c9ecd8f8b15772bc9f492765ddbca039f78a9fb2",
     "configure-off.log": "fc019cb1be569adca2683a05cb02e6b0db58ce42602aca2aebb9523cf47e6b3b",
     "configure-on.log": "8d47c57c44d913a868454c5bcf3ce1f9358eabe36835b058e5799172a1428117",
     "patch-off.log": "da252151989093a9a1ec109d9497c3ec8b42cf2743fff023853fd1377b49bf58",
