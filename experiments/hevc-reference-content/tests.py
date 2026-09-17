@@ -12,7 +12,7 @@ import threading
 import unittest
 from unittest.mock import patch
 from adapter import AdapterError, Observer, real_client_adapter, MAX_COPY
-from barrier import ClientBarrier, classify
+from source_audit import inspect_sources, reject_historical_identity
 import client_source
 from synthetic_queue import FakeQueue, QueueError
 
@@ -224,97 +224,63 @@ class ObserverTests(unittest.TestCase):
         self.assertEqual(q.pins, {})
 
 
-class ClientBarrierTests(unittest.TestCase):
-    bodies = None
-    hashes = None
-
+class SourceAuditTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cache = Path(tempfile.mkdtemp(prefix='hevc-ref-content-src-'))
-        texts = client_source.fetch(cache)
+        cls.cache = Path(tempfile.mkdtemp(prefix='hevc-ref-content-src-'))
+        cls.addClassCleanup(shutil.rmtree, cls.cache)
+        texts = client_source.fetch(cls.cache)
         cls.bodies, cls.hashes = client_source.extract(texts)
-        cls.cache = cache
 
-    def test_extracted_function_hashes_are_stable(self):
-        self.assertEqual(sorted(self.bodies), sorted(self.hashes))
-        for name, body in self.bodies.items():
-            self.assertGreater(len(body), 40, name)
-            self.assertIn(name.split('(')[0], body)
-        self.assertIn('<< index', self.bodies['wait_on_capture_locked'])
-        self.assertIn('return 0;', self.bodies['vb2_dc_dmabuf_ops_begin_cpu_access'])
-        self.assertIn('vaBeginPicture', self.bodies['ff_vaapi_decode_issue'])
-        self.assertIn('v4l2_m2m_buf_done_and_job_finish', self.bodies['avd_job_finish_no_pm'])
+    def test_exact_extracted_identities(self):
+        report = inspect_sources(self.bodies)
+        self.assertEqual(report['functions'], self.hashes)
+        self.assertFalse(report['c_functions_executed'])
+        self.assertFalse(report['client_instrumentation'])
+        self.assertFalse(report['real_adapter_implemented'])
+        self.assertFalse(report['copy_authorized'])
 
-    def test_source_hash_mismatch_rejected(self):
-        bad = self.cache / 'src/surface.c'
-        original = bad.read_bytes()
-        bad.write_bytes(original + b'\n/* drift */\n')
+    def test_file_hash_drift_rejected(self):
+        path = self.cache / 'src/surface.c'
+        old = path.read_bytes();path.write_bytes(old+b'\n/* drift */\n')
         try:
             with self.assertRaisesRegex(ValueError, 'source hash mismatch'):
                 client_source.fetch(self.cache)
-        finally:
-            bad.write_bytes(original)
+        finally: path.write_bytes(old)
 
-    def test_classify_lists_every_required_capability(self):
-        report = classify(self.bodies)
-        joined = ' '.join(report['missing'])
-        for cap in ('all_producer_pause_token', 'retain_surface_and_allocation',
-                    'drain_existing_readers', 'exporter_cache_identity',
-                    'same_run_writer_join'):
-            self.assertIn(cap, joined)
-        self.assertEqual(report['present'], [])
-
-    def test_instrumented_apis_fail_closed(self):
-        for client in ('VA', 'Gst'):
-            barrier = ClientBarrier(client, self.bodies)
-            with self.assertRaisesRegex(AdapterError, 'pause token'):
-                barrier.pause()
-            with self.assertRaisesRegex(AdapterError, 'generation'):
-                barrier.retain()
-            with self.assertRaisesRegex(AdapterError, 'POLLOUT|drain'):
-                barrier.drain(1)
-            with self.assertRaisesRegex(AdapterError, 'no-op|exporter'):
-                barrier.exporter_identity()
-            with self.assertRaisesRegex(AdapterError, 'blocked'):
-                real_client_adapter(client, bodies=self.bodies)
-
-    def test_wait_mutation_is_still_not_a_pause_token(self):
+    def test_function_mutation_rejected(self):
         bodies = dict(self.bodies)
-        bodies['wait_on_capture_locked'] = bodies['wait_on_capture_locked'].replace(
-            '<< index', '<< index /* pause_all */')
-        with self.assertRaisesRegex(AdapterError, 'pause token'):
-            ClientBarrier('VA', bodies).pause()
+        bodies['wait_on_capture_locked'] = bodies['wait_on_capture_locked'].replace('<< index','<< 0')
+        with self.assertRaisesRegex(ValueError,'function identity'):
+            inspect_sources(bodies)
+        del bodies['ff_vaapi_decode_issue']
+        with self.assertRaises(ValueError): inspect_sources(bodies)
 
-    def test_cpu_access_return_zero_is_not_coherence(self):
-        bodies = dict(self.bodies)
-        bodies['vb2_dc_dmabuf_ops_begin_cpu_access'] = (
-            'static int vb2_dc_dmabuf_ops_begin_cpu_access(void) { return 0; /* coherent */ }')
-        with self.assertRaisesRegex(AdapterError, 'no-op|exporter'):
-            ClientBarrier('VA', bodies).exporter_identity()
+    def test_source_scope_is_explicit(self):
+        report = inspect_sources(self.bodies)
+        self.assertIn('upstream base only', report['avd_completion_scope'])
+        self.assertIn('direct V4L2', report['gstreamer_scope'])
 
-    def test_boolean_and_association_records_rejected(self):
-        barrier = ClientBarrier('VA', self.bodies)
-        with self.assertRaisesRegex(AdapterError, 'fixture booleans'):
-            barrier.join_writer({'coherent': True, 'paused': True, 'retained': True})
+    def test_boolean_and_association_identity_always_rejected(self):
         association = json.loads((CAPTURE / 'E-va-on-association.json').read_text())
-        with self.assertRaisesRegex(AdapterError, 'poc/index-only'):
-            barrier.join_writer(association)
+        for records in (None, association, {'coherent':True,'paused':True,'retained':True}):
+            with self.assertRaisesRegex(AdapterError,'not live ownership'):
+                reject_historical_identity(records)
 
-    def test_capture_records_lack_live_generation(self):
+    def test_forged_generations_do_not_admit_historical_captures(self):
         records = json.loads((CAPTURE / 'E-va-on-reference.json').read_text())
-        with self.assertRaisesRegex(AdapterError, 'missing generation'):
-            ClientBarrier('VA', self.bodies).join_writer(records)
-        records['records'][1]['generation'] = 7
-        records['records'][1]['writer_job'] = 99
-        ident = ClientBarrier('VA', self.bodies).join_writer(records)
-        self.assertEqual(ident['run'], records['run'])
-        self.assertEqual(ident['allocation'], records['records'][1]['allocation'])
-        with self.assertRaisesRegex(AdapterError, 'pause token'):
-            real_client_adapter('VA', records, bodies=self.bodies)
+        for row in records['records']:
+            row.update(generation=7,writer_job=99)
+        with self.assertRaisesRegex(AdapterError,'not live ownership'):
+            reject_historical_identity(records)
+        for client in ('VA','Gst','unknown'):
+            with self.assertRaisesRegex(AdapterError,'blocked'):
+                real_client_adapter(client, records, bodies=self.bodies)
 
-    def test_observer_still_rejects_non_fake_queue(self):
-        with self.assertRaises(AdapterError):
-            Observer(object(), enabled=True)
+    def test_passing_source_strings_never_enables_copy(self):
+        for bodies in (self.bodies, {}, {'pause':'return token;'}):
+            with self.assertRaisesRegex(AdapterError,'blocked'):
+                real_client_adapter('VA',bodies=bodies)
 
 
 def mutations():
@@ -324,8 +290,8 @@ def mutations():
         'writer-unbound': ('synthetic_queue.py', "a['writer'] != identity", 'False', 2),
         'pause-bypassed': ('synthetic_queue.py', 'if self.paused:', 'if False:', 2),
     }
-    copies = ('tests.py', 'adapter.py', 'synthetic_queue.py', 'barrier.py',
-              'client_source.py', 'source-map.json')
+    copies = ('tests.py', 'adapter.py', 'synthetic_queue.py', 'source_audit.py',
+              'client_source.py', 'source-map.json', 'function-hashes.json')
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
         for name, (file, old, new, count) in variants.items():
@@ -349,7 +315,7 @@ if __name__ == '__main__':
     suite = unittest.TestSuite()
     suite.addTests(loader.loadTestsFromTestCase(ObserverTests))
     if not unit_only:
-        suite.addTests(loader.loadTestsFromTestCase(ClientBarrierTests))
+        suite.addTests(loader.loadTestsFromTestCase(SourceAuditTests))
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     if not result.wasSuccessful(): sys.exit(1)
     if not unit_only: mutations()

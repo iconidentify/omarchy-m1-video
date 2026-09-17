@@ -15,18 +15,8 @@ class AdapterError(Exception):
     pass
 
 def real_client_adapter(client, records=None, *, bodies=None):
-    """Boolean records cannot own a copy. With extracted bodies, instrument then fail closed."""
-    if bodies is None:
-        raise AdapterError('blocked: no verified real-client pause/retention/exporter adapter')
-    from barrier import ClientBarrier
-    barrier = ClientBarrier(client, bodies)
-    if records is not None:
-        barrier.join_writer(records)
-    barrier.pause()
-    barrier.retain()
-    barrier.drain()
-    barrier.exporter_identity()
-    raise AdapterError('blocked: classified APIs still missing required capabilities')
+    """Records or source strings cannot enforce a live producer barrier or lifetime pin."""
+    raise AdapterError('blocked: no verified real-client pause/retention/exporter adapter')
 
 class Observer:
     def __init__(self, queue, enabled=False, clock=time.monotonic):
