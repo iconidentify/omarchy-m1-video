@@ -71,19 +71,30 @@ def run_command(*args, timeout=10, byte_limit=16 * 1024 * 1024):
                 if status != 'complete':
                     break
             if status == 'complete':
-                try:
-                    if process.wait(timeout=max(0.001, deadline - time.monotonic())):
-                        status = 'failed'
-                except subprocess.TimeoutExpired:
-                    status = 'timeout'
+                # Keep the leader waitable until group cleanup. Reaping it
+                # before killpg would release its numeric PID for reuse.
+                while True:
+                    exited = os.waitid(os.P_PID, process.pid,
+                                       os.WEXITED | os.WNOHANG | os.WNOWAIT)
+                    if exited is not None:
+                        if exited.si_code != os.CLD_EXITED or exited.si_status:
+                            status = 'failed'
+                        break
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        status = 'timeout'
+                        break
+                    time.sleep(min(0.01, remaining))
     except OSError:
         status = 'failed'
     finally:
-        if status in ('timeout', 'byte_limit', 'failed'):
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+        # This process started the session, and its unreaped leader reserves
+        # the group ID. Also remove descendants of a successful command that
+        # closed their inherited pipes. Never signal the group after wait().
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
         process.stdout.close()
         process.stderr.close()
         process.wait()

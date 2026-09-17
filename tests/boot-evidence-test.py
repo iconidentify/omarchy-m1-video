@@ -2,10 +2,12 @@
 """Synthetic, offline tests: no decoder or module operations."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import sys
 import subprocess
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -249,6 +251,46 @@ class BootEvidenceTest(unittest.TestCase):
         self.assertNotIn('SECRET', json.dumps(output))
         self.assertEqual(evidence.run_command('/nonexistent/fixture-command')['status'], 'missing')
         self.assertEqual(evidence.run_command(sys.executable, '-c', 'raise SystemExit(3)')['status'], 'failed')
+
+    def test_group_cleanup_keeps_leader_owned_until_last_signal(self):
+        original = os.killpg
+        observed = []
+
+        def checked(pid, sig):
+            # Raises ChildProcessError if cleanup has already reaped the
+            # leader and could therefore signal a recycled numeric group ID.
+            os.waitid(os.P_PID, pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+            observed.append(pid)
+            return original(pid, sig)
+
+        for code, wanted in [('pass', 'complete'), ('raise SystemExit(3)', 'failed'),
+                             ('import time; time.sleep(5)', 'timeout')]:
+            with self.subTest(status=wanted), patch.object(evidence.os, 'killpg', side_effect=checked):
+                result = evidence.run_command(sys.executable, '-c', code, timeout=0.1)
+                self.assertEqual(result['status'], wanted)
+        self.assertEqual(len(observed), 3)
+
+    def test_child_holding_pipes_cannot_extend_deadline(self):
+        code = 'import os,time; child=os.fork(); time.sleep(5) if child == 0 else None'
+        start = time.monotonic()
+        result = evidence.run_command(sys.executable, '-c', code, timeout=0.1)
+        self.assertEqual(result['status'], 'timeout')
+        self.assertLess(time.monotonic() - start, 2)
+
+    def test_untrusted_package_and_module_values_stay_private(self):
+        command = self.command
+
+        def invalid(*args, **kwargs):
+            if args[0] == 'pacman':
+                return result(args[-1] + ' SECRET/private-version\n')
+            if args[0] == 'modinfo':
+                return result('/usr/lib/modules/../../SECRET/private-file\n')
+            return command(*args, **kwargs)
+
+        report = evidence.collect('fixture', root=self.root, run=invalid, release='test')
+        self.assertTrue(all(value is None for value in report['packages'].values()))
+        self.assertIsNone(report['module']['selected_file_sha256'])
+        self.assertNotIn('SECRET', json.dumps(report))
 
 
 if __name__ == '__main__':

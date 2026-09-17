@@ -122,3 +122,18 @@ of the selected-module hash remains distinct from loaded identity.
 
 Hardware and boot experiments are not run because this contribution is limited to
 read-only investigation.
+
+## Maintainer review correction — 2026-09-17
+
+Review reproduced an ownership error in the collector's subprocess cleanup: a
+nonzero child exit was reaped before `killpg`, releasing the numeric process-group
+identity before it was signalled. Cleanup now observes exit with `waitid(WNOWAIT)`,
+retains the leader until the last group signal and only then reaps it. New offline
+regressions check this ordering for success, failure and timeout, bound a descendant
+holding the output pipes, and reject private malformed package/module metadata.
+The collector has 17 synthetic tests after this correction.
+
+The JSON above remains the original contributor capture from `485d5a5`; its
+collector hash has not been replaced with the corrected code's identity. No host
+collection or boot/hardware test was repeated by the maintainer. Contributor work
+received a separate maintainer review; the maintainer correction was self-reviewed.
