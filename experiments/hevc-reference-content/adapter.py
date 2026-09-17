@@ -14,8 +14,8 @@ MV = 7168
 class AdapterError(Exception):
     pass
 
-def real_client_adapter(client, records=None):
-    """Records cannot enforce a live producer barrier or lifetime pin."""
+def real_client_adapter(client, records=None, *, bodies=None):
+    """Records or source strings cannot enforce a live producer barrier or lifetime pin."""
     raise AdapterError('blocked: no verified real-client pause/retention/exporter adapter')
 
 class Observer:

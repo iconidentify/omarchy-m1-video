@@ -49,3 +49,26 @@ producer barrier, retained surface/export lifetime and completed writer/referenc
 records to actual verified allocation/exporter/cache identity. A trace file or DQBUF
 alone cannot do that. The current fixture is not a substitute for those criteria.
 See [CAMPAIGN.md](CAMPAIGN.md) for the separately gated hardware plan.
+
+
+## Static source inspection added after PR83
+
+PR90 adds hash-pinned retrieval and exact function-body identities for selected VA
+driver, FFmpeg VAAPI, vb2 exporter and upstream AVD completion sources. Run `python3 experiments/hevc-reference-content/tests.py` from the repository
+root to repeat the 23 groups and four synthetic-source mutations. File and extracted-function drift are rejected. The C bodies are
+**strings only: never compiled, executed or instrumented by this audit**.
+
+`source_audit.inspect_sources` reports that limited scope. It is not a producer
+barrier or client adapter. The AVD completion function is upstream base only; the
+shipped-patched ownership and actual capture evidence remain in #77/#76. No GStreamer
+API is pinned here: our accepted `v4l2slh265dec` path uses direct V4L2, not the VA
+backend. Do not infer its capabilities from VA source.
+
+Historical capture/association rows remain rejected even after adding plausible
+generation and writer-job labels. The removed joiner could accept those fabricated
+fields. Source strings and metadata cannot confer live retention. The real adapter
+still unconditionally rejects; no snapshot path or hardware authorization is added.
+
+#82 still needs actual client/kernel instrumentation with a reviewed producer
+barrier and retention/lifetime design. Another source scan or synthetic wrapper does
+not satisfy that implementation step. Keep its original criteria open.

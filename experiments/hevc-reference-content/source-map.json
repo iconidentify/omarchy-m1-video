@@ -1,12 +1,64 @@
 {
-  "schema": "omarchy-m1-video.hevc-reference-content-sources/1",
+  "schema": "omarchy-m1-video.hevc-reference-content-sources/2",
   "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/82",
   "parent": "https://github.com/iconidentify/libva-v4l2_request/issues/42",
   "contract": "experiments/hevc-reference-memory/next-observation.md",
   "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
   "patches_concatenated_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390",
   "capture": "e5b226e843a145eabd846816d51a43ae9a58fee5",
-  "implementation": "synthetic-only; real_client_adapter always rejects",
+  "ffmpeg_revision": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
   "driver_revision": "3570a2e09d232a5a541c63df7d2cf699fa4b096b",
-  "limitations": "Source pointers are review references, not verified live allocation or client evidence. See BLOCKED.md."
+  "implementation": "synthetic observer plus static hash-pinned source inspection; no real-client instrumentation or adapter",
+  "limitations": "Function strings are inspected, never executed or instrumented. AVD completion source is the upstream base, not the shipped-patched build. GStreamer direct-V4L2 APIs are not pinned or audited here. Historical labels cannot prove live ownership.",
+  "client_files": {
+    "src/surface.c": {
+      "url": "https://raw.githubusercontent.com/iconidentify/libva-v4l2_request/3570a2e09d232a5a541c63df7d2cf699fa4b096b/src/surface.c",
+      "sha256": "b6bc85c4fa48a93bf5d61f3fbeb5494898f9dc5259c2143b3a35a7ab6bb0323d",
+      "functions": [
+        "v4l2r_SyncSurface",
+        "v4l2r_ExportSurfaceHandle",
+        "v4l2r_surface_ready"
+      ]
+    },
+    "src/decode.c": {
+      "url": "https://raw.githubusercontent.com/iconidentify/libva-v4l2_request/3570a2e09d232a5a541c63df7d2cf699fa4b096b/src/decode.c",
+      "sha256": "b1326d1fa115854f57075b84425da0bc1eb67fe3ea7e50133dd723aca2f4486b",
+      "functions": [
+        "v4l2r_sync_capture",
+        "wait_on_capture_locked"
+      ]
+    },
+    "src/context.c": {
+      "url": "https://raw.githubusercontent.com/iconidentify/libva-v4l2_request/3570a2e09d232a5a541c63df7d2cf699fa4b096b/src/context.c",
+      "sha256": "9f7aada6931971ecb0546fe4f1517f1b2f51429c03bff9e4d0c76c71daa5d71d",
+      "functions": [
+        "capture_wait_readers",
+        "preserve_capture"
+      ]
+    },
+    "libavcodec/vaapi_decode.c": {
+      "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa/libavcodec/vaapi_decode.c",
+      "sha256": "dd9db7f515923d288935af0620498cea97054561bce67a7e797d3facc5764586",
+      "functions": [
+        "ff_vaapi_decode_issue"
+      ]
+    },
+    "drivers/media/common/videobuf2/videobuf2-dma-contig.c": {
+      "url": "https://raw.githubusercontent.com/AsahiLinux/linux/94fb23346d522edf53722357c426a3e58030beea/drivers/media/common/videobuf2/videobuf2-dma-contig.c",
+      "sha256": "b504d0706fe9615d23f9e592c2fa6dba21a8d0df247388c13f8325b967314876",
+      "functions": [
+        "vb2_dc_dmabuf_ops_begin_cpu_access",
+        "vb2_dc_dmabuf_ops_end_cpu_access"
+      ]
+    },
+    "drivers/media/platform/apple/avd/avd-v4l2.c": {
+      "url": "https://raw.githubusercontent.com/AsahiLinux/linux/94fb23346d522edf53722357c426a3e58030beea/drivers/media/platform/apple/avd/avd-v4l2.c",
+      "sha256": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53",
+      "functions": [
+        "avd_job_finish_no_pm"
+      ]
+    }
+  },
+  "avd_completion_scope": "upstream base only; use #77/#76 for shipped-patched ownership/capture evidence",
+  "gstreamer_scope": "not audited; accepted v4l2slh265dec campaign uses direct V4L2, not the VA driver"
 }
