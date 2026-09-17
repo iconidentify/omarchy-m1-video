@@ -1,0 +1,234 @@
+From: z23 <3616196+z23@users.noreply.github.com>
+Subject: [PATCH] vaapi_h264: explicit admission stop without Baseline/Extended remap
+
+Local patch against FFmpeg n9.0.1 bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa
+for omarchy-m1-video#79. Not installed and not sent upstream.
+
+Includes internal.h so AVCodecInternal is complete. Keeps profile map
+without Baseline/Extended. decode_nal_units cancels DPA/DPB/DPC and
+slice/hwaccel failures before issue. end_frame refuses empty sessions.
+
+--- libavcodec/h264dec.c	2026-08-12	03:24:31.000000000	+0000
++++ libavcodec/h264dec.c	2026-09-17	22:01:51.843248595	+0000
+@@ -44,6 +44,9 @@
+ #include "avcodec.h"
+ #include "h264.h"
+ #include "h264dec.h"
++#if CONFIG_H264_VAAPI_HWACCEL
++#include "h264_vaapi_admit.h"
++#endif
+ #include "h2645_parse.h"
+ #include "h264data.h"
+ #include "h264_ps.h"
+@@ -652,6 +655,12 @@
+             if ((err = ff_h264_queue_decode_slice(h, nal))) {
+                 H264SliceContext *sl = h->slice_ctx + h->nb_slice_ctx_queued;
+                 sl->ref_count[0] = sl->ref_count[1] = 0;
++#if CONFIG_H264_VAAPI_HWACCEL
++                if (avctx->hwaccel) {
++                    ret = ff_h264_vaapi_admit_reject(avctx);
++                    goto end;
++                }
++#endif
+                 break;
+             }
+ 
+@@ -675,7 +684,7 @@
+                     h->nb_slice_ctx_queued = 0;
+                 } else
+                     ret = ff_h264_execute_decode_slices(h);
+-                if (ret < 0 && (h->avctx->err_recognition & AV_EF_EXPLODE))
++                if (ret < 0 && (avctx->hwaccel || (h->avctx->err_recognition & AV_EF_EXPLODE)))
+                     goto end;
+             }
+             break;
+@@ -683,6 +692,12 @@
+         case H264_NAL_DPB:
+         case H264_NAL_DPC:
+             avpriv_request_sample(avctx, "data partitioning");
++#if CONFIG_H264_VAAPI_HWACCEL
++            if (avctx->hwaccel) {
++                ret = ff_h264_vaapi_admit_reject(avctx);
++                goto end;
++            }
++#endif
+             break;
+         case H264_NAL_SEI:
+             if (h->setup_finished) {
+
+--- /dev/null	2026-09-17 09:12:39.832004342 +0000
++++ libavcodec/h264_vaapi_admit.c	2026-09-17	22:02:06.960861551	+0000
+@@ -0,0 +1,84 @@
++/*
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ * Local FFmpeg n9.0.1 H.264 VAAPI admission. Not installed, not upstream.
++ *
++ * Remapping Baseline/Extended is intentionally disabled: config still happens
++ * from avctx->profile before later PPS/slice NALs are visible. This file only
++ * implements an explicit stop (no issue after reject/empty picture).
++ */
++#include "h264dec.h"
++#include "h264_ps.h"
++#include "internal.h"
++#include "vaapi_decode.h"
++#include "h264_vaapi_admit.h"
++
++int ff_h264_vaapi_admit_reject(AVCodecContext *avctx)
++{
++    VAAPIDecodeContext *ctx;
++
++    if (!avctx || !avctx->internal || !avctx->internal->hwaccel_priv_data)
++        return AVERROR(EINVAL);
++    ctx = avctx->internal->hwaccel_priv_data;
++    ctx->h264_admit_sticky = 1;
++    return AVERROR(EINVAL);
++}
++
++int ff_h264_vaapi_admit_start(AVCodecContext *avctx, const H264Context *h)
++{
++    VAAPIDecodeContext *ctx;
++    const SPS *sps;
++    const PPS *pps;
++
++    if (!avctx || !h || !avctx->internal || !avctx->internal->hwaccel_priv_data)
++        return AVERROR(EINVAL);
++    ctx = avctx->internal->hwaccel_priv_data;
++    if (ctx->h264_admit_sticky)
++        return AVERROR(EINVAL);
++    sps = h->ps.sps;
++    pps = h->ps.pps;
++    if (!sps || !pps)
++        return ff_h264_vaapi_admit_reject(avctx);
++    if (pps->slice_group_count > 1 ||
++        !sps->frame_mbs_only_flag || sps->mb_aff ||
++        h->picture_structure != PICT_FRAME)
++        return ff_h264_vaapi_admit_reject(avctx);
++    ctx->h264_admit_in_picture = 1;
++    return 0;
++}
++
++int ff_h264_vaapi_admit_slice(AVCodecContext *avctx, const H264Context *h)
++{
++    VAAPIDecodeContext *ctx;
++    const PPS *pps;
++    const H264SliceContext *sl;
++
++    if (!avctx || !h || !avctx->internal || !avctx->internal->hwaccel_priv_data)
++        return AVERROR(EINVAL);
++    ctx = avctx->internal->hwaccel_priv_data;
++    if (ctx->h264_admit_sticky)
++        return AVERROR(EINVAL);
++    if (!ctx->h264_admit_in_picture)
++        return ff_h264_vaapi_admit_reject(avctx);
++    pps = h->ps.pps;
++    sl = &h->slice_ctx[0];
++    if (!pps)
++        return ff_h264_vaapi_admit_reject(avctx);
++    if (pps->slice_group_count > 1)
++        return ff_h264_vaapi_admit_reject(avctx);
++    if (sl->slice_type == AV_PICTURE_TYPE_SP || sl->slice_type == AV_PICTURE_TYPE_SI)
++        return ff_h264_vaapi_admit_reject(avctx);
++    return 0;
++}
++
++int ff_h264_vaapi_admit_end(AVCodecContext *avctx)
++{
++    VAAPIDecodeContext *ctx;
++
++    if (!avctx || !avctx->internal || !avctx->internal->hwaccel_priv_data)
++        return AVERROR(EINVAL);
++    ctx = avctx->internal->hwaccel_priv_data;
++    if (ctx->h264_admit_sticky || !ctx->h264_admit_in_picture)
++        return AVERROR(EINVAL);
++    ctx->h264_admit_in_picture = 0;
++    return 0;
++}
+
+--- /dev/null	2026-09-17 09:12:39.832004342 +0000
++++ libavcodec/h264_vaapi_admit.h	2026-09-17	22:01:51.843529178	+0000
+@@ -0,0 +1,16 @@
++/*
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ * Local FFmpeg n9.0.1 H.264 VAAPI admission. Not installed, not upstream.
++ */
++#ifndef AVCODEC_H264_VAAPI_ADMIT_H
++#define AVCODEC_H264_VAAPI_ADMIT_H
++
++struct AVCodecContext;
++struct H264Context;
++
++int ff_h264_vaapi_admit_start(struct AVCodecContext *avctx, const struct H264Context *h);
++int ff_h264_vaapi_admit_slice(struct AVCodecContext *avctx, const struct H264Context *h);
++int ff_h264_vaapi_admit_end(struct AVCodecContext *avctx);
++int ff_h264_vaapi_admit_reject(struct AVCodecContext *avctx);
++
++#endif
+
+--- libavcodec/Makefile	2026-08-12	03:24:31.000000000	+0000
++++ libavcodec/Makefile	2026-09-17	22:01:51.843730261	+0000
+@@ -1061,7 +1061,7 @@
+ OBJS-$(CONFIG_H264_D3D12VA_HWACCEL)       += dxva2_h264.o d3d12va_h264.o
+ OBJS-$(CONFIG_H264_NVDEC_HWACCEL)         += nvdec_h264.o
+ OBJS-$(CONFIG_H264_QSV_HWACCEL)           += qsvdec.o
+-OBJS-$(CONFIG_H264_VAAPI_HWACCEL)         += vaapi_h264.o
++OBJS-$(CONFIG_H264_VAAPI_HWACCEL)         += vaapi_h264.o h264_vaapi_admit.o
+ OBJS-$(CONFIG_H264_VDPAU_HWACCEL)         += vdpau_h264.o
+ OBJS-$(CONFIG_H264_VIDEOTOOLBOX_HWACCEL)  += videotoolbox.o
+ OBJS-$(CONFIG_H264_VULKAN_HWACCEL)        += vulkan_decode.o vulkan_h264.o
+
+--- libavcodec/vaapi_decode.h	2026-08-12	03:24:31.000000000	+0000
++++ libavcodec/vaapi_decode.h	2026-09-17	22:01:51.843908844	+0000
+@@ -47,6 +47,8 @@
+ typedef struct VAAPIDecodeContext {
+     VAConfigID            va_config;
+     VAContextID           va_context;
++    int                   h264_admit_sticky;
++    int                   h264_admit_in_picture;
+ 
+     AVHWDeviceContext    *device;
+     AVVAAPIDeviceContext *hwctx;
+
+--- libavcodec/vaapi_h264.c	2026-08-12	03:24:31.000000000	+0000
++++ libavcodec/vaapi_h264.c	2026-09-17	22:01:51.844025178	+0000
+@@ -24,6 +24,7 @@
+ #include "h264_ps.h"
+ #include "hwaccel_internal.h"
+ #include "vaapi_decode.h"
++#include "h264_vaapi_admit.h"
+ 
+ /**
+  * @file
+@@ -244,6 +245,9 @@
+     VAIQMatrixBufferH264 iq_matrix;
+     int err;
+ 
++    if ((err = ff_h264_vaapi_admit_start(avctx, h)) < 0)
++        return err;
++
+     pic->output_surface = ff_vaapi_get_surface_id(h->cur_pic_ptr->f);
+ 
+     pic_param = (VAPictureParameterBufferH264) {
+@@ -323,6 +327,11 @@
+     H264SliceContext *sl = &h->slice_ctx[0];
+     int ret;
+ 
++    if (ff_h264_vaapi_admit_end(avctx) < 0) {
++        ff_vaapi_decode_cancel(avctx, pic);
++        return AVERROR(EINVAL);
++    }
++
+     ret = ff_vaapi_decode_issue(avctx, pic);
+     if (ret < 0)
+         goto finish;
+@@ -344,6 +353,11 @@
+     VASliceParameterBufferH264 slice_param;
+     int err;
+ 
++    if ((err = ff_h264_vaapi_admit_slice(avctx, h)) < 0) {
++        ff_vaapi_decode_cancel(avctx, pic);
++        return err;
++    }
++
+     slice_param = (VASliceParameterBufferH264) {
+         .slice_data_size               = size,
+         .slice_data_offset             = 0,
