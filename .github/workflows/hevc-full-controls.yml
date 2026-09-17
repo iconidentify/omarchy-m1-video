@@ -1,0 +1,21 @@
+name: HEVC full control evidence
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  full-controls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify immutable primary sources and C control sizes
+        run: python3 experiments/hevc-full-controls/verify-sources.py
+      - name: Full payload and lifecycle counterexamples (no hardware)
+        run: python3 experiments/hevc-full-controls/tests.py
+      - name: Reproduce measured inputs and reject altered evidence
+        run: |
+          python3 experiments/hevc-full-controls/report.py --verify
+          python3 experiments/hevc-full-controls/report-tests.py
