@@ -9,7 +9,7 @@ typedef unsigned long dma_addr_t;
 #define ENOMEM 12
 
 struct avd_dev { void *dev; };
-struct avd_buf { void *cpu; dma_addr_t addr; unsigned long size; };
+#include "actual-buf.h" /* exact pinned struct; other contexts below are synthetic */
 struct avd_ctx { struct avd_dev *dev; void *priv; };
 
 #define MAX_LIVE 64
@@ -115,6 +115,11 @@ int main(int argc, char **argv)
 	if (ret == 0) {
 		avd_av1_stop(&ctx);
 		ctx.priv = NULL;
+	}
+	if (argc > 2) {
+		/* Framework clears priv; stop is only repeated on NULL, not a freed pointer. */
+		avd_av1_stop(&ctx);
+		avd_av1_stop(&ctx);
 	}
 	int leaked = live_count;
 	while (live_count)
