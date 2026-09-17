@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""Fetch pinned FFmpeg VA-API files and apply the local n9.0.1 patch. No install."""
+"""Reproduce a REJECTED FFmpeg proposal in a fresh directory. Never install it."""
 from __future__ import annotations
 
 import argparse
@@ -30,19 +30,26 @@ def prepare(destination: Path):
         if hashlib.sha256(data).hexdigest() != sha:
             raise ValueError("source hash mismatch: " + rel)
         (destination / rel).write_bytes(data)
-    patch = HERE / "ffmpeg-n9.0.1-h264-vaapi-select.patch"
+    patch = HERE / "rejected/ffmpeg-n9.0.1-h264-vaapi-select.patch"
     subprocess.run(["patch", "-p0", "--fuzz=0", "-i", str(patch)],
                    cwd=destination, check=True, timeout=30)
     ident = {
         "ffmpeg": PIN,
         "patch_sha256": digest(patch),
-        "patched_files": {rel: digest(destination / rel) for rel in pins},
+        "status": "rejected-do-not-deploy",
+        "patched_files": {str(p.relative_to(destination)): digest(p)
+                          for p in sorted(codec.iterdir()) if p.is_file()},
     }
     (destination / "ident.json").write_text(json.dumps(ident, indent=2) + "\n")
-    print("PASS: pinned FFmpeg VA-API files patched in", destination)
+    print("REJECTED proposal prepared for offline reproduction only:", destination)
 
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--reproduce-rejected", action="store_true",
+                   help="acknowledge this is known-broken research, not an accepted patch")
     p.add_argument("destination", type=Path)
-    prepare(p.parse_args().destination.resolve())
+    args = p.parse_args()
+    if not args.reproduce_rejected:
+        p.error("proposal rejected; use --reproduce-rejected only for offline diagnosis")
+    prepare(args.destination.resolve())

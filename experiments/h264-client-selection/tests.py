@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""Build and run extracted H.264 VA selection callbacks. No device."""
+"""Reproduce rejected proposal behavior. Model tests are not FFmpeg callbacks."""
 from __future__ import annotations
 
 import hashlib
@@ -16,12 +16,13 @@ def cc(out, srcs, defines=None):
     cmd = ["cc", "-O0", "-Wall", "-Werror", "-o", str(out)]
     for d in defines or []:
         cmd.append("-D" + d)
-    cmd += [str(HERE / s) for s in srcs]
+    cmd += ["-I", str(HERE / "rejected")]
+    cmd += [str(HERE / "rejected" / s if s.startswith("h264_vaapi") else HERE / s) for s in srcs]
     subprocess.run(cmd, check=True, timeout=30)
 
 
-class Callbacks(unittest.TestCase):
-    def test_extracted_callbacks(self):
+class ProposalModel(unittest.TestCase):
+    def test_standalone_model(self):
         with tempfile.TemporaryDirectory() as tmp:
             binary = Path(tmp) / "tests"
             cc(binary, ["h264_vaapi_select.c", "tests.c"])
@@ -45,35 +46,44 @@ int main(void) {
             (t / "fmo.c").write_text(src)
             gated = t / "gated"
             ungated = t / "ungated"
-            subprocess.run(["cc", "-O0", "-Wall", "-Werror", "-I", str(HERE),
-                            str(HERE / "h264_vaapi_select.c"), str(t / "fmo.c"),
+            subprocess.run(["cc", "-O0", "-Wall", "-Werror", "-I", str(HERE / "rejected"),
+                            str(HERE / "rejected/h264_vaapi_select.c"), str(t / "fmo.c"),
                             "-o", str(gated)], check=True, timeout=30)
             subprocess.run(["cc", "-O0", "-Wall", "-Werror", "-DH264_VA_SKIP_FMO",
-                            "-I", str(HERE),
-                            str(HERE / "h264_vaapi_select.c"), str(t / "fmo.c"),
+                            "-I", str(HERE / "rejected"),
+                            str(HERE / "rejected/h264_vaapi_select.c"), str(t / "fmo.c"),
                             "-o", str(ungated)], check=True, timeout=30)
             self.assertNotEqual(subprocess.run([str(gated)]).returncode, 0)
             self.assertEqual(subprocess.run([str(ungated)]).returncode, 0)
 
 
 class Pins(unittest.TestCase):
+    def test_prepare_refuses_without_acknowledgement(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp) / "not-created"
+            result = subprocess.run(["python3", str(HERE / "prepare.py"), str(dest)],
+                                    capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 2)
+            self.assertFalse(dest.exists())
+            self.assertIn("proposal rejected", result.stderr)
+
     def test_source_map(self):
         text = (HERE / "source-map.json").read_text()
         self.assertIn("bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa", text)
         self.assertIn("b5deb8c319f4e53b5243bc0583fee1800e8faa42", text)
-        self.assertTrue((HERE / "ffmpeg-n9.0.1-h264-vaapi-select.patch").exists())
+        self.assertTrue((HERE / "rejected/ffmpeg-n9.0.1-h264-vaapi-select.patch").exists())
 
     def test_prepare_applies_patch(self):
         with tempfile.TemporaryDirectory() as tmp:
             dest = Path(tmp) / "ffmpeg"
-            subprocess.run(["python3", str(HERE / "prepare.py"), str(dest)],
+            subprocess.run(["python3", str(HERE / "prepare.py"), "--reproduce-rejected", str(dest)],
                            check=True, timeout=60)
             self.assertTrue((dest / "ident.json").exists())
             patched = (dest / "libavcodec/h264dec.c").read_text()
             self.assertIn("ff_h264_vaapi_mark_unsupported", patched)
             select = (dest / "libavcodec/h264_vaapi_select.c").read_bytes()
             self.assertEqual(hashlib.sha256(select).hexdigest(),
-                             hashlib.sha256((HERE / "h264_vaapi_select.c").read_bytes()).hexdigest())
+                             hashlib.sha256((HERE / "rejected/h264_vaapi_select.c").read_bytes()).hexdigest())
 
     def test_decision_separates_oracle_and_hardware(self):
         d = (HERE / "README.md").read_text().lower()

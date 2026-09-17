@@ -11,7 +11,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Extracted callback tests and FMO-gate negative
+      - name: Standalone proposal model and rejected-prepare boundary
         run: python3 experiments/h264-client-selection/tests.py
-      - name: Apply local n9.0.1 patch to pinned VA-API files
-        run: python3 experiments/h264-client-selection/prepare.py "$RUNNER_TEMP/ffmpeg-n901-h264"
+      - name: Actual rejected end gate and repair mutation
+        run: python3 experiments/h264-client-selection/actual-gate-test.py
+      - name: Install hosted offline build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libva-dev pkg-config
+      - name: Real baseline link and exact rejected-proposal failures
+        run: python3 experiments/h264-client-selection/build-reproduction.py "$RUNNER_TEMP/h264-rejected-build"
