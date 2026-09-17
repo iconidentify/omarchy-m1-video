@@ -1,0 +1,29 @@
+[
+  {
+    "event": "authorized-recovery-start",
+    "boundary": "2026-09-17T13:34:56.013333+00:00",
+    "idle": true,
+    "previous_fault_count": 6,
+    "authorization": "owner saved-work/closed-apps confirmation: one existing-module reload",
+    "time": "2026-09-17T06:34:56-0700"
+  },
+  {
+    "event": "unload",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T06:34:56-0700"
+  },
+  {
+    "event": "load",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T06:34:56-0700"
+  },
+  {
+    "event": "recovery-complete",
+    "idle": true,
+    "module_loaded": true,
+    "new_fault_count": 0,
+    "time": "2026-09-17T06:34:56-0700"
+  }
+]

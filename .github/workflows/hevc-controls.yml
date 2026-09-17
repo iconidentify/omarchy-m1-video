@@ -14,10 +14,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: iconidentify/libva-v4l2_request
-          ref: 266269ee49d2fbb147f4983307b4b2492bd1a829
+          ref: ba66572ff7e1e380377eb2414a7eb7d7f97bb0d9
           path: driver-checker
           persist-credentials: false
       - name: Synthetic and pinned driver-checker interoperability tests
         env:
           HEVC_REFTRACE_CHECKER: driver-checker/tests/hevc-reftrace-check.py
         run: python3 experiments/hevc-controls/tests.py
+      - name: Published capture consistency and rejection checks (no device)
+        env:
+          HEVC_REFTRACE_CHECKER: driver-checker/tests/hevc-reftrace-check.py
+        run: |
+          python3 experiments/hevc-controls/report-tests.py
+          python3 experiments/hevc-controls/report.py experiments/hevc-controls/captures/2026-09-17 --verify

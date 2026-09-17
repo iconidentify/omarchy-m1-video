@@ -1,0 +1,357 @@
+{
+  "note": "Captured argv with private absolute prefixes replaced by named placeholders; explicit environment and guard options reconstructed from retained capture scripts, not a complete inherited environment dump.",
+  "runs": [
+    {
+      "id": "B-va-off",
+      "argv": [
+        "$FRAME_CHECK_DEBUG",
+        "vaapi",
+        "$LICENSED_CORPUS/RPS_B_qualcomm_5/RPS_B_qualcomm_5/RPS_B_qualcomm_5.bit",
+        "yuv420p"
+      ],
+      "cwd": "$PRIVATE_RUN_DIR",
+      "environment": {
+        "LC_ALL": "C",
+        "LIBVA_DRIVER_NAME": "v4l2_request",
+        "LIBVA_DRIVERS_PATH": "$SELECTED_DRIVER_DIR",
+        "LIBVA_V4L2_HEVC_REFTRACE": "(unset)"
+      },
+      "command_source_sha256": "5640c8882af9adc0479a16a417b208b091a04595df0dc767ca54bd8e4787e879",
+      "guard": {
+        "deadline_seconds": 90,
+        "poll_seconds": 0.1,
+        "journal_since": "2026-09-17T13:34:56.013333+00:00",
+        "run_id": "df399021-4ff3-469b-b951-5de9ff57905d"
+      }
+    },
+    {
+      "id": "B-va-on",
+      "argv": [
+        "$FRAME_CHECK_DEBUG",
+        "vaapi",
+        "$LICENSED_CORPUS/RPS_B_qualcomm_5/RPS_B_qualcomm_5/RPS_B_qualcomm_5.bit",
+        "yuv420p"
+      ],
+      "cwd": "$PRIVATE_RUN_DIR",
+      "environment": {
+        "LC_ALL": "C",
+        "LIBVA_DRIVER_NAME": "v4l2_request",
+        "LIBVA_DRIVERS_PATH": "$SELECTED_DRIVER_DIR",
+        "LIBVA_V4L2_HEVC_REFTRACE": "$PRIVATE_RUN_DIR/refs.jsonl"
+      },
+      "command_source_sha256": "4855469224300f1b5c885cafeee026ee993bdc3dc98d1997383f30fb5058205d",
+      "guard": {
+        "deadline_seconds": 90,
+        "poll_seconds": 0.1,
+        "journal_since": "2026-09-17T13:34:56.013333+00:00",
+        "run_id": "974801d7-054c-42b3-84e7-e904645821ac"
+      }
+    },
+    {
+      "id": "B-gst-off",
+      "argv": [
+        "gst-launch-1.0",
+        "-e",
+        "filesrc",
+        "location=$LICENSED_CORPUS/RPS_B_qualcomm_5/RPS_B_qualcomm_5/RPS_B_qualcomm_5.bit",
+        "!",
+        "h265parse",
+        "!",
+        "v4l2slh265dec",
+        "name=refprobe",
+        "!",
+        "videoconvert",
+        "!",
+        "video/x-raw,format=I420",
+        "!",
+        "filesink",
+        "location=$PRIVATE_RUN_DIR/output.yuv"
+      ],
+      "cwd": "$PRIVATE_RUN_DIR",
+      "environment": {
+        "LC_ALL": "C",
+        "LIBVA_DRIVER_NAME": "v4l2_request",
+        "LIBVA_DRIVERS_PATH": "$SELECTED_DRIVER_DIR",
+        "GST_DEBUG_NO_COLOR": "1",
+        "GST_DEBUG": "v4l2codecs:6",
+        "GST_DEBUG_FILE": "$PRIVATE_RUN_DIR/gst.log",
+        "LIBVA_V4L2_HEVC_REFTRACE": "(unset)"
+      },
+      "command_source_sha256": "e9b4d647e08570fa25f0bdd9393eaeb2655603da3cfcd66f02d3103fd59c00ef",
+      "guard": {
+        "deadline_seconds": 90,
+        "poll_seconds": 0.1,
+        "journal_since": "2026-09-17T13:34:56.013333+00:00",
+        "run_id": "a2e5a14b-a451-43d1-a342-8bad0a77dd61"
+      }
+    },
+    {
+      "id": "B-gst-on",
+      "argv": [
+        "v4l2-tracer",
+        "-u",
+        "trace",
+        "sh",
+        "-c",
+        "status_file=$1; shift; \"$@\"; child_status=$?; printf \"%s\\n\" \"$child_status\" > \"$status_file\"; exit \"$child_status\"",
+        "sh",
+        "$PRIVATE_RUN_DIR/tracee-status",
+        "gst-launch-1.0",
+        "-e",
+        "filesrc",
+        "location=$LICENSED_CORPUS/RPS_B_qualcomm_5/RPS_B_qualcomm_5/RPS_B_qualcomm_5.bit",
+        "!",
+        "h265parse",
+        "!",
+        "v4l2slh265dec",
+        "name=refprobe",
+        "!",
+        "videoconvert",
+        "!",
+        "video/x-raw,format=I420",
+        "!",
+        "filesink",
+        "location=$PRIVATE_RUN_DIR/output.yuv"
+      ],
+      "cwd": "$PRIVATE_RUN_DIR",
+      "environment": {
+        "LC_ALL": "C",
+        "LIBVA_DRIVER_NAME": "v4l2_request",
+        "LIBVA_DRIVERS_PATH": "$SELECTED_DRIVER_DIR",
+        "GST_DEBUG_NO_COLOR": "1",
+        "GST_DEBUG": "v4l2codecs:6",
+        "GST_DEBUG_FILE": "$PRIVATE_RUN_DIR/gst.log",
+        "LIBVA_V4L2_HEVC_REFTRACE": "(unset)"
+      },
+      "command_source_sha256": "650210854116ce0003efaedcd136171136a3bc666ec4db8b718db59cbc46b17b",
+      "guard": {
+        "deadline_seconds": 90,
+        "poll_seconds": 0.1,
+        "journal_since": "2026-09-17T13:34:56.013333+00:00",
+        "run_id": "f2628450-af69-4b88-9e30-528da42c62a6"
+      }
+    },
+    {
+      "id": "B-gst-on-outputlog",
+      "argv": [
+        "v4l2-tracer",
+        "-u",
+        "trace",
+        "sh",
+        "-c",
+        "status_file=$1; shift; \"$@\"; child_status=$?; printf \"%s\\n\" \"$child_status\" > \"$status_file\"; exit \"$child_status\"",
+        "sh",
+        "$PRIVATE_RUN_DIR/tracee-status",
+        "gst-launch-1.0",
+        "-e",
+        "filesrc",
+        "location=$LICENSED_CORPUS/RPS_B_qualcomm_5/RPS_B_qualcomm_5/RPS_B_qualcomm_5.bit",
+        "!",
+        "h265parse",
+        "!",
+        "v4l2slh265dec",
+        "name=refprobe",
+        "!",
+        "videoconvert",
+        "!",
+        "video/x-raw,format=I420",
+        "!",
+        "filesink",
+        "location=$PRIVATE_RUN_DIR/output.yuv"
+      ],
+      "cwd": "$PRIVATE_RUN_DIR",
+      "environment": {
+        "LC_ALL": "C",
+        "LIBVA_DRIVER_NAME": "v4l2_request",
+        "LIBVA_DRIVERS_PATH": "$SELECTED_DRIVER_DIR",
+        "GST_DEBUG_NO_COLOR": "1",
+        "GST_DEBUG": "v4l2codecs*:6",
+        "GST_DEBUG_FILE": "$PRIVATE_RUN_DIR/gst.log",
+        "LIBVA_V4L2_HEVC_REFTRACE": "(unset)"
+      },
+      "command_source_sha256": "51e6a9169a4da225280c5c6f42bd899f73c5b0593c65925cc5c5c533635ac1f5",
+      "guard": {
+        "deadline_seconds": 45,
+        "poll_seconds": 0.1,
+        "journal_since": "2026-09-17T13:34:56.013333+00:00",
+        "run_id": "327b356c-07ea-40e2-8093-ac8509aa194a"
+      }
+    },
+    {
+      "id": "E-va-off",
+      "argv": [
+        "$FRAME_CHECK_DEBUG",
+        "vaapi",
+        "$LICENSED_CORPUS/RPS_E_qualcomm_5/RPS_E_qualcomm_5/RPS_E_qualcomm_5.bit",
+        "yuv420p"
+      ],
+      "cwd": "$PRIVATE_RUN_DIR",
+      "environment": {
+        "LC_ALL": "C",
+        "LIBVA_DRIVER_NAME": "v4l2_request",
+        "LIBVA_DRIVERS_PATH": "$SELECTED_DRIVER_DIR",
+        "LIBVA_V4L2_HEVC_REFTRACE": "(unset)"
+      },
+      "command_source_sha256": "5b3c350cb079b06b9d1f8c1b0ddf1f544b68db0f351e688eb2d74f761ce29fa3",
+      "guard": {
+        "deadline_seconds": 90,
+        "poll_seconds": 0.1,
+        "journal_since": "2026-09-17T13:34:56.013333+00:00",
+        "run_id": "68b3e549-d59a-45c8-ba92-c37ae25c701d"
+      }
+    },
+    {
+      "id": "E-va-on",
+      "argv": [
+        "$FRAME_CHECK_DEBUG",
+        "vaapi",
+        "$LICENSED_CORPUS/RPS_E_qualcomm_5/RPS_E_qualcomm_5/RPS_E_qualcomm_5.bit",
+        "yuv420p"
+      ],
+      "cwd": "$PRIVATE_RUN_DIR",
+      "environment": {
+        "LC_ALL": "C",
+        "LIBVA_DRIVER_NAME": "v4l2_request",
+        "LIBVA_DRIVERS_PATH": "$SELECTED_DRIVER_DIR",
+        "LIBVA_V4L2_HEVC_REFTRACE": "$PRIVATE_RUN_DIR/refs.jsonl"
+      },
+      "command_source_sha256": "3af6ef92fc4bc6cde6a105103aae38009ce6a8ef306c99c9bca40c54f3295618",
+      "guard": {
+        "deadline_seconds": 90,
+        "poll_seconds": 0.1,
+        "journal_since": "2026-09-17T13:34:56.013333+00:00",
+        "run_id": "9dfc39f5-783c-488d-8c04-e97e493d8c82"
+      }
+    },
+    {
+      "id": "E-gst-off",
+      "argv": [
+        "gst-launch-1.0",
+        "-e",
+        "filesrc",
+        "location=$LICENSED_CORPUS/RPS_E_qualcomm_5/RPS_E_qualcomm_5/RPS_E_qualcomm_5.bit",
+        "!",
+        "h265parse",
+        "!",
+        "v4l2slh265dec",
+        "name=refprobe",
+        "!",
+        "videoconvert",
+        "!",
+        "video/x-raw,format=I420",
+        "!",
+        "filesink",
+        "location=$PRIVATE_RUN_DIR/output.yuv"
+      ],
+      "cwd": "$PRIVATE_RUN_DIR",
+      "environment": {
+        "LC_ALL": "C",
+        "LIBVA_DRIVER_NAME": "v4l2_request",
+        "LIBVA_DRIVERS_PATH": "$SELECTED_DRIVER_DIR",
+        "GST_DEBUG_NO_COLOR": "1",
+        "GST_DEBUG": "v4l2codecs:6",
+        "GST_DEBUG_FILE": "$PRIVATE_RUN_DIR/gst.log",
+        "LIBVA_V4L2_HEVC_REFTRACE": "(unset)"
+      },
+      "command_source_sha256": "d72801cf89b5537ff240eb1d2cefa8d422ba806dc1059fcfe65acaf90a3279ed",
+      "guard": {
+        "deadline_seconds": 90,
+        "poll_seconds": 0.1,
+        "journal_since": "2026-09-17T13:34:56.013333+00:00",
+        "run_id": "f6b83870-60c8-48e1-b289-82f6263e206b"
+      }
+    },
+    {
+      "id": "E-gst-on",
+      "argv": [
+        "v4l2-tracer",
+        "-u",
+        "trace",
+        "sh",
+        "-c",
+        "status_file=$1; shift; \"$@\"; child_status=$?; printf \"%s\\n\" \"$child_status\" > \"$status_file\"; exit \"$child_status\"",
+        "sh",
+        "$PRIVATE_RUN_DIR/tracee-status",
+        "gst-launch-1.0",
+        "-e",
+        "filesrc",
+        "location=$LICENSED_CORPUS/RPS_E_qualcomm_5/RPS_E_qualcomm_5/RPS_E_qualcomm_5.bit",
+        "!",
+        "h265parse",
+        "!",
+        "v4l2slh265dec",
+        "name=refprobe",
+        "!",
+        "videoconvert",
+        "!",
+        "video/x-raw,format=I420",
+        "!",
+        "filesink",
+        "location=$PRIVATE_RUN_DIR/output.yuv"
+      ],
+      "cwd": "$PRIVATE_RUN_DIR",
+      "environment": {
+        "LC_ALL": "C",
+        "LIBVA_DRIVER_NAME": "v4l2_request",
+        "LIBVA_DRIVERS_PATH": "$SELECTED_DRIVER_DIR",
+        "GST_DEBUG_NO_COLOR": "1",
+        "GST_DEBUG": "v4l2codecs:6",
+        "GST_DEBUG_FILE": "$PRIVATE_RUN_DIR/gst.log",
+        "LIBVA_V4L2_HEVC_REFTRACE": "(unset)"
+      },
+      "command_source_sha256": "ebf7a1a14c01506d16fdc1ba30347d90569d4e10af0599049b316e95be4b8d05",
+      "guard": {
+        "deadline_seconds": 90,
+        "poll_seconds": 0.1,
+        "journal_since": "2026-09-17T13:34:56.013333+00:00",
+        "run_id": "bb5058c4-7e19-4901-bcaa-07f860c1a59f"
+      }
+    },
+    {
+      "id": "E-gst-on-outputlog",
+      "argv": [
+        "v4l2-tracer",
+        "-u",
+        "trace",
+        "sh",
+        "-c",
+        "status_file=$1; shift; \"$@\"; child_status=$?; printf \"%s\\n\" \"$child_status\" > \"$status_file\"; exit \"$child_status\"",
+        "sh",
+        "$PRIVATE_RUN_DIR/tracee-status",
+        "gst-launch-1.0",
+        "-e",
+        "filesrc",
+        "location=$LICENSED_CORPUS/RPS_E_qualcomm_5/RPS_E_qualcomm_5/RPS_E_qualcomm_5.bit",
+        "!",
+        "h265parse",
+        "!",
+        "v4l2slh265dec",
+        "name=refprobe",
+        "!",
+        "videoconvert",
+        "!",
+        "video/x-raw,format=I420",
+        "!",
+        "filesink",
+        "location=$PRIVATE_RUN_DIR/output.yuv"
+      ],
+      "cwd": "$PRIVATE_RUN_DIR",
+      "environment": {
+        "LC_ALL": "C",
+        "LIBVA_DRIVER_NAME": "v4l2_request",
+        "LIBVA_DRIVERS_PATH": "$SELECTED_DRIVER_DIR",
+        "GST_DEBUG_NO_COLOR": "1",
+        "GST_DEBUG": "v4l2codecs*:6",
+        "GST_DEBUG_FILE": "$PRIVATE_RUN_DIR/gst.log",
+        "LIBVA_V4L2_HEVC_REFTRACE": "(unset)"
+      },
+      "command_source_sha256": "4625e32a18b5299f1f86bb056af45fc6c6519a70a896f43193c8223b20a28368",
+      "guard": {
+        "deadline_seconds": 45,
+        "poll_seconds": 0.1,
+        "journal_since": "2026-09-17T13:34:56.013333+00:00",
+        "run_id": "1e5ac8e3-0908-4b27-9c07-f44e2e663181"
+      }
+    }
+  ]
+}
