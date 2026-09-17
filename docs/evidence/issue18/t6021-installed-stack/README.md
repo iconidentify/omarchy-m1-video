@@ -25,6 +25,8 @@ full Fluster suites were waiting on corpus download when this record was written
 | Check | Result |
 | --- | --- |
 | HEVC `JCT-VC-HEVC_V1` | **144/147**, exact r11 pass set (`compare-results.py` `ok: true`). Fails: `RPS_E_qualcomm_5`, `TSUNEQBD_A_MAIN10_Technicolor_2`, `VPSSPSPPS_A_MainConcept_1` |
+| AVC `JVT-AVC_V1` | **73/135**, same pass set as r11 (`lost_passes` empty). Comparator `ok: false` only because `FM1_FT_E` changed from `decode_error` to `software_fallback` (still not a pass) |
+| VP9 `VP9-TEST-VECTORS` | **216/305**, exact r11 pass set (`ok: true`) |
 | `hwdownload.sh` 8+10-bit | pass (240 hardware frames vs software; MAIN10 clip `WPP_C_ericsson_MAIN10_2`) |
 | `early-export.sh` | pass (H.264/HEVC/VP9 normal+early) |
 | `shared-contexts.sh` | pass (168+168 frames) |
@@ -32,8 +34,8 @@ full Fluster suites were waiting on corpus download when this record was written
 | `vp9-matrix.sh` | pass (384 frames) |
 | VP9 HIGH `vp92-2-20-10bit-yuv420.webm` | hardware_pass, 1/1 |
 | mpv `--hwdec=vaapi --gpu-api=opengl --vo=gpu-next` | `Using hardware decoding (vaapi)`, `VO: [gpu-next] 640x360 vaapi[nv12]` |
-| AVC / FRExt / VP9-TEST-VECTORS full suites | not yet run (corpus still downloading) |
-| Boot-enabled load | not yet: module loaded by `modprobe`, reboot still pending |
+| FRExt `JVT-FR-EXT` (High 10 mode) | **27/69**, exact r11 pass set (`ok: true`) |
+| Boot-enabled load | module loaded by `modprobe`; reboot to be performed after this record |
 
 Guard child-error on HEVC is expected: `conformance.py` exits 1 when 3/147 fail, matching r11.
 No wedge, timeout, or new AVD kernel fault.

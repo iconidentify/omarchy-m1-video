@@ -1,0 +1,22 @@
+{
+  "ok": false,
+  "baseline_suite": "JVT-AVC_V1",
+  "candidate_suite": "JVT-AVC_V1",
+  "baseline_total": "73/135",
+  "candidate_total": "73/135",
+  "lost_passes": [],
+  "new_passes": [],
+  "missing_vectors": [],
+  "extra_vectors": [],
+  "category_changes": [
+    {
+      "vector": "FM1_FT_E",
+      "baseline": "decode_error",
+      "candidate": "software_fallback"
+    }
+  ],
+  "first_differing_frames": [],
+  "errors": [
+    "software fallback cannot produce a green hardware result: FM1_FT_E"
+  ]
+}
