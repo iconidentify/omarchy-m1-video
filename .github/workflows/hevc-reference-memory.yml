@@ -1,0 +1,15 @@
+name: HEVC reference memory
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  reference-memory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Extracted fill_comp/MV layout vs published picture-28 records
+        run: python3 experiments/hevc-reference-memory/tests.py
