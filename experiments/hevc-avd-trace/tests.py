@@ -149,7 +149,7 @@ class TraceTests(unittest.TestCase):
         self.trace,_=synthetic();self.trace['records']+=self.trace['records'][-2:];self.rejected()
 
     def test_unused_entry_array_capacity_is_not_slice_usage(self):
-        # Hardware schema 1 rejected a one-element unused control array. Schema 2
+        # Hardware schema 1 rejected a one-element control array. Schema 2
         # records both counts; these are synthetic histories, not a repaired run.
         for capacity in (1, 256):
             for row in self.trace['records']:

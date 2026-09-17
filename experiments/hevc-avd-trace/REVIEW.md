@@ -96,8 +96,8 @@ Do not represent the portable C state tests as a kernel concurrency test.
 
 - Prior map: four 300-picture reports reproduced; 11 primary source/licence hashes
   and 19 verbatim instruction macros verified before implementation.
-- 19 Python test groups pass (18 original groups plus entry capacity/usage): four synthetic full histories, record/extent/loss/
-  context rejection, writer/intra/copied/completion errors, lookup fallback findings,
+- 19 Python test groups pass (18 original groups plus entry capacity/usage):
+  four synthetic full histories, record/extent/loss/context rejection, writer/intra/copied/completion errors, lookup fallback findings,
   full words and emitted offsets, actual slice POC, allocation changes, I inactive
   inputs and early return, TMVP-disabled lookup, dependent gating, trusted-model
   differences, C recorder transitions, C macro parity and supervised child failures.
@@ -137,8 +137,9 @@ identity before any authorized campaign; provenance in this file describes only
 this offline build, not a future loaded state.
 
 The previous window ended on error and restoration. After fresh explicit owner
-consent and a saved-work/closed-app window, the proposed
-operation is to unload the existing module once, load any standard dependencies removed by that unload, temporarily load this exact file,
+consent and a saved-work/closed-app window, the proposed operation is to unload
+the existing module once, load any standard dependencies removed by that unload,
+and temporarily load this exact file,
 run the eight guarded B/E × VA/Gst × off/on comparisons, then unload it and restore
 the unchanged existing module on the clean path. No permanent installation, package
 change or reboot. A fault/wedge ends the campaign and requires recovery coordination;
