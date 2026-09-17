@@ -1,0 +1,18 @@
+{
+  "schema": "hevc-avd-command-trace.sources/1",
+  "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
+  "accepted_trace": "../hevc-avd-trace",
+  "trace_hooks_sha256": "3950037a6838eaba2fa92cd63f350d1bc16b87da6d4dc3347f25291d6868d713",
+  "patches_concatenated_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390",
+  "note": "Primary AVD files and shipped patches retain their accepted pins. Accepted reference sources remain untouched; only the isolated candidate gets the explicitly tested bounded reader/control lifetime adaptation. Reference wire schema 2 is preserved; command schema is 2.",
+  "accepted_trace_files": {
+    "hooks.patch": "3950037a6838eaba2fa92cd63f350d1bc16b87da6d4dc3347f25291d6868d713",
+    "prepare.py": "7ef00f69476211ae3ca4a446e3a657b65853ec4cc56330addd03c9fa9cad8f37",
+    "sources.json": "a16ebf3b486144d45ed91122ed78040dc64bbaa9901a312669e11c31bc8ff7d3",
+    "kernel/avd-trace.c": "489a31cabe0ee67a4452524c0ece126681b079356de2182ece76cc3322071112",
+    "kernel/avd-trace.h": "e95631a8d564c0fc2712bc01338e486ab49e3395d0a112e4d07c6f7e7b12afc4",
+    "kernel/avd-trace-core.h": "1956101f725049bff47ced18cb5b2757a4752404758bbae191903944bf8f9a4c",
+    "check.py": "143fc3b04ac1bf1d9c12a9ca0b7e5db0f95c20b8a3a9d5b7ba699b412a0eccf7",
+    "../hevc-avd-map/model.py": "b66ad19199c5d2bc7ecf3c5cc8ef1f4b534ddf4a77ca7fbfac6a29158ee75703"
+  }
+}
