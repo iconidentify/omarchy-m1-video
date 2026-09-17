@@ -57,7 +57,9 @@ def apply_cmd_hooks(destination: Path):
         hevc = hevc[:end] + extra + hevc[end:]
 
     after("run.num_slices, run.num_entry_point_offsets);",
-          "\tavd_cmdtrace_start(ctx, &run);\n")
+          "\tavd_cmdtrace_start(ctx, run.sps, run.pps, run.scaling_matrix,\n"
+          "\t\t\trun.decode, &run.sl[0], run.num_slices,\n"
+          "\t\t\trun.num_entry_point_offsets, dst);\n")
     after('"hdr_7c_pps_scl_dims");',
           "\tavd_cmdtrace_word(ctx, CMD_SITE_SCL_DIMS);\n")
     after('"dc_16x16");',

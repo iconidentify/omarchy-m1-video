@@ -29,14 +29,14 @@ static void pack_u(unsigned char *out, unsigned int *n, const void *p, unsigned 
 }
 
 /* Non-padding numeric copy. Decode DPB timestamps/pointers are omitted. */
-static void pack_controls(unsigned char *out, struct avd_hevc_run *run)
+static void pack_controls(unsigned char *out,
+			  const struct v4l2_ctrl_hevc_sps *sps,
+			  const struct v4l2_ctrl_hevc_pps *pps,
+			  const struct v4l2_ctrl_hevc_scaling_matrix *sc,
+			  const struct v4l2_ctrl_hevc_slice_params *sl,
+			  u64 flags)
 {
 	unsigned int n = 0;
-	const struct v4l2_ctrl_hevc_sps *sps = run->sps;
-	const struct v4l2_ctrl_hevc_pps *pps = run->pps;
-	const struct v4l2_ctrl_hevc_scaling_matrix *sc = run->scaling_matrix;
-	const struct v4l2_ctrl_hevc_slice_params *sl = &run->sl[0];
-	u64 flags = run->decode->flags;
 
 	pack_u(out, &n, &sps->video_parameter_set_id, 1);
 	pack_u(out, &n, &sps->seq_parameter_set_id, 1);
@@ -108,12 +108,18 @@ void avd_cmdtrace_job(struct avd_ctx *ctx)
 	spin_unlock_irqrestore(&cmd_lock, flags);
 }
 
-void avd_cmdtrace_start(struct avd_ctx *ctx, struct avd_hevc_run *run)
+void avd_cmdtrace_start(struct avd_ctx *ctx,
+			const struct v4l2_ctrl_hevc_sps *sps,
+			const struct v4l2_ctrl_hevc_pps *pps,
+			const struct v4l2_ctrl_hevc_scaling_matrix *sc,
+			const struct v4l2_ctrl_hevc_decode_params *decode,
+			const struct v4l2_ctrl_hevc_slice_params *sl,
+			unsigned int slices, unsigned int entry_capacity,
+			struct avd_decoded_buffer *dst)
 {
 	unsigned long flags;
 	unsigned char packed[CMD_PACKED];
 	unsigned int i;
-	struct avd_decoded_buffer *dst;
 	for (i = 0; i < CMD_PACKED; i++)
 		packed[i] = 0;
 	spin_lock_irqsave(&cmd_lock, flags);
@@ -121,15 +127,14 @@ void avd_cmdtrace_start(struct avd_ctx *ctx, struct avd_hevc_run *run)
 		spin_unlock_irqrestore(&cmd_lock, flags);
 		return;
 	}
-	cmd_start(capture, ctx->trace_context, run->num_slices,
-		  run->num_entry_point_offsets ? run->num_entry_point_offsets : 1,
-		  run->sl[0].num_entry_point_offsets);
-	dst = vb2_to_avd_decoded_buf(&run->base.bufs.dst->vb2_buf);
-	cmd_hist_set(capture, run->decode->pic_order_cnt_val, run->sl[0].slice_type,
-		     dst->base.vb.vb2_buf.index, run->decode->flags,
-		     run->sl[0].slice_type == V4L2_HEVC_SLICE_TYPE_I);
+	cmd_start(capture, ctx->trace_context, slices,
+		  entry_capacity ? entry_capacity : 1,
+		  sl->num_entry_point_offsets);
+	cmd_hist_set(capture, decode->pic_order_cnt_val, sl->slice_type,
+		     dst->base.vb.vb2_buf.index, decode->flags,
+		     sl->slice_type == V4L2_HEVC_SLICE_TYPE_I);
 	if (cmd_detail(capture)) {
-		pack_controls(packed, run);
+		pack_controls(packed, sps, pps, sc, sl, decode->flags);
 		cmd_controls(capture, packed, CMD_PACKED);
 	}
 	spin_unlock_irqrestore(&cmd_lock, flags);

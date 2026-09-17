@@ -34,7 +34,7 @@ def verify(source):
         prepare.prepare(Path(source), work)
         need = work / "avd-hevc.c"
         text = need.read_text()
-        if "avd_cmdtrace_start" not in text:
+        if "avd_cmdtrace_start(ctx, run.sps, run.pps, run.scaling_matrix," not in text:
             raise ValueError("command-trace start hook missing")
         if "avd_cmdtrace_word(ctx, CMD_SITE_QP)" not in text:
             raise ValueError("QP hook missing")
