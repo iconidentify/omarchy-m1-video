@@ -29,6 +29,49 @@ class FixtureError(ValueError):
     """Malformed or truncated fixture; not a modelled kernel/userspace reject."""
 
 
+# Validate values before changing state: Python truthiness and numeric coercion
+# must not turn malformed fixture data into an accepted contract sequence.
+EVENT_FIELDS = {
+    "open": ((), ("session",)),
+    "output_s_fmt": (("width", "height"), ()),
+    "capture_s_fmt": (("width", "height"), ("bit_depth",)),
+    "proposed_reconfigure": (("width", "height"), ("bit_depth",)),
+    "capture_reqbufs": (("count",), ()),
+    "queue_dst": (("dst",), ("backing_bytes",)),
+    "decode": (("dst", "width", "height"), ("bit_depth", "key", "refs", "backing_bytes", "force_kernel_lookup")),
+    "export": (("name",), ("backing_bytes",)),
+    "register": (("name",), ("timestamp", "index")),
+    "inject_failure": ((), ("phase",)),
+    "ask_firmware": ((), ("question",)),
+    **{op: ((), ()) for op in ("output_streamon", "output_streamoff",
+                              "capture_streamon", "capture_streamoff", "snapshot")},
+}
+EVENT_FIELDS["submit"] = EVENT_FIELDS["decode"]
+
+
+def validate_event(event):
+    if not isinstance(event, dict) or not isinstance(event.get("op"), str):
+        raise FixtureError("event requires a string op")
+    op = event["op"]
+    if op not in EVENT_FIELDS:
+        raise FixtureError(f"unknown op {op!r}")
+    required, optional = EVENT_FIELDS[op]
+    if set(required) - event.keys() or event.keys() - {"op", *required, *optional}:
+        raise FixtureError(f"invalid or missing fields for {op}")
+    for key, value in event.items():
+        if key in ("width", "height", "bit_depth", "count", "backing_bytes", "timestamp", "index"):
+            if type(value) is not int or value < 0 or value > (1 << 64) - 1:
+                raise FixtureError(f"{key} must be an unsigned integer")
+        elif key in ("key", "force_kernel_lookup"):
+            if type(value) is not bool:
+                raise FixtureError(f"{key} must be boolean")
+        elif key == "refs":
+            if not isinstance(value, list) or any(not isinstance(x, str) or not x for x in value):
+                raise FixtureError("refs must be a list of buffer names")
+        elif not isinstance(value, str) or not value:
+            raise FixtureError(f"{key} must be a nonempty string")
+
+
 class Reject(Exception):
     def __init__(self, code, message, invariant):
         super().__init__(message)
@@ -130,9 +173,9 @@ class Session:
     def __init__(self, path, session_id="s1", profile=0, bit_depth=8):
         if path not in ("stock", "proposed"):
             raise FixtureError(f"unknown path {path!r}")
-        if profile not in (0, 2):
+        if type(profile) is not int or profile not in (0, 2):
             raise FixtureError("only advertised VP9 profiles 0 and 2 are modelled")
-        if bit_depth not in (8, 10):
+        if type(bit_depth) is not int or bit_depth not in (8, 10):
             raise FixtureError("bit_depth must be 8 or 10")
         if (profile == 0 and bit_depth != 8) or (profile == 2 and bit_depth != 10):
             raise FixtureError("profile 0 is 8-bit NV12; profile 2 is 10-bit P010")
@@ -207,8 +250,7 @@ class Session:
         }
 
     def apply(self, event):
-        if not isinstance(event, dict) or "op" not in event:
-            raise FixtureError("event is missing op")
+        validate_event(event)
         op = event["op"]
         handler = getattr(self, f"op_{op}", None)
         if handler is None:
@@ -241,6 +283,9 @@ class Session:
     def op_open(self, event):
         # Already constructed; allow an explicit no-op for fixture readability.
         if event.get("session"):
+            if self.events_applied and event["session"] != self.session_id:
+                raise Reject("session_identity_change", "cannot inherit another session's state",
+                             "session_not_profile_key")
             self.session_id = event["session"]
 
     def op_output_s_fmt(self, event):
@@ -270,6 +315,8 @@ class Session:
         self.current_era = era
 
     def op_output_streamon(self, event):
+        if self.output_streaming:
+            return  # Repeated STREAMON does not allocate a fresh codec context.
         if self.coded_w is None:
             raise FixtureError("OUTPUT STREAMON before S_FMT")
         self.output_streaming = True
@@ -303,9 +350,10 @@ class Session:
         count = event["count"]
         if count < 0:
             raise FixtureError("capture_reqbufs count must be >= 0")
-        if count == 0:
-            if self.capture_streaming:
-                raise FixtureError("REQBUFS(0) requires CAPTURE STREAMOFF")
+        if self.capture_streaming:
+            raise Reject("streaming_reqbufs", "REQBUFS requires CAPTURE STREAMOFF",
+                         "reqbufs_replaces_queue")
+        if count == 0 or self.capture_slots:
             for buf in self.buffers.values():
                 buf.wrapper_alive = False
                 buf.queued_as_dst = False
@@ -318,7 +366,8 @@ class Session:
             self.capture_generation += 1
             self.destructive_done = True
             self.registrations.clear()
-            return
+            if count == 0:
+                return
         if self.current_era is None:
             raise FixtureError("REQBUFS before CAPTURE S_FMT")
         self.capture_slots = count
@@ -349,6 +398,9 @@ class Session:
             raise Reject("reference_queued_as_destination",
                          "a registered reference must not be queued as a destination",
                          "ref_not_queued_as_dst")
+        if buf.queued_as_dst:
+            raise Reject("duplicate_destination", "destination already has a live CAPTURE slot",
+                         "unique_destination_slot")
         if buf.backing_bytes < self.current_era.sizeimage:
             raise Reject("short_backing",
                          "imported plane is shorter than current sizeimage/min_length",
@@ -375,6 +427,9 @@ class Session:
             raise Reject("state_loss",
                          "VP9 context is not alive (OUTPUT not streaming)",
                          "stop_on_output_streamoff")
+        if not self.capture_streaming or not self.capture_slots:
+            raise Reject("capture_not_streaming", "decode completion requires both streaming queues",
+                         "both_queues_streaming")
         w, h = event["width"], event["height"]
         if w < MIN_DIM or h < MIN_DIM:
             raise Reject("sub64",
@@ -398,6 +453,12 @@ class Session:
             raise FixtureError("key frames do not take inter references in this model")
         if not key_frame:
             self._resolve_refs(refs, event)
+        if (not self.scratch_present or self.scratch_depth != depth or
+                any(div_round_up(w, a) > div_round_up(self.scratch_w, a) or
+                    div_round_up(h, a) > div_round_up(self.scratch_h, a)
+                    for a in (8, 16, 64))):
+            raise Reject("scratch_bounds", "frame exceeds the allocated scratch geometry",
+                         "scratch_capacity_contract")
         name = event["dst"]
         if name not in self.buffers or not self.buffers[name].queued_as_dst:
             # Implicit queue as destination at current era size.
@@ -414,6 +475,10 @@ class Session:
         force_kernel = bool(event.get("force_kernel_lookup", False))
         dst_name = event["dst"]
         for ref_name in refs:
+            if ref_name == dst_name:
+                raise Reject("reference_queued_as_destination",
+                             "decode cannot overwrite its own live reference",
+                             "ref_not_queued_as_dst")
             if self.path == "stock" and not force_kernel:
                 self._resolve_stock_userspace(ref_name)
             elif self.path == "stock" and force_kernel:
@@ -510,6 +575,10 @@ class Session:
             raise Reject("unavailable_reference",
                          "registration requires a successful original decode",
                          "explicit_ref_registration")
+        if buf.queued_as_dst:
+            raise Reject("reference_queued_as_destination",
+                         "registration cannot silently remove a live destination slot",
+                         "ref_not_queued_as_dst")
         era = self.eras[buf.era_id]
         if buf.backing_bytes < era.sizeimage:
             raise Reject("short_backing",
@@ -599,6 +668,8 @@ def load_source_map():
 
 
 def run_events(path, events, session_id="s1", profile=0, bit_depth=8):
+    for event in events:
+        validate_event(event)
     session = Session(path, session_id, profile, bit_depth)
     for i, event in enumerate(events):
         try:
@@ -647,6 +718,10 @@ def run_fixture(doc):
     expect = doc["expect"]
     if not isinstance(expect, dict) or "status" not in expect:
         raise FixtureError("expect.status is required")
+    if expect["status"] not in ("observe", "model_accept", "reject", "unknown"):
+        raise FixtureError("invalid expected status")
+    if expect["status"] in ("reject", "unknown") and not isinstance(expect.get("code"), str):
+        raise FixtureError("reject/unknown fixtures must name the expected code")
     profile = doc.get("profile", 0)
     bit_depth = doc.get("bit_depth", 8 if profile == 0 else 10)
     result = run_events(doc["path"], events, doc.get("session", "s1"),

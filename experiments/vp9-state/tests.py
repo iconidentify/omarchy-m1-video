@@ -8,6 +8,7 @@ makes the matching fixture fail its expected status.
 from __future__ import annotations
 
 import json
+import copy
 import subprocess
 import sys
 import tempfile
@@ -145,6 +146,31 @@ class Rejects(unittest.TestCase):
 
 
 class Malformed(unittest.TestCase):
+    def test_malformed_event_values_are_fixture_errors(self):
+        base = json.loads((HERE / "fixtures/proposed-grow.json").read_text())
+        cases = [
+            {"op": "decode", "width": 320, "height": 180},
+            {"op": "capture_reqbufs", "count": True},
+            {"op": "output_s_fmt", "width": 320.5, "height": 180},
+            {"op": "output_s_fmt", "width": "320", "height": 180},
+            {"op": "queue_dst", "dst": [], "backing_bytes": 10},
+            {"op": "decode", "dst": "A", "width": 320, "height": 180, "key": "false"},
+            {"op": "decode", "dst": "A", "width": 320, "height": 180, "refs": "A"},
+            {"op": "snapshot", "silently_ignored": True},
+            {"op": "register", "name": "A", "timestamp": -1},
+        ]
+        for event in cases:
+            with self.subTest(event=event), self.assertRaises(FixtureError):
+                doc = copy.deepcopy(base)
+                doc["events"].append(event)
+                run_fixture(doc)
+
+    def test_reject_fixture_must_pin_the_failure(self):
+        doc = json.loads((HERE / "fixtures/reject-sub64.json").read_text())
+        del doc["expect"]["code"]
+        with self.assertRaises(FixtureError):
+            run_fixture(doc)
+
     def test_missing_schema(self):
         with self.assertRaises(FixtureError):
             run_fixture({"id": "x", "path": "stock", "classification": "legal_stream",
@@ -184,6 +210,14 @@ class Malformed(unittest.TestCase):
 
 
 class Command(unittest.TestCase):
+    def test_missing_fixture_is_a_clean_failure(self):
+        proc = subprocess.run([sys.executable, str(HERE / "validate.py"),
+                               str(HERE / "absent-review-fixture.json")],
+                              capture_output=True, text=True, timeout=10)
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("FAIL", proc.stdout)
+        self.assertNotIn("Traceback", proc.stderr)
+
     def test_cli_runs_without_extra_packages_or_devices(self):
         proc = subprocess.run(
             [sys.executable, str(HERE / "validate.py")],

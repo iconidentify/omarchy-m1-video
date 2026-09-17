@@ -12,7 +12,9 @@
         "avd-v4l2.c": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53",
         "avd-vp9.c": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4",
         "avd-drv.c": "134264a2c7ed8779077ff3ee9e8e733c2cddb5cc1b6e3d4def673e40b87083ca",
-        "videobuf2-core.c": "86222aaa61047a3ac9ecefec2f1ed4a9c3392026120009c59e862767c4618228"
+        "videobuf2-core.c": "86222aaa61047a3ac9ecefec2f1ed4a9c3392026120009c59e862767c4618228",
+        "avd.h": "283e311bc9108d734b2217e01fdcd950edd6f65a013b8e78a9c4a256a51a2739",
+        "v4l2-mem2mem.c": "8cba59ee8aec8d14f7f2b0c81829fe188d25c99399de613f3d23a5cf5eb95854"
       }
     },
     "companion_design": "f50a4a4c88b03ea1e10acf734a53c3a0ee9b2519",
@@ -75,7 +77,8 @@
       "text": "Per-buffer VP9 dims and compressed-layout metadata hang off the CAPTURE queue wrapper (struct avd_decoded_buffer), not the pixel memory.",
       "cite": {
         "file": "drivers/media/platform/apple/avd/avd.h",
-        "lines": "79-84,104-123"
+        "lines": "79-84,104-123",
+        "sha256": "283e311bc9108d734b2217e01fdcd950edd6f65a013b8e78a9c4a256a51a2739"
       },
       "cite_size": {
         "file": "drivers/media/platform/apple/avd/avd-drv.c",
@@ -187,7 +190,7 @@
         "lines": "515,1407",
         "sha256": "86222aaa61047a3ac9ecefec2f1ed4a9c3392026120009c59e862767c4618228"
       },
-      "note": "Line numbers as recorded in docs/plans/issue-11-vp9-resize-state.md §6.3 and issue-11-review-evidence.json; this validator does not vendor that file."
+      "note": "Line numbers as recorded in docs/plans/issue-11-vp9-resize-state.md \u00a76.3 and issue-11-review-evidence.json; this validator does not vendor that file."
     },
     {
       "id": "fill_comp_layout",
@@ -273,6 +276,41 @@
       "id": "firmware_rev3_vs_rev4",
       "kind": "firmware_unknown",
       "text": "M1 (rev 3) versus M2 (rev 4) divergence is experiment E."
+    },
+    {
+      "id": "both_queues_streaming",
+      "kind": "source_observed",
+      "text": "The mem2mem scheduler does not run a decode job before both queues stream; AVD does not opt into ignore_cap_streaming. A model decode means completed work, not merely a queued request.",
+      "cite": {
+        "file": "drivers/media/v4l2-core/v4l2-mem2mem.c",
+        "lines": "294-308",
+        "sha256": "8cba59ee8aec8d14f7f2b0c81829fe188d25c99399de613f3d23a5cf5eb95854"
+      }
+    },
+    {
+      "id": "reqbufs_replaces_queue",
+      "kind": "source_observed",
+      "text": "REQBUFS rejects a streaming queue. With existing buffers, both zero and positive-count REQBUFS cancel/free the old queue before returning or allocating replacements.",
+      "cite": {
+        "file": "drivers/media/common/videobuf2/videobuf2-core.c",
+        "lines": "867-916",
+        "sha256": "86222aaa61047a3ac9ecefec2f1ed4a9c3392026120009c59e862767c4618228"
+      }
+    },
+    {
+      "id": "scratch_capacity_contract",
+      "kind": "proposed_contract",
+      "text": "Reject a modeled completed decode whose bit depth or ceil-divided 8/16/64-pixel geometry exceeds the scratch allocation. The allocation formulas are source-observed; this extra checker guard is not a claim that stock AVD rejects it.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-vp9.c",
+        "lines": "654-728",
+        "sha256": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4"
+      }
+    },
+    {
+      "id": "unique_destination_slot",
+      "kind": "proposed_contract",
+      "text": "One live destination backing occupies one slot; a second queue event must not silently create an alias or overwrite another wrapper."
     }
   ]
 }

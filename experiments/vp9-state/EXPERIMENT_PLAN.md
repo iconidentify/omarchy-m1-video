@@ -10,15 +10,15 @@ Design: `docs/plans/issue-11-vp9-resize-state.md` §9.
 This validator accepts or rejects **queue/reference-state sequences**. It does
 not decode pixels, load a module, or speak to firmware. A `model_accept` result
 is not a hardware pass. The questions below are the only live-hardware decisions
-the parent still has to make; each is copied from the accepted V1 design so the
-offline child cannot quietly widen them.
+the accepted V1 design identifies; they are not an exhaustive list of failures
+that later hardware testing may reveal.
 
 | ID | Live hardware must decide | Model status | Abort |
 | --- | --- | --- | --- |
 | experiment A | Does firmware accept a per-frame dimension change on a *continuing* kernel context with prior-era references? | `firmware_unknown` (`firmware_live_resize`) | new `H`-class kernel message, timeout, watchdog, or wrong checksum → stop; failure alone does not prove a reset is required |
-| experiment B | Segment-map policy across a resize: preserve-and-reinterpret versus reset | `firmware_unknown` (`firmware_seg_map`); proposed reconfigure marks `seg_policy=unknown` | mismatch versus the software reference → adopt that policy; if neither matches, keep such streams rejected |
+| experiment B | Segment-map policy across a resize: preserve-and-reinterpret versus reset | `firmware_unknown` (`firmware_seg_map`); proposed reconfigure marks `seg_policy=unknown` | any mismatch → stop and reject that candidate policy; only exact matching output can support a policy, subject to the full parent gates |
 | experiment C | Scratch regrow on a live OUTPUT stream | `firmware_unknown` (`firmware_scratch_regrow`) | kernel message or completion stall beyond the deadline → stop; OUTPUT pause destroys stock durable state |
-| experiment D | Mixed-era compressed-reference offsets are read at each ref's own layout | `firmware_unknown` (`firmware_mixed_era_comp`) | first wrong-output vector → metadata channel insufficient |
+| experiment D | Mixed-era compressed-reference offsets are read at each ref's own layout | `firmware_unknown` (`firmware_mixed_era_comp`) | first wrong-output vector → stop and investigate; wrong output alone does not isolate a metadata-channel defect |
 | experiment E | M1 (rev 3, `NO_PIPE_STATE`) versus M2 (rev 4) | `firmware_unknown` (`firmware_rev3_vs_rev4`) | any rev-dependent divergence recorded; do not treat one SoC as the other |
 
 Required parent inputs this child does not produce:

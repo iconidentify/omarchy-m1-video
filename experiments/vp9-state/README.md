@@ -54,7 +54,27 @@ separately. Absence of a command word is not treated as silicon inability.
 ## What this does not do
 
 * No `patches/` edits, no kernel clone, no module operations, no installer
-  changes, no VA driver changes, no shared CI registration.
+  changes, no VA driver changes.
 * No private traces, media, host paths or process arguments in fixtures or
   output.
 * No claim that `model_accept` means a frame compared equal to a reference.
+
+## Review regressions
+
+The maintainer review added eight sequences that the first model incorrectly
+accepted: missing CAPTURE streaming, live-destination registration, streaming
+REQBUFS, positive-count queue replacement retaining stale references, cross-session
+state reuse, insufficient scratch geometry, self-reference overwrite and duplicate
+destination slots. They now fail with specific expected reasons; all original
+fixtures retain their original expectations. Malformed event types and unknown
+fields are fixture errors, and negative fixtures must name their expected failure.
+
+The model treats `decode` as completed work, not merely request queueing. Scratch
+capacity and reference-isolation checks are explicit proposed contracts; source
+facts cite the pinned kernel, including vb2 replacement and mem2mem scheduling.
+The geometry checker does not establish firmware buffer semantics. All source-file
+hashes were independently checked at the pinned revision during review.
+
+Run `--self-test` for 28 synthetic fixtures and 29 unittest cases. The validator
+is also registered in offline CI. Contributor changes received a separate
+maintainer review; maintainer corrections were self-reviewed.

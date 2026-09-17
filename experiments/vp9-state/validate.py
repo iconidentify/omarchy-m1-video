@@ -37,8 +37,8 @@ def fixture_paths():
 def load_json(path):
     try:
         return json.loads(Path(path).read_text())
-    except json.JSONDecodeError as exc:
-        raise FixtureError(f"malformed JSON: {exc}") from exc
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise FixtureError(f"unreadable or malformed JSON: {type(exc).__name__}") from exc
 
 
 def run_one(path):
