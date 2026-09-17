@@ -1,0 +1,44 @@
+{
+  "schema": "omarchy-m1-video.hevc-reference-memory-sources/2",
+  "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/77",
+  "parent": "https://github.com/iconidentify/libva-v4l2_request/issues/42",
+  "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
+  "patches_concatenated_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390",
+  "evidence": {
+    "path": "experiments/hevc-avd-command-capture/capture-2026-09-17",
+    "merged": "e5b226e843a145eabd846816d51a43ae9a58fee5"
+  },
+  "functions": {
+    "calc_tile_meta": "avd-drv.c:26-38",
+    "fill_comp": "avd-drv.c:41-70",
+    "avd_fill_decoded_pixfmt": "avd-v4l2.c:77-87",
+    "avd_hevc_adjust_decoded_fmt": "avd-hevc.c:977-982",
+    "mv_color_size": "avd-hevc.c:47-51",
+    "mv_color_placement": "avd-hevc.c:1281 run->addresses.mv_color = y_out + (dst_len - mv_color_len)"
+  },
+  "files": {
+    "drivers/media/platform/apple/avd/Kconfig": "160a8cd3fe4984bb37266261a5c877b08e53f406fa2623271a07c969acf74b26",
+    "drivers/media/platform/apple/avd/Makefile": "0cc139bfd28826ab905062ec83499f7982dd29bd5ca6d15204edc1d5789b5243",
+    "drivers/media/platform/apple/avd/avd-av1-entropymode.c": "9508eaa9733faa95d2f0868b93aa1bd3bdbcda4e77cc27a997e47ccd0c5c619c",
+    "drivers/media/platform/apple/avd/avd-av1-entropymode.h": "2d848076d83d7426cf2e3eea7f5fa2aa2e03183fae79586bda56110375b330bb",
+    "drivers/media/platform/apple/avd/avd-av1.c": "4b0d73d916073977410be386a6f3080f462adb8d5ee3f7fa49eba3b2e443f301",
+    "drivers/media/platform/apple/avd/avd-drv.c": "134264a2c7ed8779077ff3ee9e8e733c2cddb5cc1b6e3d4def673e40b87083ca",
+    "drivers/media/platform/apple/avd/avd-h264.c": "d24d8abe01231430cbbcd215df431fb88764231995243a2a098b7e1ec253623f",
+    "drivers/media/platform/apple/avd/avd-hevc.c": "a9cc1dd4303ac8c482f1dd8aa6a5de866f0c4e11a9fdf98796fe479e1e260bb9",
+    "drivers/media/platform/apple/avd/avd-hw.c": "c9b15028adae725cf9a4fcfc1a928cba0d26b894210c34a4dc8d8c21b6b8dc6f",
+    "drivers/media/platform/apple/avd/avd-inst.h": "c271d9f266e685dc3db3d0394dda15a9e84ff426d9f12ce10d9dc726a5625816",
+    "drivers/media/platform/apple/avd/avd-regs.h": "a000d3e57e32b00b2e7b9edb10d3491c2200dda5efc179e4d7c109b5af84ad4a",
+    "drivers/media/platform/apple/avd/avd-v4l2.c": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53",
+    "drivers/media/platform/apple/avd/avd-vp9.c": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4",
+    "drivers/media/platform/apple/avd/avd.h": "283e311bc9108d734b2217e01fdcd950edd6f65a013b8e78a9c4a256a51a2739",
+    "drivers/media/common/videobuf2/videobuf2-dma-contig.c": "b504d0706fe9615d23f9e592c2fa6dba21a8d0df247388c13f8325b967314876",
+    "drivers/media/common/videobuf2/videobuf2-core.c": "86222aaa61047a3ac9ecefec2f1ed4a9c3392026120009c59e862767c4618228",
+    "drivers/media/common/videobuf2/videobuf2-v4l2.c": "60b388cd10837ae13187f9047f7e5c9b03af46a1116485789fef57a7ba682844",
+    "drivers/dma-buf/dma-buf.c": "0550ad194076ec46b1a670317639dc6c93ea4cde6e38cd823a69448dea52e22c",
+    "Documentation/driver-api/dma-buf.rst": "673338947fd0ed5369d5457f7a7cc98dcd1485e9678f4c429715c82cffc178de",
+    "Documentation/core-api/dma-api.rst": "c5d182327c69a70d75bdb46bafc0e4e026de6b91f4cc95803519f6e0eb9977ec",
+    "include/linux/dma-buf.h": "1d9737dea55c289929dc47138213e71938ae80305a35b03719af4f21c20117fa",
+    "include/uapi/linux/dma-buf.h": "01b82c25b8b8b5d287422010374e6f84082795af8d0a53d760aabda938681dd3",
+    "drivers/media/v4l2-core/v4l2-common.c": "c019ef8700b858f757580a9dde6ad49ead2e06ff46d1a2279c0a543d51ba4896"
+  }
+}

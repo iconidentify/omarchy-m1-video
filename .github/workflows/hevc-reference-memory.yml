@@ -1,0 +1,15 @@
+name: HEVC reference memory
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  reference-memory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verified source extraction, allocator fault, layouts and observation rejection
+        run: python3 experiments/hevc-reference-memory/tests.py
