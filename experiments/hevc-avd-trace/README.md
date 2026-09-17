@@ -1,8 +1,11 @@
 # Experimental HEVC AVD recorder
 
-This is the offline implementation for #62 / PR #63, preparing the actual kernel
-measurement in #61. It does **not** fix RPS_E or change any supported-codec count.
-No candidate module has been loaded, installed or hardware-qualified by this work.
+This experimental recorder was prepared in #62 / PR #63 for measurement in #61.
+The [first authorized campaign](captures/2026-09-17/README.md) stopped on a
+recorder shape error after one successful trace-off run and one aborted trace-on
+run. The original module was restored. Schema 2 corrects the recorder's confusion
+between entry-array capacity and actual slice usage; its new candidate is built
+and tested offline only. It does **not** fix RPS_E or change supported-codec counts.
 The existing 15 shipped patches and package pins are unchanged.
 
 The recorder observes actual returned reference buffers, copied-timestamp validity,
@@ -122,8 +125,16 @@ pixels, firmware innocence/guilt, or all-control equivalence.
 The concrete candidate and self-review are recorded in [build.json](build.json)
 and [REVIEW.md](REVIEW.md). Parent #61 retains independent kernel review routing,
 explicit owner approval for the experimental module, saved work/closed apps and
-fresh supported-machine/idle/fault checks. Prior single-reload permission is spent.
-A matching-header build is not runtime qualification.
+fresh supported-machine/idle/fault checks. The previous experimental window ended after a recorder error; its authorization
+is not an automatic retry for a new candidate.
+A matching-header build is not runtime qualification. During an authorized
+transition, standard module dependencies must be present before a direct `insmod`:
+`modprobe -r apple_avd` can remove them. Record the exact candidate's `modinfo -F
+depends`, load those standard dependencies through `modprobe`, and verify the live
+build ID after loading. Restore with `modprobe apple_avd`, which resolves installed
+dependencies. If a step fails, retain it and stop for diagnosis; do not move the
+fault boundary or force an unload. Confirm the decoder remains unused immediately
+before restoration, including device and module references.
 
 The proposed temporary window is eight serial short runs: RPS_B/E × VA/Gst ×
 tracing off/on, all on the same instrumented module, each inside the shared driver

@@ -1,0 +1,151 @@
+{
+  "schema": "hevc-avd-trace.private-manifest/1",
+  "published_payloads": false,
+  "files": [
+    {
+      "path": "B-va-off/command.json",
+      "bytes": 1251,
+      "sha256": "58f55132e0e945473fd4babbf2a1eb80b1fb331e44a3d902c261d65e361c917d"
+    },
+    {
+      "path": "B-va-off/exit-status.json",
+      "bytes": 487,
+      "sha256": "6e9aee40e04c79edfd9bd0f8fe5b9f336cc8498d993895bb6fdd6a1a47c15660"
+    },
+    {
+      "path": "B-va-off/frames.json",
+      "bytes": 12791,
+      "sha256": "a1b9d75fa5a7a5f1f0c9a279855ae52b2a70ba62fee5ba924476a6f39c1fa8f4"
+    },
+    {
+      "path": "B-va-off/kernel/execution.json",
+      "bytes": 379,
+      "sha256": "147f84e1b02a73bb5550eedd355c42e96602b084cee5a9e6ab6a99989a15cb3c"
+    },
+    {
+      "path": "B-va-off/refs.jsonl",
+      "bytes": 206884,
+      "sha256": "8a5f768b5970d56e96dc682694352c087205fda5d45c91aba86606d83cd0bce5"
+    },
+    {
+      "path": "B-va-off/result.json",
+      "bytes": 125,
+      "sha256": "f89e430173e3ac4306377b839a1858385e43b21cdc49e685a1a8a5c02b25cd4e"
+    },
+    {
+      "path": "B-va-off/stderr.log",
+      "bytes": 267190,
+      "sha256": "83f0cd9dd9b4ab90a86df14d52c8e5add1162a7d5a0fd686c6ff81a3a7845531"
+    },
+    {
+      "path": "B-va-off/stdout.log",
+      "bytes": 17627,
+      "sha256": "68511d17ecc25902d607db3a302141506fabb07fd770ff268e8eb9cb1063c012"
+    },
+    {
+      "path": "B-va-on/command.json",
+      "bytes": 1248,
+      "sha256": "c3c674442eb6e2b7fe8a6f32d81c43b1a06721a371f072684507645e46b9aa30"
+    },
+    {
+      "path": "B-va-on/exit-status.json",
+      "bytes": 535,
+      "sha256": "e058efb8da0693b07b865f32252a2621243261d2e3c74365017bdf5c0ff67944"
+    },
+    {
+      "path": "B-va-on/kernel/execution.json",
+      "bytes": 424,
+      "sha256": "dce2d06697b9a6685feaabf23fb2a87a99ec85d5d3947ec1db3bc0d2f1741c90"
+    },
+    {
+      "path": "B-va-on/kernel/snapshot.txt",
+      "bytes": 69865,
+      "sha256": "ed7253a46d39f453fd10c6271cd68cfd96bb1427000c22b4f54800bcd5798eda"
+    },
+    {
+      "path": "B-va-on/refs.jsonl",
+      "bytes": 53360,
+      "sha256": "a63d3e4c5cf8a5d24db077072d2727974e563992b275eda21aa41eefb87b3341"
+    },
+    {
+      "path": "B-va-on/stderr.log",
+      "bytes": 73631,
+      "sha256": "2dffe825dacea8e0c770bdbdad91defedd00492bd05c02eeac6cee65df1feb1e"
+    },
+    {
+      "path": "B-va-on/stdout.log",
+      "bytes": 4108,
+      "sha256": "7657dd603cb7392c95b1ebd1996cd42ece2751b0e37dfb4fbe3368d8b46bd513"
+    },
+    {
+      "path": "guard-B-va-off.jsonl",
+      "bytes": 808,
+      "sha256": "9f095b946083a9410b136454eb48c4da00a89e5e83b58381b0a39b8f54820109"
+    },
+    {
+      "path": "guard-B-va-on.jsonl",
+      "bytes": 817,
+      "sha256": "3fc253e0499c1196ed980aef2d3df42ef0797daeb5bf3059dcdd15910f9b394c"
+    },
+    {
+      "path": "transition.jsonl",
+      "bytes": 3431,
+      "sha256": "4b9bf0aa825af2fce03a3d148e96f4371b78e0d059bcdf21502e57cbbaf7bb2f"
+    },
+    {
+      "path": "campaign.log",
+      "bytes": 359,
+      "sha256": "9901852a15718e6fa1d1a92053811e3c9116dec2a4bbcda07fda337009a1b044"
+    },
+    {
+      "path": "kernel-before.log",
+      "bytes": 20351913,
+      "sha256": "f5ed483c7aef4ab3efdac15ca49472395d81d20b8605796317779669fc0adeda"
+    },
+    {
+      "path": "kernel-after-restoration.log",
+      "bytes": 18915969,
+      "sha256": "dd4e22fd7217e421d90efbffee09edb84ad5d5cb839ab14baaefbd902a493382"
+    },
+    {
+      "path": "restoration.json",
+      "bytes": 254,
+      "sha256": "24fdd50bfba8f5162410d603b053fa2763193e95b8f63f28d7c656d12a59e53f"
+    },
+    {
+      "path": "capture-one.py",
+      "bytes": 3720,
+      "sha256": "ee7319553183ed81d6080b15b231b4b00c7867e4981925383f6d9f19d223be8e"
+    },
+    {
+      "path": "run-campaign.py",
+      "bytes": 1212,
+      "sha256": "674a9befe9059cddec701c982ce460662b901329a8cd3801cb2beffdb161dd2a"
+    },
+    {
+      "path": "transition.py",
+      "bytes": 2708,
+      "sha256": "e7d8dd7d975e40bc31fdf4ef7059eaf9f7593d37b52e777a4cb311357aecf660"
+    },
+    {
+      "path": "complete-load.py",
+      "bytes": 2610,
+      "sha256": "1b7cff915d2320c487498cf1b2671e0a1eeb14fc187046b1b2ec26701d114e51"
+    },
+    {
+      "path": "restore.py",
+      "bytes": 2978,
+      "sha256": "ddefe32f847fa515db70faf4acc402409dcbc28f765906feff3492711a16f337"
+    },
+    {
+      "path": "restore-after-app-close.py",
+      "bytes": 3059,
+      "sha256": "63516009d8f7061a0ed8e71cf6d4dff83ee8802062e3059c2d1de3f099358934"
+    },
+    {
+      "path": "preflight-boot.json",
+      "bytes": 432,
+      "sha256": "2146b08da71975e943501055d5d64ff1c44a3e8b315d8057a4a2dfd054023c1c"
+    }
+  ]
+}

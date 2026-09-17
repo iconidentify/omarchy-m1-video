@@ -73,7 +73,8 @@ static inline struct atr_record *atr_append(struct atr_capture *c,
 }
 
 static inline void atr_start(struct atr_capture *c, unsigned long long context,
-			     unsigned int slices, unsigned int entry_points)
+			     unsigned int slices, unsigned int entry_capacity,
+			     unsigned int entry_points)
 {
 	if (!atr_selected(c, context))
 		return;
@@ -82,7 +83,8 @@ static inline void atr_start(struct atr_capture *c, unsigned long long context,
 	c->pending = ++c->pictures;
 	if (c->pictures > ATR_PICTURES)
 		c->errors |= ATR_EXTENT;
-	if (slices != 1 || entry_points)
+	/* Control array extent is not the number of entries used by a slice. */
+	if (slices != 1 || !entry_capacity || entry_capacity > 256 || entry_points)
 		c->errors |= ATR_SHAPE;
 }
 

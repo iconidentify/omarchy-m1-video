@@ -1,4 +1,4 @@
-# Recorder schema 1
+# Recorder schema 2
 
 Private text snapshot; ASCII unsigned decimal u64 values separated by whitespace.
 The parser bounds input at 4 MiB, rejects noncanonical/overflowing numbers and
@@ -10,7 +10,7 @@ Header:
 H version run context phase errors count attempted pictures completions capacity first last record_size
 ```
 
-Require version 1, phase 4 (sealed), errors 0, count = attempted = record count,
+Require version 2, phase 4 (sealed), errors 0, count = attempted = record count,
 pictures = completions = 300, capacity 2048, first 24, last 34, record_size 616.
 Kinds: 1 start, 2 completion, 3 reference table, 4 reference list, 5 motion.
 Record envelope followed by exactly 72 payload integers:
@@ -46,7 +46,7 @@ content check. Memory types in this experiment are MMAP=1 or DMABUF=4.
 
 | Kind | Fields in order |
 | --- | --- |
-| Start | previous writer, decode POC, actual slice POC, slice type, num_slices, num_entry_point_offsets, active DPB count, negotiated width, height; buffer payload at 9 |
+| Start | previous writer, decode POC, actual slice POC, slice type, num_slices, entry control array capacity (`ep->elems`), active DPB count, negotiated width, height; buffer payload at 9; first slice used entry count (`sl->num_entry_point_offsets`) at 27 |
 | Completion | actual vb2 result (DONE=5 required); buffer payload at 1 |
 | Table | submitted slot, DPB POC, DPB flags, requested timestamp, actual appended header word, lookup matched flag; returned buffer payload at 6; four actual emitted compressed-address relative offsets at 24 |
 | List | list number, position, submitted slot, actual appended reference-list word |
@@ -75,10 +75,20 @@ S 1 run context phase errors count attempted pictures completions open_contexts
 Phases: 0 off, 1 armed, 2 active, 3 drained, 4 sealed. No recorder is represented
 by zero fields plus the current open-context count. Errors are sticky bits:
 foreign opener/decoder 1, overflow 2, extent 4, ordering 8, failed job 16,
-extra slices/entry points 32. A status read contains no other-context metadata.
+unsupported slice/entry shape 32 (slice count other than one, nonzero used
+entry points, or entry array capacity outside the pinned 1–256 domain). A status read contains no other-context metadata.
 The supervisor stops on nonzero errors; it cannot recover a wedge.
 
 The normalized JSON replaces both timestamp fields with their matching logical
 writer picture or null. It preserves reported facts and discrepancy codes. It
 contains no raw timestamps, DMA addresses, pointers, bitstream, image payload or
 other-context records. Raw snapshot and trace association inputs remain private.
+
+Schema 1 did not record the slice's used entry count and incorrectly required
+zero control array elements. Schema 2 preserves the array extent at start payload
+5 and adds used entries at 27, formerly reserved. The checker rejects schema 1;
+it never treats that reserved zero as an observed used count or upgrades an old
+capture. One-element unused storage is valid. Any used entry point still rejects
+this single-segment experiment. Record size/capacity and status schema 1 are unchanged.
+Normalized JSON uses `hevc-avd-trace.normalized/2`, with `entry_capacity` and
+`slice_entries` as distinct required fields.

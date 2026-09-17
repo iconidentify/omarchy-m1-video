@@ -27,7 +27,7 @@ int main(void)
 	/* Max designed one-slice extent: 600 + 11*(16+32+1). */
 	arm(); atr_bind(&c, 123, 8, 1);
 	for (unsigned int p = 1; p <= 300; p++) {
-		atr_start(&c, 8, 1, 0);
+		atr_start(&c, 8, 1, 1, 0);
 		r=atr_append(&c, 8, ATR_START); assert(r && r->picture == p);
 		if (p >= 24 && p <= 34)
 			for (unsigned int i=0; i<49; i++) assert(atr_append(&c, 8, ATR_TABLE));
@@ -42,17 +42,26 @@ int main(void)
 	arm(); atr_bind(&c,123,8,1); c.pictures=c.completions=300; atr_close(&c,8);
 	atr_bind(&c,123,9,1);assert(c.errors & ATR_FOREIGN);assert(atr_seal(&c));
 	arm();assert(atr_seal(&c));assert(c.errors & ATR_EXTENT);
+	/* Unused control storage must not become used slice entry points. */
+	for (unsigned int n = 1; n <= 256; n++) {
+		arm(); atr_bind(&c,123,8,1); atr_start(&c,8,1,n,0);
+		assert(!c.errors);
+		arm(); atr_bind(&c,123,8,1); atr_start(&c,8,1,n,1);
+		assert(c.errors & ATR_SHAPE);
+	}
+	arm(); atr_bind(&c,123,8,1); atr_start(&c,8,1,0,0); assert(c.errors & ATR_SHAPE);
+	arm(); atr_bind(&c,123,8,1); atr_start(&c,8,1,257,0); assert(c.errors & ATR_SHAPE);
 	/* Every failure remains sticky; full storage never overwrites old data. */
 	arm(); atr_bind(&c,123,8,1);
 	for(unsigned int i=0;i<ATR_CAPACITY;i++) assert(atr_append(&c,8,ATR_TABLE));
 	assert(!atr_append(&c,8,ATR_TABLE)); assert(c.errors & ATR_OVERFLOW);
 	assert(c.attempted == ATR_CAPACITY+1 && c.records[0].sequence == 1);
-	arm();atr_bind(&c,123,8,1);atr_start(&c,8,2,0);assert(c.errors & ATR_SHAPE);
-	arm();atr_bind(&c,123,8,1);atr_start(&c,8,1,1);assert(c.errors & ATR_SHAPE);
+	arm();atr_bind(&c,123,8,1);atr_start(&c,8,2,1,0);assert(c.errors & ATR_SHAPE);
+	arm();atr_bind(&c,123,8,1);atr_start(&c,8,1,1,1);assert(c.errors & ATR_SHAPE);
 	arm();atr_bind(&c,123,8,1);atr_done(&c,8,0);assert(c.errors & ATR_FAILED);assert(c.errors & ATR_ORDER);
-	arm();atr_bind(&c,123,8,1);atr_start(&c,8,1,0);atr_start(&c,8,1,0);assert(c.errors & ATR_ORDER);
+	arm();atr_bind(&c,123,8,1);atr_start(&c,8,1,1,0);atr_start(&c,8,1,1,0);assert(c.errors & ATR_ORDER);
 	atr_close(&c,8);assert(c.errors & ATR_EXTENT);
-	arm();atr_bind(&c,123,8,1);c.pictures=300;atr_start(&c,8,1,0);assert(c.errors & ATR_EXTENT);
+	arm();atr_bind(&c,123,8,1);c.pictures=300;atr_start(&c,8,1,1,0);assert(c.errors & ATR_EXTENT);
 	puts("PASS: actual shared C recorder transitions, 1139-record bound, overflow and rejection states");
 	return 0;
 }

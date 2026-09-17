@@ -1,0 +1,199 @@
+{
+  "schema": "hevc-avd-trace.campaign/1",
+  "date": "2026-09-17",
+  "campaign": "stopped-invalid-recorder",
+  "source_commit": "d021d9dcea4f839bc1bfce2c386b28b9faed9ac1",
+  "device": "Apple j293 / T8103 / arm-platform",
+  "kernel": "7.1.13-3-1-ARCH",
+  "architecture": "aarch64",
+  "packages": [
+    "linux-asahi 7.1.13.asahi3-1",
+    "linux-asahi-headers 7.1.13.asahi3-1",
+    "ffmpeg 2:9.0.1-4",
+    "libva 2.24.1-1"
+  ],
+  "experimental_module": {
+    "sha256": "d37a2c7f18ca425c66457c9978c965e579d8ca8ce3c41c63ce4c95ba9e00af77",
+    "build_id": "cceebb7535437adbbb1b7614161b5c225cd27656",
+    "loaded_build_id_checked": true,
+    "provenance": "candidate-build.json"
+  },
+  "userspace_driver": {
+    "source": "266269ee49d2fbb147f4983307b4b2492bd1a829",
+    "sha256": "b0ee879441c9857740b62b932eb23fc452aba2663c57bcce30f2a47ba23fe58e",
+    "installation": "not installed; selected by LIBVA_DRIVERS_PATH"
+  },
+  "helper": {
+    "source_url": "https://github.com/iconidentify/libva-v4l2_request/blob/266269ee49d2fbb147f4983307b4b2492bd1a829/tests/frame-check.c",
+    "change": "one av_log_set_level argument: AV_LOG_WARNING -> AV_LOG_DEBUG; no decode/hash change",
+    "source_sha256": "76e4510f4408cf1853d1985be504f52da5bc62ccf216f68d5aa02213b5e1114b",
+    "binary_sha256": "a4cec589e5647f27911b09485c1a7e2ba08a383d849d7ab9096ccf2613ccdf91"
+  },
+  "guard_source": "b5deb8c319f4e53b5243bc0583fee1800e8faa42",
+  "guard_deadline_seconds": 90,
+  "supervisor_deadline_seconds": 60,
+  "input": {
+    "vector": "RPS_B_qualcomm_5",
+    "sha256": "a5e2097201740c15824b75540b6d0d5050763681bedf7209cde80d93a3b88996",
+    "expected_md5": "6d1ed392b067050ebd3a24a37281da03"
+  },
+  "command_template": [
+    "python3",
+    "capture.py",
+    "--run",
+    "RUN",
+    "--trace",
+    "off|on",
+    "--deadline",
+    "60",
+    "--output",
+    "PRIVATE_OUTPUT",
+    "--",
+    "frame-check-debug",
+    "vaapi",
+    "LICENSED_RPS_B_PATH",
+    "yuv420p"
+  ],
+  "environment": {
+    "LC_ALL": "C",
+    "LIBVA_DRIVERS_PATH": "SELECTED_BUILD/src",
+    "LIBVA_DRIVER_NAME": "v4l2_request",
+    "LIBVA_V4L2_HEVC_REFTRACE": "PRIVATE_OUTPUT/refs.jsonl"
+  },
+  "prior_accepted_boundary": "2026-09-17T13:34:56.013333+00:00",
+  "fixed_campaign_boundary": "2026-09-17T16:02:51.266903+00:00",
+  "historical_decoder_fault_records": 6,
+  "new_decoder_faults": 0,
+  "setup_failure": "Initial insmod rejected unresolved standard V4L2 symbols before driver initialization after modprobe -r removed dependencies. Explicit dependency loading completed the transition; original journal boundary retained.",
+  "restoration_first_attempt": "modprobe -r refused in-use module; Chrome had reopened, exact reference owner unconfirmed; no force unload. Owner reconfirmed apps closed before successful restoration.",
+  "restoration": {
+    "loaded": "existing",
+    "idle": true,
+    "new_faults": 0,
+    "loaded_build_id_matches": true,
+    "installed_module_sha256": "e50540e1d0fc48c7e0bf9b21ff028758bdb35f94aa7070af00de88e61e5c70e9",
+    "boundary_unchanged": "2026-09-17T16:02:51.266903+00:00"
+  },
+  "runs": [
+    {
+      "name": "B-va-off",
+      "status": "complete",
+      "run": 101,
+      "guard_run_id": "b0697777-09ed-475f-bd22-6bf277c09557",
+      "guard_final": {
+        "status": "ok",
+        "returncode": 0,
+        "timed_out": false,
+        "wedged": false,
+        "abort_reason": null,
+        "idle": true
+      },
+      "child_exit": 0,
+      "child_reaped": true,
+      "trace_error": null,
+      "trace_status": {
+        "run": 0,
+        "context": 0,
+        "phase": 0,
+        "errors": 0,
+        "count": 0,
+        "attempted": 0,
+        "pictures": 0,
+        "completions": 0,
+        "opens": 0
+      },
+      "elapsed_seconds": 0.583,
+      "stdout_frame_lines": 300,
+      "client": "va",
+      "vector": "B",
+      "trace": "off",
+      "frames": 300,
+      "md5": "6d1ed392b067050ebd3a24a37281da03",
+      "child_status": 0,
+      "reference_frame_mismatches": 0
+    },
+    {
+      "name": "B-va-on",
+      "status": "aborted-invalid",
+      "run": 102,
+      "guard_run_id": "47ee983c-ffeb-4c45-8c8d-d095b1007671",
+      "guard_final": {
+        "status": "child-error",
+        "returncode": 1,
+        "timed_out": false,
+        "wedged": false,
+        "abort_reason": null,
+        "idle": true
+      },
+      "child_exit": -15,
+      "child_reaped": true,
+      "trace_error": "kernel trace error or wrong run/state",
+      "trace_status": {
+        "run": 102,
+        "context": 31,
+        "phase": 4,
+        "errors": 36,
+        "count": 325,
+        "attempted": 325,
+        "pictures": 79,
+        "completions": 79,
+        "opens": 0
+      },
+      "elapsed_seconds": 0.24,
+      "stdout_frame_lines": 71,
+      "raw_schema": 1,
+      "recorded_entry_array_capacities": [
+        1
+      ],
+      "actual_slice_entry_count": "not recorded by schema 1; not inferred from reserved zero",
+      "error_bits": [
+        "shape:32",
+        "incomplete-extent:4"
+      ]
+    },
+    {
+      "name": "B-gst-off",
+      "status": "not-started",
+      "reason": "campaign stopped on B-va-on recorder error"
+    },
+    {
+      "name": "B-gst-on",
+      "status": "not-started",
+      "reason": "campaign stopped on B-va-on recorder error"
+    },
+    {
+      "name": "E-va-off",
+      "status": "not-started",
+      "reason": "campaign stopped on B-va-on recorder error"
+    },
+    {
+      "name": "E-va-on",
+      "status": "not-started",
+      "reason": "campaign stopped on B-va-on recorder error"
+    },
+    {
+      "name": "E-gst-off",
+      "status": "not-started",
+      "reason": "campaign stopped on B-va-on recorder error"
+    },
+    {
+      "name": "E-gst-on",
+      "status": "not-started",
+      "reason": "campaign stopped on B-va-on recorder error"
+    }
+  ],
+  "completion": {
+    "planned": 8,
+    "complete": 1,
+    "aborted": 1,
+    "not_started": 6,
+    "accepted_on_traces": 0
+  },
+  "decision": "RPS_E cause remains undetermined. Correct recorder array-capacity versus slice-used-count logic; rerun only in a newly authorized exclusive window.",
+  "limitations": [
+    "No accepted kernel trace or off/on pixel pair; no GStreamer or RPS_E run in this campaign.",
+    "Raw snapshots and logs remain private; hashes alone do not independently verify their contents.",
+    "Loaded build-id matches file note; no independent hash of resident module text.",
+    "No installation, reboot, boot-path change, support-count change or full-suite qualification."
+  ]
+}

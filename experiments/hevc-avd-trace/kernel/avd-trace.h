@@ -13,7 +13,7 @@ int avd_trace_buf_init(struct vb2_buffer *vb);
 void avd_trace_buf_cleanup(struct vb2_buffer *vb);
 void avd_trace_start(struct avd_ctx *ctx, struct avd_decoded_buffer *dst,
 	const struct v4l2_ctrl_hevc_decode_params *decode,
-	const struct v4l2_ctrl_hevc_slice_params *sl, u32 slices, u32 entries);
+	const struct v4l2_ctrl_hevc_slice_params *sl, u32 slices, u32 entry_capacity);
 void avd_trace_done(struct avd_ctx *ctx, enum vb2_buffer_state result);
 void avd_trace_table(struct avd_ctx *ctx, unsigned int slot,
 	const struct v4l2_hevc_dpb_entry *dpb, struct avd_decoded_buffer *ref,
