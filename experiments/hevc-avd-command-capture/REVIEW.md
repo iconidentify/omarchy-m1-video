@@ -1,5 +1,31 @@
 # Maintainer adversarial self-review
 
+## Recovered campaign review
+
+The scheduled reboot completed; the original loaded build ID and installed file
+matched on the new fault-free boot. The corrected module passed a separate guarded
+lifecycle-only probe and then all eight finite decoder runs under one campaign
+lease. Both endpoints were checked before decoding. Original loaded identity,
+installed file and healthy-idle state were verified again after restoration.
+The older failed attempt remains preserved and is not part of this successful run.
+
+Public report replay validates all 2,400 frames, exact prior wrong sets, full
+same-run returned controls and associations, four complete paired histories,
+44 copied-control windows and 1,756 selected words against pinned C. Both clients'
+selected words are identical; copied inactive metadata/list slots can differ and
+remain visible. Twelve mutations with refreshed inventories reject failures of
+status, lease, pixels, full hash, window, actual word, copied control, recorder,
+foreign holder, restoration, context and writer association. Twenty-two controller
+and binding tests pass. Required shell/rebuild checks pass. The report uses the
+accepted reference symbolic replay; it cannot authenticate private raw timestamps
+or prove the firmware contract. A fresh oracle binds the actual corrected source.
+
+No RPS_E correction or count gain is claimed. The compressed-reference and
+DMA/cache/state follow-up remains separate from this observation. Review is
+maintainer self-review, not independent specialist approval.
+
+## Historical PR75 review
+
 AI-generated; this is not independent specialist approval.
 
 ## Confirmed defect and correction

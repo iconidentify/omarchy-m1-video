@@ -1,0 +1,192 @@
+[
+  {
+    "event": "state",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "transition-attempt",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "argv": [
+      "rmmod",
+      "apple_avd"
+    ]
+  },
+  {
+    "event": "transition-result",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "argv": [
+      "rmmod",
+      "apple_avd"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "event": "state",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "module_loaded": false,
+    "video_node": null,
+    "media_node": null,
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "transition-attempt",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "argv": [
+      "insmod",
+      "<private>/apple-avd.ko"
+    ]
+  },
+  {
+    "event": "transition-result",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "argv": [
+      "insmod",
+      "<private>/apple-avd.ko"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "event": "state",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "recorder-preflight",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "recorder": "reference",
+    "status": {
+      "run": 0,
+      "context": 0,
+      "phase": 0,
+      "errors": 0,
+      "count": 0,
+      "attempted": 0,
+      "pictures": 0,
+      "completions": 0,
+      "opens": 0
+    }
+  },
+  {
+    "event": "recorder-preflight",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "recorder": "command",
+    "status": {
+      "run": 0,
+      "context": 0,
+      "phase": 0,
+      "errors": 0,
+      "pictures": 0,
+      "completions": 0,
+      "opens": 0
+    }
+  },
+  {
+    "event": "state",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "transition-attempt",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "argv": [
+      "rmmod",
+      "apple_avd"
+    ]
+  },
+  {
+    "event": "transition-result",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "argv": [
+      "rmmod",
+      "apple_avd"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "event": "state",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "module_loaded": false,
+    "video_node": null,
+    "media_node": null,
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "transition-attempt",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "argv": [
+      "modprobe",
+      "apple_avd"
+    ]
+  },
+  {
+    "event": "transition-result",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "argv": [
+      "modprobe",
+      "apple_avd"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "event": "state",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "original-restored",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "installed_sha256": "e50540e1d0fc48c7e0bf9b21ff028758bdb35f94aa7070af00de88e61e5c70e9"
+  },
+  {
+    "event": "terminal-state",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": [],
+    "module_initstate": "live",
+    "original_restored": true
+  },
+  {
+    "event": "complete",
+    "lease": "2b436a4b-70c1-47b6-86b7-06170b719c72",
+    "runs": 0,
+    "restored": true,
+    "smoke_only": true
+  }
+]
