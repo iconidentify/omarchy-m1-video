@@ -79,3 +79,10 @@ raw reference timestamps remain private, with digests for provenance. Symbolic
 replay checks consistency; it cannot independently authenticate private captures.
 No full-suite, concurrency, performance, boot-stability or wider-device qualification
 is claimed. HEVC remains 144/147; driver #42 retains the correction and release gates.
+
+The bounded next research leaf is [companion #77](https://github.com/iconidentify/omarchy-m1-video/issues/77):
+audit compressed-reference memory ownership/ranges and design a safe content
+observation. It can be done offline from the published data and pinned sources.
+It includes explaining VA's DMABUF length 368128 / MV offset 360960 versus Gst's
+MMAP length 345600 / MV offset 338432, with shared compressed-region layout and
+MV size 7168. Different padding/tail placement is an observation, not a proved bug.
