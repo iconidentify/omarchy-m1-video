@@ -1,0 +1,4 @@
+2026-09-17T09:12:39+00:00 <host> kernel: platform 287080000.avd: Adding to iommu group 5
+2026-09-17T09:12:39+00:00 <host> kernel: apple-pmgr-pwrstate 28e080000.power-management:power-controller@268: sync_state() pending due to 287080000.avd
+2026-09-17T09:12:39+00:00 <host> kernel: apple_avd: loading out-of-tree module taints kernel.
+2026-09-17T09:12:39+00:00 <host> kernel: avd 287080000.avd: booting hw version: 30010

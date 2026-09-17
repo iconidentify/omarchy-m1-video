@@ -1,0 +1,428 @@
+{
+  "schema": "omarchy-m1-video.t6021-followup-review/1",
+  "reviewed_pr_head": "04428f852d88a7676b317ac3d2c49b5d5f177ece",
+  "review_kind": "AI maintainer offline content review; no independent hardware reproduction",
+  "comparator_commit": "b5deb8c319f4e53b5243bc0583fee1800e8faa42",
+  "raw_artifacts": {
+    "t6021-installed-stack/avc-compare.json": "5556dbabc5b0e0aabaecf9ab5b875482f6c5bd595ab46c659809a51f55dc14ea",
+    "t6021-installed-stack/avc-guard.jsonl": "ae70b5e3d4f32b02ce5b814fce941ff08f5a4db3609e43a8baea5b23d6988c6b",
+    "t6021-installed-stack/avc-summary.json": "4e8184157a87f434487de9e3507b01d745a1a611f5406e6ba8b727e09b5b8b74",
+    "t6021-installed-stack/early-export-guard.jsonl": "4e742cf1d0ea918228cda6b52de0ba234f59ff65474d2bd3425926eb2c680816",
+    "t6021-installed-stack/frext-compare.json": "5dda95b1cead44c04a1c2f34e3c636757d7cf2ea0bcc31f607598813208b5438",
+    "t6021-installed-stack/frext-guard.jsonl": "0aabb8f4bc8aa3c53f835ef8419144c5881734025f625678016f85bbc00c7819",
+    "t6021-installed-stack/frext-summary.json": "0fee3dfbc438a21accc9fb3b739f5d3ff5b5dfe502f284caf345dcb5f01e196f",
+    "t6021-installed-stack/h264-high10-guard.jsonl": "612a7508a2bf4a2a5513e1a3c5006be8ab601ad31471826b10ece15270dc0431",
+    "t6021-installed-stack/hevc-compare.json": "d09aee03b670c2443cd3171edc9fefb44ea4bb88bcb20f1c53b72c13ecf0cf70",
+    "t6021-installed-stack/hevc-guard.jsonl": "8311c0e0f4374b4d178499d80c458f31e05dcfd5a43a7c26d805bcdfc2df6a29",
+    "t6021-installed-stack/hevc-summary.json": "34c4beb92355a6d5fc85dbf52477190193f7289fcfa97f6cd8afc220fa64c7df",
+    "t6021-installed-stack/hwdownload-main10-guard.jsonl": "0710a3b80737714a581fcd4ea27f41659f52ee407856c82385be7d843e65fc23",
+    "t6021-installed-stack/mpv-guard.jsonl": "a4614abfb649cfefcd79e1181bcdd2c06e33e9a473e38cbdea3974cb9a7a3458",
+    "t6021-installed-stack/mpv-hwdec.txt": "40c500f115a0ea6b657eefa617b6a57d7597178761b36a898248751232330c24",
+    "t6021-installed-stack/shared-contexts-guard.jsonl": "cbb997f4364dc7c276447f0fbaedd554f5b1d65067855289f7f5dab67dd695c7",
+    "t6021-installed-stack/vp9-compare.json": "034d43f4615fa6e197d85c6200e6189082b1f981b8cd8affb526312876c8b24e",
+    "t6021-installed-stack/vp9-guard.jsonl": "84801346265c2b1d3b6eacb4b0386c7751daaa1ae11f7b9566f16541c0c5829c",
+    "t6021-installed-stack/vp9-high10-guard.jsonl": "a32623c4ea39d831ed25ba4558fb58d409dfc4ba671e2f92332e286754da6df3",
+    "t6021-installed-stack/vp9-high10-summary.json": "4a35cec5d79122105c505d831e8b468dc0f57f418ac35dc62c5cda43f01d08cc",
+    "t6021-installed-stack/vp9-matrix-guard.jsonl": "1ea5f3f83c1e43b467e8584e6a24618199e2ce0345115a9474051f73410bb07d",
+    "t6021-installed-stack/vp9-summary.json": "05851a18a8cb7289699bba61fc1f61f531086ecda5f874a05fae6f66c1385829",
+    "t6021-boot-enabled/avc-aud-mw-e-guard.jsonl": "0e081da5be4f56e94f6f8aceaadb0e44f60b1916c285d198fad6c573959e2c94",
+    "t6021-boot-enabled/avc-aud-mw-e-summary.json": "8cea70eafbe8ad6a309cbfceb85ca5c273b401fd74d3b84a89f4d99c71bccfaa",
+    "t6021-boot-enabled/hevc-amp-a-guard.jsonl": "64e432e2ebda6cdabf07a115b056ac77e239077e77c69751d9197928318bddeb",
+    "t6021-boot-enabled/hevc-amp-a-summary.json": "69377657c20050d9ef243f400bf47495f6fd984b1d8d7f029d1b4b2fba94f5df",
+    "t6021-boot-enabled/idle-preflight.jsonl": "e02c6faa38dbaa992f030480758fb7146e517445e4fbf4bbfac11f7d51003763",
+    "t6021-boot-enabled/kernel-avd-window.txt": "eee7231cf0d7bda0ba248985fefb2060d2096b1127760560057132e4513bbb75",
+    "t6021-boot-enabled/mpv-guard.jsonl": "6f434a98c86ecebccf4e58645eb09a3b6d53c43dfa9deea47369378812d5d444",
+    "t6021-boot-enabled/mpv-hwdec.txt": "40c500f115a0ea6b657eefa617b6a57d7597178761b36a898248751232330c24",
+    "t6021-boot-enabled/vainfo-guard.jsonl": "0118eb2280cd4903156eeabf92aa15d7becd4d75171f52a92fabf1d7be449c68",
+    "t6021-boot-enabled/vp9-q00-guard.jsonl": "3aef300dc4c408c1111ba92bbb2697fc7f909653569d2bf7fcf140627b86336a",
+    "t6021-boot-enabled/vp9-q00-summary.json": "5bab97e353a6bed2576d5fcb10edefcfb8a02d70d28b04219dd9b8839c77e78e"
+  },
+  "summaries": [
+    {
+      "path": "t6021-installed-stack/avc-summary.json",
+      "native_schema_valid": true,
+      "passed": 73,
+      "total": 135,
+      "complete": true,
+      "frames": 10134,
+      "hardware_pass_frames": 10134,
+      "categories": {
+        "hardware_pass": 73,
+        "decode_error": 61,
+        "software_fallback": 1
+      },
+      "guard_run_binding": "not supplied",
+      "device_binary_binding": "contributor attribution; not independently certified",
+      "recomputed_comparison": {
+        "ok": false,
+        "baseline_suite": "JVT-AVC_V1",
+        "candidate_suite": "JVT-AVC_V1",
+        "baseline_total": "73/135",
+        "candidate_total": "73/135",
+        "lost_passes": [],
+        "new_passes": [],
+        "missing_vectors": [],
+        "extra_vectors": [],
+        "category_changes": [
+          {
+            "vector": "FM1_FT_E",
+            "baseline": "decode_error",
+            "candidate": "software_fallback"
+          }
+        ],
+        "first_differing_frames": [],
+        "errors": [
+          "software fallback cannot produce a green hardware result: FM1_FT_E"
+        ]
+      }
+    },
+    {
+      "path": "t6021-installed-stack/frext-summary.json",
+      "native_schema_valid": true,
+      "passed": 27,
+      "total": 69,
+      "complete": true,
+      "frames": 4077,
+      "hardware_pass_frames": 4077,
+      "categories": {
+        "hardware_pass": 27,
+        "decode_error": 42
+      },
+      "guard_run_binding": "not supplied",
+      "device_binary_binding": "contributor attribution; not independently certified",
+      "recomputed_comparison": {
+        "ok": true,
+        "baseline_suite": "JVT-FR-EXT",
+        "candidate_suite": "JVT-FR-EXT",
+        "baseline_total": "27/69",
+        "candidate_total": "27/69",
+        "lost_passes": [],
+        "new_passes": [],
+        "missing_vectors": [],
+        "extra_vectors": [],
+        "category_changes": [],
+        "first_differing_frames": [],
+        "errors": []
+      }
+    },
+    {
+      "path": "t6021-installed-stack/hevc-summary.json",
+      "native_schema_valid": true,
+      "passed": 144,
+      "total": 147,
+      "complete": true,
+      "frames": 9191,
+      "hardware_pass_frames": 8889,
+      "categories": {
+        "hardware_pass": 144,
+        "checksum_mismatch": 2,
+        "decode_error": 1
+      },
+      "guard_run_binding": "not supplied",
+      "device_binary_binding": "contributor attribution; not independently certified",
+      "recomputed_comparison": {
+        "ok": true,
+        "baseline_suite": "JCT-VC-HEVC_V1",
+        "candidate_suite": "JCT-VC-HEVC_V1",
+        "baseline_total": "144/147",
+        "candidate_total": "144/147",
+        "lost_passes": [],
+        "new_passes": [],
+        "missing_vectors": [],
+        "extra_vectors": [],
+        "category_changes": [
+          {
+            "vector": "RPS_E_qualcomm_5",
+            "baseline": "decode_error",
+            "candidate": "checksum_mismatch"
+          },
+          {
+            "vector": "VPSSPSPPS_A_MainConcept_1",
+            "baseline": "decode_error",
+            "candidate": "checksum_mismatch"
+          }
+        ],
+        "first_differing_frames": [
+          {
+            "vector": "RPS_E_qualcomm_5",
+            "reason": "stream_md5",
+            "expected_md5": "c30d38bbd7ea483dc7ffe81325118e16",
+            "baseline_md5": null,
+            "candidate_md5": "b09ac8e0bd31a96d8354505d7c2ebdd5",
+            "index": 0,
+            "candidate": {
+              "index": 0,
+              "width": 416,
+              "height": 240,
+              "md5": "50cc4e6dd7d70f7908b9c3da2500320d",
+              "format": "yuv420p"
+            },
+            "native_sizes": [
+              "416x240"
+            ]
+          },
+          {
+            "vector": "VPSSPSPPS_A_MainConcept_1",
+            "reason": "stream_md5",
+            "expected_md5": "1ddf74263cb4953cfdfcf99c563d88ea",
+            "baseline_md5": null,
+            "candidate_md5": "ec9f5857591ac4c215d194deaf52167c",
+            "index": 0,
+            "candidate": {
+              "index": 0,
+              "width": 352,
+              "height": 288,
+              "md5": "c814e40e0f9b130f44f1abd9cbf10ae6",
+              "format": "yuv420p"
+            },
+            "native_sizes": [
+              "352x288",
+              "1280x720"
+            ]
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "path": "t6021-installed-stack/vp9-high10-summary.json",
+      "native_schema_valid": true,
+      "passed": 1,
+      "total": 1,
+      "complete": true,
+      "frames": 10,
+      "hardware_pass_frames": 10,
+      "categories": {
+        "hardware_pass": 1
+      },
+      "guard_run_binding": "not supplied",
+      "device_binary_binding": "contributor attribution; not independently certified"
+    },
+    {
+      "path": "t6021-installed-stack/vp9-summary.json",
+      "native_schema_valid": true,
+      "passed": 216,
+      "total": 305,
+      "complete": true,
+      "frames": 3581,
+      "hardware_pass_frames": 3334,
+      "categories": {
+        "hardware_pass": 216,
+        "decode_error": 89
+      },
+      "guard_run_binding": "not supplied",
+      "device_binary_binding": "contributor attribution; not independently certified",
+      "recomputed_comparison": {
+        "ok": true,
+        "baseline_suite": "VP9-TEST-VECTORS",
+        "candidate_suite": "VP9-TEST-VECTORS",
+        "baseline_total": "216/305",
+        "candidate_total": "216/305",
+        "lost_passes": [],
+        "new_passes": [],
+        "missing_vectors": [],
+        "extra_vectors": [],
+        "category_changes": [],
+        "first_differing_frames": [],
+        "errors": []
+      }
+    },
+    {
+      "path": "t6021-boot-enabled/avc-aud-mw-e-summary.json",
+      "native_schema_valid": true,
+      "passed": 1,
+      "total": 1,
+      "complete": true,
+      "frames": 100,
+      "hardware_pass_frames": 100,
+      "categories": {
+        "hardware_pass": 1
+      },
+      "guard_run_binding": "not supplied",
+      "device_binary_binding": "contributor attribution; not independently certified"
+    },
+    {
+      "path": "t6021-boot-enabled/hevc-amp-a-summary.json",
+      "native_schema_valid": true,
+      "passed": 1,
+      "total": 1,
+      "complete": true,
+      "frames": 17,
+      "hardware_pass_frames": 17,
+      "categories": {
+        "hardware_pass": 1
+      },
+      "guard_run_binding": "not supplied",
+      "device_binary_binding": "contributor attribution; not independently certified"
+    },
+    {
+      "path": "t6021-boot-enabled/vp9-q00-summary.json",
+      "native_schema_valid": true,
+      "passed": 1,
+      "total": 1,
+      "complete": true,
+      "frames": 2,
+      "hardware_pass_frames": 2,
+      "categories": {
+        "hardware_pass": 1
+      },
+      "guard_run_binding": "not supplied",
+      "device_binary_binding": "contributor attribution; not independently certified"
+    }
+  ],
+  "guards": [
+    {
+      "path": "t6021-installed-stack/avc-guard.jsonl",
+      "run_id": "40918dc5-319f-45e1-9cac-cdc5721d5753",
+      "status": "child-error",
+      "returncode": 1,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-installed-stack/early-export-guard.jsonl",
+      "run_id": "1569cda0-7bbf-4a01-abd6-97e9fa4c99cd",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-installed-stack/frext-guard.jsonl",
+      "run_id": "c8b868f8-c12e-4c4e-9e80-c8ad84b78f81",
+      "status": "child-error",
+      "returncode": 1,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-installed-stack/h264-high10-guard.jsonl",
+      "run_id": "3ba7d9df-c101-496d-85d4-260ff4d39eaf",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-installed-stack/hevc-guard.jsonl",
+      "run_id": "862e49e8-fe70-4923-b8af-cd351e042f3a",
+      "status": "child-error",
+      "returncode": 1,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-installed-stack/hwdownload-main10-guard.jsonl",
+      "run_id": "4abc0e2b-4160-4ab6-8edd-0dfdae65128b",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-installed-stack/mpv-guard.jsonl",
+      "run_id": "4f719278-e85b-4d64-afc5-8d69723f74ee",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-installed-stack/shared-contexts-guard.jsonl",
+      "run_id": "917538d2-bfbf-469d-997a-df5ed8fac08e",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-installed-stack/vp9-guard.jsonl",
+      "run_id": "9aac19e7-52fa-4302-95df-029556d88163",
+      "status": "child-error",
+      "returncode": 1,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-installed-stack/vp9-high10-guard.jsonl",
+      "run_id": "679c09ad-d71f-42ab-ac7f-73bbf986be5c",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-installed-stack/vp9-matrix-guard.jsonl",
+      "run_id": "7f6b745e-d431-44a9-b431-27b2ac3a59bb",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-boot-enabled/avc-aud-mw-e-guard.jsonl",
+      "run_id": "76756205-f4ad-40c0-a1fd-03da2627fb74",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-boot-enabled/hevc-amp-a-guard.jsonl",
+      "run_id": "027e1d99-de7e-40ee-9946-dc94aba8ca04",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-boot-enabled/idle-preflight.jsonl",
+      "run_id": "0e67c74f-14af-40b5-b64c-af24976420f5",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-boot-enabled/mpv-guard.jsonl",
+      "run_id": "7d3c0408-5dae-4665-a5c0-7b4e32893ae2",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-boot-enabled/vainfo-guard.jsonl",
+      "run_id": "ad23f5c7-019e-457c-81b5-6a2ec8b8a456",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    },
+    {
+      "path": "t6021-boot-enabled/vp9-q00-guard.jsonl",
+      "run_id": "3f7b4622-5528-460a-b1f5-3d8052b299dc",
+      "status": "ok",
+      "returncode": 0,
+      "idle": true,
+      "timed_out": false,
+      "wedged": false
+    }
+  ]
+}

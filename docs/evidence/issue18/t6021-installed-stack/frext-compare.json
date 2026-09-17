@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "baseline_suite": "JVT-FR-EXT",
+  "candidate_suite": "JVT-FR-EXT",
+  "baseline_total": "27/69",
+  "candidate_total": "27/69",
+  "lost_passes": [],
+  "new_passes": [],
+  "missing_vectors": [],
+  "extra_vectors": [],
+  "category_changes": [],
+  "first_differing_frames": [],
+  "errors": []
+}
