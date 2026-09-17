@@ -1,0 +1,28 @@
+{
+  "schema": "omarchy-m1-video.vp9-state/1",
+  "id": "stock-state-loss",
+  "title": "FFmpeg context replacement STREAMOFFs OUTPUT and REQBUFS(0) CAPTURE, destroying wrapper metadata and VP9 context",
+  "path": "stock",
+  "classification": "legal_stream",
+  "evidence_class": "model_not_decoded_frames",
+  "expect": {
+    "status": "observe",
+    "lost": ["wrapper_metadata", "frame_context", "last_frame_info", "scratch", "seg_map"]
+  },
+  "events": [
+    {"op": "open", "session": "s1"},
+    {"op": "output_s_fmt", "width": 640, "height": 360},
+    {"op": "capture_s_fmt", "width": 640, "height": 360},
+    {"op": "capture_reqbufs", "count": 4},
+    {"op": "output_streamon"},
+    {"op": "capture_streamon"},
+    {"op": "decode", "dst": "A", "key": true, "width": 640, "height": 360},
+    {"op": "decode", "dst": "B", "refs": ["A"], "width": 640, "height": 360},
+    {"op": "export", "name": "A"},
+    {"op": "export", "name": "B"},
+    {"op": "capture_streamoff"},
+    {"op": "output_streamoff"},
+    {"op": "capture_reqbufs", "count": 0},
+    {"op": "snapshot"}
+  ]
+}

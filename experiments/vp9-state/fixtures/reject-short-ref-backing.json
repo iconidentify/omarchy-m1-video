@@ -1,0 +1,27 @@
+{
+  "schema": "omarchy-m1-video.vp9-state/1",
+  "id": "reject-short-ref-backing",
+  "title": "A re-imported reference must still meet its own era sizeimage, not the new destination size",
+  "path": "proposed",
+  "classification": "adversarial_api",
+  "evidence_class": "model_not_decoded_frames",
+  "expect": {
+    "status": "reject",
+    "code": "short_backing"
+  },
+  "events": [
+    {"op": "open"},
+    {"op": "output_s_fmt", "width": 640, "height": 360},
+    {"op": "capture_s_fmt", "width": 640, "height": 360},
+    {"op": "capture_reqbufs", "count": 2},
+    {"op": "output_streamon"},
+    {"op": "capture_streamon"},
+    {"op": "decode", "dst": "A", "key": true, "width": 640, "height": 360},
+    {"op": "export", "name": "A", "backing_bytes": 32},
+    {"op": "capture_streamoff"},
+    {"op": "capture_reqbufs", "count": 0},
+    {"op": "proposed_reconfigure", "width": 320, "height": 180},
+    {"op": "capture_reqbufs", "count": 2},
+    {"op": "register", "name": "A"}
+  ]
+}

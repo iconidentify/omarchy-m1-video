@@ -1,0 +1,316 @@
+{
+  "schema": "omarchy-m1-video.vp9-state-source-map/1",
+  "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/42",
+  "parent": "https://github.com/iconidentify/omarchy-m1-video/issues/16",
+  "design": "docs/plans/issue-11-vp9-resize-state.md",
+  "pins": {
+    "kernel": {
+      "repo": "AsahiLinux/linux",
+      "tag": "asahi-7.1.13-3",
+      "commit": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": {
+        "avd-v4l2.c": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53",
+        "avd-vp9.c": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4",
+        "avd-drv.c": "134264a2c7ed8779077ff3ee9e8e733c2cddb5cc1b6e3d4def673e40b87083ca",
+        "videobuf2-core.c": "86222aaa61047a3ac9ecefec2f1ed4a9c3392026120009c59e862767c4618228",
+        "avd.h": "283e311bc9108d734b2217e01fdcd950edd6f65a013b8e78a9c4a256a51a2739",
+        "v4l2-mem2mem.c": "8cba59ee8aec8d14f7f2b0c81829fe188d25c99399de613f3d23a5cf5eb95854"
+      }
+    },
+    "companion_design": "f50a4a4c88b03ea1e10acf734a53c3a0ee9b2519",
+    "companion_base": "9352287c1025b850c3799e4380559f0c767a4aad"
+  },
+  "invariants": [
+    {
+      "id": "capture_s_fmt_busy",
+      "kind": "source_observed",
+      "text": "S_FMT on CAPTURE returns -EBUSY while vb2_is_busy(CAPTURE).",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-v4l2.c",
+        "lines": "609-620",
+        "sha256": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53"
+      }
+    },
+    {
+      "id": "output_s_fmt_streaming",
+      "kind": "source_observed",
+      "text": "S_FMT on OUTPUT returns -EBUSY while the OUTPUT queue is streaming.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-v4l2.c",
+        "lines": "645-649",
+        "sha256": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53"
+      }
+    },
+    {
+      "id": "output_s_fmt_capture_busy",
+      "kind": "source_observed",
+      "text": "S_FMT on OUTPUT returns -EBUSY while CAPTURE has buffers allocated.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-v4l2.c",
+        "lines": "651-658",
+        "sha256": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53"
+      }
+    },
+    {
+      "id": "validate_dec_params_min64",
+      "kind": "source_observed",
+      "text": "validate_dec_params rejects coded width or height below 64 before firmware submission.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-vp9.c",
+        "lines": "632-634",
+        "sha256": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4"
+      }
+    },
+    {
+      "id": "validate_dec_params_aligned",
+      "kind": "source_observed",
+      "text": "Coded size rounded up (64 x 16) must equal the negotiated CAPTURE format.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-vp9.c",
+        "lines": "636-649",
+        "sha256": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4"
+      }
+    },
+    {
+      "id": "wrapper_on_queue",
+      "kind": "source_observed",
+      "text": "Per-buffer VP9 dims and compressed-layout metadata hang off the CAPTURE queue wrapper (struct avd_decoded_buffer), not the pixel memory.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd.h",
+        "lines": "79-84,104-123",
+        "sha256": "283e311bc9108d734b2217e01fdcd950edd6f65a013b8e78a9c4a256a51a2739"
+      },
+      "cite_size": {
+        "file": "drivers/media/platform/apple/avd/avd-drv.c",
+        "lines": "335",
+        "sha256": "134264a2c7ed8779077ff3ee9e8e733c2cddb5cc1b6e3d4def673e40b87083ca"
+      }
+    },
+    {
+      "id": "wrapper_written_on_run",
+      "kind": "source_observed",
+      "text": "Each run copies ctx->comp into the destination wrapper and records vp9 width/height/bit_depth from the frame control.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-v4l2.c",
+        "lines": "968-969",
+        "sha256": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53"
+      },
+      "cite_dims": {
+        "file": "drivers/media/platform/apple/avd/avd-vp9.c",
+        "lines": "514-520",
+        "sha256": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4"
+      }
+    },
+    {
+      "id": "refs_from_wrapper",
+      "kind": "source_observed",
+      "text": "set_refs pushes each reference's wrapper vp9 dims, 14-bit xscale/yscale, and compressed address/offsets.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-vp9.c",
+        "lines": "197-234",
+        "sha256": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4"
+      }
+    },
+    {
+      "id": "get_ref_fallback_dst",
+      "kind": "source_observed",
+      "text": "avd_get_ref_buf looks up a timestamp in the current CAPTURE queue and falls back to the destination buffer when the lookup misses.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-drv.c",
+        "lines": "95-111",
+        "sha256": "134264a2c7ed8779077ff3ee9e8e733c2cddb5cc1b6e3d4def673e40b87083ca"
+      }
+    },
+    {
+      "id": "start_on_output_streamon",
+      "kind": "source_observed",
+      "text": "OUTPUT STREAMON calls avd_vp9_start, which allocates the VP9 context, probability tables and scratch.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-v4l2.c",
+        "lines": "856-875",
+        "sha256": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53"
+      },
+      "cite_start": {
+        "file": "drivers/media/platform/apple/avd/avd-vp9.c",
+        "lines": "982-1004",
+        "sha256": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4"
+      }
+    },
+    {
+      "id": "stop_on_output_streamoff",
+      "kind": "source_observed",
+      "text": "OUTPUT STREAMOFF calls avd_vp9_stop, which frees frame_context, last/cur, the segment map and all scratch.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-v4l2.c",
+        "lines": "899-911",
+        "sha256": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53"
+      },
+      "cite_stop": {
+        "file": "drivers/media/platform/apple/avd/avd-vp9.c",
+        "lines": "1006-1025",
+        "sha256": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4"
+      }
+    },
+    {
+      "id": "scratch_from_coded_fmt",
+      "kind": "source_observed",
+      "text": "Scratch buffers are sized from the coded OUTPUT format and bit depth, not from a per-buffer wrapper.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-vp9.c",
+        "lines": "654-728",
+        "sha256": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4"
+      }
+    },
+    {
+      "id": "queue_setup_sizeimage",
+      "kind": "source_observed",
+      "text": "avd_queue_setup rejects a plane smaller than the current format sizeimage.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-v4l2.c",
+        "lines": "785-792",
+        "sha256": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53"
+      }
+    },
+    {
+      "id": "buf_prepare_sizeimage",
+      "kind": "source_observed",
+      "text": "avd_buf_prepare rejects vb2_plane_size < current format sizeimage.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-v4l2.c",
+        "lines": "814-818",
+        "sha256": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53"
+      }
+    },
+    {
+      "id": "vb2_dmabuf_min_length",
+      "kind": "source_observed",
+      "text": "vb2 records queue plane sizes as min_length and __prepare_dmabuf rejects shorter imported planes before the driver's prepare callback.",
+      "cite": {
+        "file": "drivers/media/common/videobuf2/videobuf2-core.c",
+        "lines": "515,1407",
+        "sha256": "86222aaa61047a3ac9ecefec2f1ed4a9c3392026120009c59e862767c4618228"
+      },
+      "note": "Line numbers as recorded in docs/plans/issue-11-vp9-resize-state.md \u00a76.3 and issue-11-review-evidence.json; this validator does not vendor that file."
+    },
+    {
+      "id": "fill_comp_layout",
+      "kind": "source_observed",
+      "text": "Compressed-reference layout is arithmetic from image_fmt and aligned width/height (fill_comp); start_offset is the uncompressed plane sizeimage.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-drv.c",
+        "lines": "41-69",
+        "sha256": "134264a2c7ed8779077ff3ee9e8e733c2cddb5cc1b6e3d4def673e40b87083ca"
+      },
+      "cite_offset": {
+        "file": "drivers/media/platform/apple/avd/avd-v4l2.c",
+        "lines": "82-84",
+        "sha256": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53"
+      }
+    },
+    {
+      "id": "image_fmt_busy",
+      "kind": "source_observed",
+      "text": "A bit-depth/image-format change through avd_s_ctrl requires an idle CAPTURE queue.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-v4l2.c",
+        "lines": "139-143",
+        "sha256": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53"
+      }
+    },
+    {
+      "id": "no_destination_fallback",
+      "kind": "proposed_contract",
+      "text": "A declared reference that does not resolve is a submission error. There is no self-reference fallback."
+    },
+    {
+      "id": "generation_scoped_timestamps",
+      "kind": "proposed_contract",
+      "text": "Timestamps are scoped by CAPTURE queue generation. Index-derived timestamps must not alias older content after REQBUFS(0)."
+    },
+    {
+      "id": "explicit_ref_registration",
+      "kind": "proposed_contract",
+      "text": "An imported backing is usable as a reference only after explicit registration of generation, index, timestamp and immutable era metadata."
+    },
+    {
+      "id": "ref_not_queued_as_dst",
+      "kind": "proposed_contract",
+      "text": "A still-live reference must not be queued as a decode destination."
+    },
+    {
+      "id": "era_sizing_dst_vs_ref",
+      "kind": "proposed_contract",
+      "text": "The destination must meet the current era sizeimage; a reference must meet its own era sizeimage."
+    },
+    {
+      "id": "failed_session_no_submit",
+      "kind": "proposed_contract",
+      "text": "After a destructive reconfigure phase fails, the session is marked failed and further submissions are forbidden until a verified restore exists."
+    },
+    {
+      "id": "session_not_profile_key",
+      "kind": "proposed_contract",
+      "text": "Device and profile are compatibility filters, never a session key for inheriting entropy or references."
+    },
+    {
+      "id": "firmware_live_resize",
+      "kind": "firmware_unknown",
+      "text": "Whether firmware accepts a per-frame dimension change on a continuing context with prior-era references is experiment A. A passing model is not that result."
+    },
+    {
+      "id": "firmware_seg_map",
+      "kind": "firmware_unknown",
+      "text": "Segment-map preserve-versus-reset policy across a resize is experiment B."
+    },
+    {
+      "id": "firmware_scratch_regrow",
+      "kind": "firmware_unknown",
+      "text": "Whether scratch can be resized on a live OUTPUT stream is experiment C."
+    },
+    {
+      "id": "firmware_mixed_era_comp",
+      "kind": "firmware_unknown",
+      "text": "Whether mixed-era compressed-reference offsets are read correctly is experiment D."
+    },
+    {
+      "id": "firmware_rev3_vs_rev4",
+      "kind": "firmware_unknown",
+      "text": "M1 (rev 3) versus M2 (rev 4) divergence is experiment E."
+    },
+    {
+      "id": "both_queues_streaming",
+      "kind": "source_observed",
+      "text": "The mem2mem scheduler does not run a decode job before both queues stream; AVD does not opt into ignore_cap_streaming. A model decode means completed work, not merely a queued request.",
+      "cite": {
+        "file": "drivers/media/v4l2-core/v4l2-mem2mem.c",
+        "lines": "294-308",
+        "sha256": "8cba59ee8aec8d14f7f2b0c81829fe188d25c99399de613f3d23a5cf5eb95854"
+      }
+    },
+    {
+      "id": "reqbufs_replaces_queue",
+      "kind": "source_observed",
+      "text": "REQBUFS rejects a streaming queue. With existing buffers, both zero and positive-count REQBUFS cancel/free the old queue before returning or allocating replacements.",
+      "cite": {
+        "file": "drivers/media/common/videobuf2/videobuf2-core.c",
+        "lines": "867-916",
+        "sha256": "86222aaa61047a3ac9ecefec2f1ed4a9c3392026120009c59e862767c4618228"
+      }
+    },
+    {
+      "id": "scratch_capacity_contract",
+      "kind": "proposed_contract",
+      "text": "Reject a modeled completed decode whose bit depth or ceil-divided 8/16/64-pixel geometry exceeds the scratch allocation. The allocation formulas are source-observed; this extra checker guard is not a claim that stock AVD rejects it.",
+      "cite": {
+        "file": "drivers/media/platform/apple/avd/avd-vp9.c",
+        "lines": "654-728",
+        "sha256": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4"
+      }
+    },
+    {
+      "id": "unique_destination_slot",
+      "kind": "proposed_contract",
+      "text": "One live destination backing occupies one slot; a second queue event must not silently create an alias or overwrite another wrapper."
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "schema": "omarchy-m1-video.vp9-state/1",
+  "id": "reject-old-generation-alias",
+  "title": "Index-derived timestamps reused after REQBUFS(0) hit different content in the new generation",
+  "path": "stock",
+  "classification": "adversarial_api",
+  "evidence_class": "model_not_decoded_frames",
+  "expect": {
+    "status": "reject",
+    "code": "old_generation_alias"
+  },
+  "events": [
+    {"op": "open"},
+    {"op": "output_s_fmt", "width": 320, "height": 180},
+    {"op": "capture_s_fmt", "width": 320, "height": 180},
+    {"op": "capture_reqbufs", "count": 4},
+    {"op": "output_streamon"},
+    {"op": "capture_streamon"},
+    {"op": "decode", "dst": "A", "key": true, "width": 320, "height": 180},
+    {"op": "export", "name": "A"},
+    {"op": "capture_streamoff"},
+    {"op": "capture_reqbufs", "count": 0},
+    {"op": "capture_s_fmt", "width": 640, "height": 360},
+    {"op": "capture_reqbufs", "count": 4},
+    {"op": "capture_streamon"},
+    {"op": "queue_dst", "dst": "C"},
+    {"op": "decode", "dst": "C", "refs": ["A"], "width": 640, "height": 360, "force_kernel_lookup": true}
+  ]
+}
