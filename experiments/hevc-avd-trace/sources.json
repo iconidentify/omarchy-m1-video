@@ -1,0 +1,139 @@
+{
+  "schema": "hevc-avd-trace.sources/1",
+  "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
+  "kernel_release": "7.1.13-3-1-ARCH",
+  "upstream_files": {
+    "Kconfig": "160a8cd3fe4984bb37266261a5c877b08e53f406fa2623271a07c969acf74b26",
+    "Makefile": "0cc139bfd28826ab905062ec83499f7982dd29bd5ca6d15204edc1d5789b5243",
+    "avd-av1-entropymode.c": "9508eaa9733faa95d2f0868b93aa1bd3bdbcda4e77cc27a997e47ccd0c5c619c",
+    "avd-av1-entropymode.h": "2d848076d83d7426cf2e3eea7f5fa2aa2e03183fae79586bda56110375b330bb",
+    "avd-av1.c": "4b0d73d916073977410be386a6f3080f462adb8d5ee3f7fa49eba3b2e443f301",
+    "avd-drv.c": "134264a2c7ed8779077ff3ee9e8e733c2cddb5cc1b6e3d4def673e40b87083ca",
+    "avd-h264.c": "d24d8abe01231430cbbcd215df431fb88764231995243a2a098b7e1ec253623f",
+    "avd-hevc.c": "a9cc1dd4303ac8c482f1dd8aa6a5de866f0c4e11a9fdf98796fe479e1e260bb9",
+    "avd-hw.c": "c9b15028adae725cf9a4fcfc1a928cba0d26b894210c34a4dc8d8c21b6b8dc6f",
+    "avd-inst.h": "c271d9f266e685dc3db3d0394dda15a9e84ff426d9f12ce10d9dc726a5625816",
+    "avd-regs.h": "a000d3e57e32b00b2e7b9edb10d3491c2200dda5efc179e4d7c109b5af84ad4a",
+    "avd-v4l2.c": "2d1c3fc727d0427fcc0147c8f6f24367dfeb0851838bc093559a9c0630503c53",
+    "avd-vp9.c": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4",
+    "avd.h": "283e311bc9108d734b2217e01fdcd950edd6f65a013b8e78a9c4a256a51a2739"
+  },
+  "patches": {
+    "commit": "5c1b9239756bfcc0c594a1c55f4908e3b687bd73",
+    "concatenated_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390",
+    "files": [
+      {
+        "path": "patches/0001-media-apple-avd-allow-cacheable-non-coherent-MMAP-bu.patch",
+        "sha256": "ba229ea748d245b608b74732176707295c3ac115cb812f0f58d8d5a46a010a42",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-drv.c"
+        ]
+      },
+      {
+        "path": "patches/0002-media-apple-avd-h264-reject-slices-that-reference-in.patch",
+        "sha256": "8f722f3cfa6ab35d1b5eeb68824dc0bf9516e3861c807b420588be37857349fe",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-h264.c"
+        ]
+      },
+      {
+        "path": "patches/0003-media-apple-avd-allocate-the-job-segment-table-with-.patch",
+        "sha256": "471ce7972442aa6e70a3abd373aa1ba83857e74be44d102e5d40f8fcdc80ff03",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-drv.c"
+        ]
+      },
+      {
+        "path": "patches/0004-media-apple-avd-h264-reset-slice_num-when-a-frame-is.patch",
+        "sha256": "69629df64e3ec36483d5d88b9b39fa1bc94438620efafac8ff376492b2bfa5fb",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-h264.c"
+        ]
+      },
+      {
+        "path": "patches/0005-media-apple-avd-track-job-state-so-completion-cannot-race-the-run.patch",
+        "sha256": "11765f7d944084fdee035893d39d3cde92db57e471c67fc28c15d98dccecfa4d",
+        "files": []
+      },
+      {
+        "path": "patches/0006-media-apple-avd-hevc-read-controls-after-applying-th.patch",
+        "sha256": "21074da57d6f9a9d15ff0eaa175d9dab05ed618b136af4e891bd2937dcae2987",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-hevc.c"
+        ]
+      },
+      {
+        "path": "patches/0007-media-apple-avd-size-the-compressed-chroma-plane-for.patch",
+        "sha256": "8a5d030804fa7e341b59a2132bc0efd9c18dbf1da5d0fe6ecc467c8d3fc6b8d7",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-drv.c"
+        ]
+      },
+      {
+        "path": "patches/0008-media-apple-avd-h264-fill-chroma-with-grey-for-4-0-0.patch",
+        "sha256": "9e425c1d76a8d22b2d7d0bbdda91301e91183b93bec8c1a5c65cfa76780ceac0",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-h264.c"
+        ]
+      },
+      {
+        "path": "patches/0009-media-apple-avd-hevc-reject-unequal-bit-depths-and-n.patch",
+        "sha256": "f9f4b24c0b32705f7e43ed986ea55178f9eda1dccd9cb7f54584ac6d80b14967",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-hevc.c"
+        ]
+      },
+      {
+        "path": "patches/0010-media-apple-avd-hevc-copy-the-slice-and-entry-point-.patch",
+        "sha256": "10db180122a9e78fbe305f457cdb2c6f07fd1b50c42bd72f91d1674167e78397",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-hevc.c"
+        ]
+      },
+      {
+        "path": "patches/0011-media-apple-avd-hevc-bound-entry-points-and-complete.patch",
+        "sha256": "bdf25202b4f1da6646c9c1a71b8492501c51d2a2b2dec7361195e363b8a69a39",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-hevc.c"
+        ]
+      },
+      {
+        "path": "patches/0012-media-apple-avd-free-job-tables-that-were-never-subm.patch",
+        "sha256": "9093958708815f7f26749f329b2e3660d8a516d17977f96f39b1343365b16c42",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-drv.c",
+          "drivers/media/platform/apple/avd/avd-v4l2.c"
+        ]
+      },
+      {
+        "path": "patches/0013-media-apple-avd-h264-keep-slice-data-and-the-job-tab.patch",
+        "sha256": "1ed97c455869cfd108d8dbe0eee5c33afb97ee46597c8a2738ca811f57c7c2cf",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-h264.c"
+        ]
+      },
+      {
+        "path": "patches/0014-media-apple-avd-h264-use-the-10-bit-grey-value-for-1.patch",
+        "sha256": "a1c7a0aee01fa16b6d9365ee42898f0c2c8ffa0d79a1254bdede5724f7782cd1",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-h264.c"
+        ]
+      },
+      {
+        "path": "patches/0015-media-apple-avd-accept-HEVC-4-2-2-again-reject-forma.patch",
+        "sha256": "39dbcb5de5c1296f0355fce6b5e6ba916cf1fb06d0a5b260b3696c364ad2e1d8",
+        "files": [
+          "drivers/media/platform/apple/avd/avd-h264.c",
+          "drivers/media/platform/apple/avd/avd-hevc.c"
+        ]
+      }
+    ]
+  },
+  "additional_primary_sources": [
+    {
+      "path": "drivers/media/common/videobuf2/videobuf2-core.c",
+      "sha256": "86222aaa61047a3ac9ecefec2f1ed4a9c3392026120009c59e862767c4618228",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/drivers/media/common/videobuf2/videobuf2-core.c"
+    }
+  ]
+}
