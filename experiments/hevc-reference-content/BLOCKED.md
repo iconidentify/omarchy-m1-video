@@ -2,10 +2,12 @@
 
 **AI disclosure:** AI-assisted maintainer review. No device experiment.
 
-`real_client_adapter()` always raises a blocked result. Tests exercise VA, Gst and
-unknown clients, including records that assert coherent/paused/retained state; none
-can enable copying. `Observer` accepts only the synthetic queue. This is deliberate
-partial delivery of #82, not an implementation of its real exporter/client adapter.
+`real_client_adapter()` without extracted bodies still raises a blocked result.
+With pinned bodies, `ClientBarrier` instruments the actual functions below and
+still fail-closes: none of them is an all-producer pause token, retained
+generation, drained inflight set or exporter cache identity. Boolean coherent/
+paused/retained records and association.json pic/poc rows are rejected. `Observer`
+accepts only the synthetic queue. Copying remains unauthorized.
 
 The source boundary is concrete:
 
@@ -34,6 +36,8 @@ that adapter's actual pause/retention/error paths before proposing a hardware ru
 If this requires a client patch or process-context kernel worker, review its complete
 lifetime/locking design first. No IRQ, physical-address or unknown-exporter fallback.
 
-The fake queue is an executable ordering and negative-test design, not proof that
-these APIs exist in FFmpeg, GStreamer, VA-API or this kernel. Original #82 acceptance
-criteria remain open; do not replace them with fixture results or a new research child.
+This leaf extracts those function bodies and runs executable negative tests against
+them. Gst uses the same VA driver APIs; no pinned GStreamer pause token exists.
+FFmpeg `ff_vaapi_decode_issue` submits Begin/Render/EndPicture with no pause.
+The fake queue remains an ordering model, not live ownership. Original #82
+acceptance criteria remain open; do not replace them with fixture results.
