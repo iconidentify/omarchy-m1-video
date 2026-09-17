@@ -14,6 +14,10 @@ qualified the conclusions; contributor authorship is retained.
 - **Feeds:** [omarchy-m1-video#14](https://github.com/iconidentify/omarchy-m1-video/issues/14)
   (implementation child; still blocked on kernel capability/authorization after design acceptance) and the
   [C1 gap](../GAP_STATUS.md#c1--unsupported-h264-formats).
+- **See also:** [issue #43's reconciliation](h264-field-feasibility-e1.md) of section 4's
+  "unknown" firmware-layer classification against the original `eiln/avd` reverse-engineer's
+  uncited "unsupported by hardware" claim — answers experiment E1 (section 7) from public
+  sources; does not change the decision in section 1 or #14's blocked status.
 
 ## 1. Summary and decision
 
