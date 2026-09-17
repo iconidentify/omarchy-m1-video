@@ -1,0 +1,42 @@
+{
+  "generated_sha256": "5aeba35f831ff7c9c45051911af866fc6dabcebc3a9f9e97b173295bac607146",
+  "mutation": false,
+  "functions_sha256": [
+    "d9bd32e6f8f6d4b21b79f279188e23e5e09b2b7e9c9c7e3afa4c8e863adca533",
+    "efc7fac25dea128b779e83f197e687a937680805efd0b463cbf79fe41b5bde02",
+    "9ca9fdb27180377747d3f187908d60b34458739606fc876dcafc642127a171b5",
+    "ad65f9282d7d99ffb16711270b515482455a95ce41a46f0eb0c499f9d59dc6f2",
+    "39b7e8d1e0d70baa1ec792d6e8ca07b41e07f17bea7290f4252da7ae34f7d69a",
+    "729ca252b8f6570278814dbb9795f5e9fdc5409d60dbff6af37a7f4910263fe0",
+    "5e1ab14dff9f23775455d672ecde3f69e8fb69dab9cb2e6a8dda8d3025937232",
+    "f8f12d34d064efc711372dcd8347ebfaaaf51409d30b18b0f8b0ebb5dcda9123",
+    "631e054eaaf2cb4fbf2038f6c3ad85fa515c5069ac39549dda954841b1871d7f",
+    "66a0c6eb75c5e6683c9f67c286895a31eb3e4072e6754e026245dea2024f4435",
+    "0be4b614c53a5e18c62b7963f0e012de64592d7c37649dbbb23a8b4957ba446c"
+  ],
+  "mv_expression": "run->addresses.mv_color = run->base.y_out + (dst_len - mv_color_len);",
+  "patched_avd": {
+    "Kconfig": "160a8cd3fe4984bb37266261a5c877b08e53f406fa2623271a07c969acf74b26",
+    "Makefile": "0cc139bfd28826ab905062ec83499f7982dd29bd5ca6d15204edc1d5789b5243",
+    "avd-av1-entropymode.c": "9508eaa9733faa95d2f0868b93aa1bd3bdbcda4e77cc27a997e47ccd0c5c619c",
+    "avd-av1-entropymode.h": "2d848076d83d7426cf2e3eea7f5fa2aa2e03183fae79586bda56110375b330bb",
+    "avd-av1.c": "4b0d73d916073977410be386a6f3080f462adb8d5ee3f7fa49eba3b2e443f301",
+    "avd-drv.c": "6d6ca778ab065f992d6834598588d77e14f652a9b016edf1360d180d14bee7a2",
+    "avd-h264.c": "20632b724f846ec882f1c3e0e28996776923594ca1305a9580c902df0587ac9a",
+    "avd-hevc.c": "417cd4c0d39957ab6a281b706acb298c08e5132888e8cad2a6edf5d2673824f9",
+    "avd-hw.c": "c9b15028adae725cf9a4fcfc1a928cba0d26b894210c34a4dc8d8c21b6b8dc6f",
+    "avd-inst.h": "c271d9f266e685dc3db3d0394dda15a9e84ff426d9f12ce10d9dc726a5625816",
+    "avd-regs.h": "a000d3e57e32b00b2e7b9edb10d3491c2200dda5efc179e4d7c109b5af84ad4a",
+    "avd-v4l2.c": "85876c1206b2d46760923362320947b11b230ae64b84428002d6b5d24d1b961e",
+    "avd-vp9.c": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4",
+    "avd.h": "ea36da9d0fa0ccf76534a98ad45585e0ba625148ed2c305a6c70206524a098ec"
+  },
+  "schema": "omarchy-m1-video.hevc-memory-evidence/1",
+  "compiler": "cc (GCC) 16.1.1 20260430",
+  "hardware": false,
+  "source_map_sha256": "1bae0921c987231f7d3ef1fc27e67e82b5203486479e285c7e3f8ad34c1b1af8",
+  "test_command": "python3 experiments/hevc-reference-memory/tests.py",
+  "test_groups": 12,
+  "matched_live_layout_records": 44,
+  "original_contributor_head": "a62734b3596ce28c0be5d3fe467304624efc9816"
+}

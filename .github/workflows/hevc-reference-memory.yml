@@ -11,5 +11,5 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Extracted fill_comp/MV layout vs published picture-28 records
+      - name: Verified source extraction, allocator fault, layouts and observation rejection
         run: python3 experiments/hevc-reference-memory/tests.py
