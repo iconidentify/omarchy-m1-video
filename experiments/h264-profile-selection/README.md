@@ -44,11 +44,15 @@ Two paths against a stub of the profiles this driver advertises
 * `proposed` — scan every picture's SPS/PPS/slice inventory. FMO
   (`num_slice_groups_minus1 > 0`), fields (`frame_mbs_only_flag=0`, MBAFF
   or `field_pic_flag`), data-partition NALs 2/3/4 and malformed headers
-  reject. Otherwise map CB-safe Baseline (I/P, progressive, no FMO) to
-  Constrained Baseline, and Main-safe Extended (I/P/B, progressive, no FMO)
-  to Main. Ordinary Main/High/Constrained Baseline exact matches are
-  unchanged. No default `allow_profile_mismatch`. No Baseline/Extended VA
-  profile is advertised.
+  reject. Baseline remaps allow I/P only; Extended remaps allow I/P/B;
+  SP and SI slices reject before mapping Extended to Main. After a VA
+  subset is chosen, every later SPS must stay compatible with it
+  (profile, bit depth, 4:2:0 chroma); a High 10 picture after Baseline
+  does not keep Constrained Baseline. Otherwise map CB-safe Baseline
+  (I/P, progressive, no FMO) to Constrained Baseline, and Main-safe
+  Extended (I/P/B, progressive, no FMO) to Main. Ordinary Main/High/
+  Constrained Baseline exact matches are unchanged. No default
+  `allow_profile_mismatch`. No Baseline/Extended VA profile is advertised.
 
 The five candidate inventories (BA3_SVA_C, MR2–MR5_TANDBERG) come from
 `docs/plans/issue-10-h264-field-mbaff.md` section 3.2 and
@@ -91,9 +95,11 @@ n9.0.1; it is not applied, not installed, and not sent upstream.
 
 ## Review regressions
 
-Negative tests in `tests.py` turn off FMO, field, partition and whole-stream
-scans one at a time. The matching reject fixtures then select Constrained
-Baseline and the fixture `ok` bit fails. Midstream FMO is picture index 2.
+Negative tests in `tests.py` turn off FMO, field, partition, SPS-compat,
+slice-type and whole-stream scans one at a time. The matching reject
+fixtures then select Constrained Baseline or Main and the fixture `ok`
+bit fails. Midstream FMO is picture index 2; midstream High 10 is
+picture index 1.
 
 Run `--self-test` for the shipped fixtures and unittests. The validator is
 registered in offline CI.

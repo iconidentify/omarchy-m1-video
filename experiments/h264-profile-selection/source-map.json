@@ -81,6 +81,16 @@
       "text": "Do not advertise VAProfile Baseline or Extended. Do not enable allow_profile_mismatch by default. Remap only a stream whose scanned SPS/PPS/slice features fit Constrained Baseline or Main."
     },
     {
+      "id": "every_active_sps_must_fit_selected_subset",
+      "kind": "proposed_contract",
+      "text": "ff_profile from the first picture does not freeze the subset. Every later SPS is checked against the selected VA profile for profile_idc, bit depth and 4:2:0 chroma. A High 10 parameter-set change after Baseline is rejected, not kept as Constrained Baseline."
+    },
+    {
+      "id": "remap_slice_sets_exclude_sp_si",
+      "kind": "proposed_contract",
+      "text": "Baseline→Constrained Baseline allows I/P only. Extended→Main allows I/P/B only. SP and SI slices are outside every advertised subset and reject before the remap."
+    },
+    {
       "id": "installed_va_config_is_profile_id_only",
       "kind": "proposed_contract",
       "text": "VA CreateConfig takes a VAProfile, not a feature inventory. FFmpeg decides the profile before later PPS changes. The installed client API cannot express this remap safely without a local FFmpeg change that inspects SPS+PPS and re-checks on parameter-set change."

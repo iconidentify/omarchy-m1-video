@@ -1,0 +1,50 @@
+{
+  "schema": "omarchy-m1-video.h264-profile-selection/1",
+  "id": "proposed-reject-sp",
+  "path": "proposed",
+  "classification": "unsupported_syntax",
+  "vector_label": "synthetic-extended-sp",
+  "provenance": "synthetic Extended inventory with an SP slice; SP/SI are outside the Main I/P/B subset; not a bitstream copy",
+  "advertised": [
+    "VAProfileH264ConstrainedBaseline",
+    "VAProfileH264Main",
+    "VAProfileH264High",
+    "VAProfileH264High10"
+  ],
+  "expected": {
+    "status": "reject",
+    "va_profile": null,
+    "reason": "sp_slice"
+  },
+  "pictures": [
+    {
+      "sps": {
+        "profile_idc": 88,
+        "constraint_set1_flag": 0,
+        "frame_mbs_only_flag": 1,
+        "mb_adaptive_frame_field_flag": 0,
+        "chroma_format_idc": 1,
+        "bit_depth_luma_minus8": 0,
+        "parse_ok": true
+      },
+      "pps": {
+        "num_slice_groups_minus1": 0,
+        "parse_ok": true
+      },
+      "slices": [
+        {
+          "nal_unit_type": 5,
+          "slice_type": "I",
+          "field_pic_flag": 0,
+          "parse_ok": true
+        },
+        {
+          "nal_unit_type": 1,
+          "slice_type": "SP",
+          "field_pic_flag": 0,
+          "parse_ok": true
+        }
+      ]
+    }
+  ]
+}

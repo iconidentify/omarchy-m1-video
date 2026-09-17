@@ -7,6 +7,7 @@ proposed feature check makes the matching reject fixture fail.
 """
 from __future__ import annotations
 
+import copy
 import json
 import unittest
 from pathlib import Path
@@ -110,6 +111,9 @@ class ProposedRejects(unittest.TestCase):
             "proposed-reject-partition.json": "data_partition",
             "proposed-reject-malformed.json": "malformed_header",
             "proposed-reject-midstream-fmo.json": "fmo",
+            "proposed-reject-midstream-high10.json": "sps_incompatible",
+            "proposed-reject-sp.json": "sp_slice",
+            "proposed-reject-si.json": "si_slice",
         }
         for name, reason in cases.items():
             with self.subTest(name):
@@ -121,6 +125,44 @@ class ProposedRejects(unittest.TestCase):
     def test_midstream_fmo_is_not_the_first_picture(self):
         result = run_fixture(load("proposed-reject-midstream-fmo.json"))
         self.assertEqual(result["picture_index"], 2)
+
+    def test_midstream_high10_is_not_the_first_picture(self):
+        result = run_fixture(load("proposed-reject-midstream-high10.json"))
+        self.assertEqual(result["picture_index"], 1)
+
+    def test_reviewer_high10_after_baseline_does_not_keep_constrained_baseline(self):
+        case = load("proposed-mr2.json")
+        nxt = copy.deepcopy(case["pictures"][0])
+        nxt["sps"].update(
+            profile_idc=110, bit_depth_luma_minus8=2, bit_depth_chroma_minus8=2)
+        case["pictures"].append(nxt)
+        result = select_proposed(case)
+        self.assertEqual(result["status"], "reject")
+        self.assertEqual(result["reason"], "sps_incompatible")
+        self.assertIsNone(result["va_profile"])
+        self.assertEqual(result["picture_index"], 1)
+
+    def test_reviewer_extended_sp_and_si_do_not_map_to_main(self):
+        for kind, reason in (("SP", "sp_slice"), ("SI", "si_slice")):
+            with self.subTest(kind):
+                case = load("proposed-ba3.json")
+                case["pictures"][0]["slices"] = [{
+                    "nal_unit_type": 1, "slice_type": kind,
+                    "field_pic_flag": 0, "parse_ok": True,
+                }]
+                result = select_proposed(case)
+                self.assertEqual(result["status"], "reject")
+                self.assertEqual(result["reason"], reason)
+                self.assertIsNone(result["va_profile"])
+
+    def test_later_422_sps_is_incompatible_with_constrained_baseline(self):
+        case = load("proposed-mr2.json")
+        nxt = copy.deepcopy(case["pictures"][0])
+        nxt["sps"]["chroma_format_idc"] = 2
+        case["pictures"].append(nxt)
+        result = select_proposed(case)
+        self.assertEqual(result["status"], "reject")
+        self.assertEqual(result["reason"], "sps_incompatible")
 
 
 class NegativeChecks(unittest.TestCase):
@@ -155,6 +197,25 @@ class NegativeChecks(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["status"], "select")
         self.assertEqual(result["va_profile"], "VAProfileH264ConstrainedBaseline")
+
+    def test_removing_sps_compat_would_keep_constrained_baseline_after_high10(self):
+        checks = dict(DEFAULT_CHECKS)
+        checks["sps_compat"] = False
+        result = run_fixture(
+            load("proposed-reject-midstream-high10.json"), checks=checks)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["status"], "select")
+        self.assertEqual(result["va_profile"], "VAProfileH264ConstrainedBaseline")
+
+    def test_removing_slice_type_check_would_map_sp_and_si_to_main(self):
+        checks = dict(DEFAULT_CHECKS)
+        checks["slice_types"] = False
+        for name in ("proposed-reject-sp.json", "proposed-reject-si.json"):
+            with self.subTest(name):
+                result = run_fixture(load(name), checks=checks)
+                self.assertFalse(result["ok"])
+                self.assertEqual(result["status"], "select")
+                self.assertEqual(result["va_profile"], "VAProfileH264Main")
 
 
 class SourceMap(unittest.TestCase):

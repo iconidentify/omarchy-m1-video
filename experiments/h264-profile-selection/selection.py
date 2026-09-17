@@ -35,6 +35,33 @@ FFMPEG_TAG = "n9.0.1"
 DRIVER_COMMIT = "b9803ed5290ecb4b48c09482cbc6e943aee08b63"
 
 SLICE_TYPE_NAMES = {"I", "P", "B", "SP", "SI"}
+SLICE_SET_IP = frozenset({"I", "P"})
+SLICE_SET_IPB = frozenset({"I", "P", "B"})
+
+# Advertised VA profiles accept these FFmpeg profiles as a subset, not an upgrade.
+VA_PROFILE_ALLOWED_FF = {
+    "VAProfileH264ConstrainedBaseline": {
+        "H264_BASELINE", "H264_CONSTRAINED_BASELINE",
+    },
+    "VAProfileH264Main": {
+        "H264_BASELINE", "H264_CONSTRAINED_BASELINE", "H264_MAIN", "H264_EXTENDED",
+    },
+    "VAProfileH264High": {
+        "H264_BASELINE", "H264_CONSTRAINED_BASELINE", "H264_MAIN", "H264_EXTENDED",
+        "H264_HIGH",
+    },
+    "VAProfileH264High10": {
+        "H264_BASELINE", "H264_CONSTRAINED_BASELINE", "H264_MAIN", "H264_EXTENDED",
+        "H264_HIGH", "H264_HIGH_10", "H264_HIGH_10_INTRA",
+    },
+}
+
+VA_PROFILE_MAX_BIT_DEPTH_MINUS8 = {
+    "VAProfileH264ConstrainedBaseline": 0,
+    "VAProfileH264Main": 0,
+    "VAProfileH264High": 0,
+    "VAProfileH264High10": 2,
+}
 
 DEFAULT_CHECKS = {
     "fmo": True,
@@ -43,6 +70,8 @@ DEFAULT_CHECKS = {
     "malformed": True,
     "scan_all_pictures": True,
     "forbid_blanket_mismatch": True,
+    "sps_compat": True,
+    "slice_types": True,
 }
 
 
@@ -154,6 +183,48 @@ def picture_disallowed(picture, checks):
     return None
 
 
+def allowed_slices_for_ff_profile(ff_profile):
+    """I/P for Baseline/CB remaps; I/P/B for Main/Extended/High. Never SP/SI."""
+    if ff_profile in ("H264_BASELINE", "H264_CONSTRAINED_BASELINE"):
+        return SLICE_SET_IP
+    return SLICE_SET_IPB
+
+
+def picture_slice_disallowed(picture, ff_profile):
+    """Return a slice-set reason or None. SP/SI are outside every advertised subset."""
+    allowed = allowed_slices_for_ff_profile(ff_profile)
+    for s in picture.get("slices") or []:
+        kind = s.get("slice_type")
+        if kind == "SP":
+            return "sp_slice"
+        if kind == "SI":
+            return "si_slice"
+        if kind == "B" and "B" not in allowed:
+            return "baseline_with_b_slices"
+        if kind not in allowed:
+            return "disallowed_slice"
+    return None
+
+
+def sps_incompatible_with_va(sps, va_profile):
+    """True when this SPS cannot stay on the already-selected VA subset."""
+    ff = ffmpeg_profile_from_sps(sps)
+    allowed_ff = VA_PROFILE_ALLOWED_FF.get(va_profile)
+    if not allowed_ff or ff not in allowed_ff:
+        return "sps_incompatible"
+    luma = int(sps.get("bit_depth_luma_minus8", 0) or 0)
+    chroma_depth = int(sps.get("bit_depth_chroma_minus8", 0) or 0)
+    max_depth = VA_PROFILE_MAX_BIT_DEPTH_MINUS8.get(va_profile, 0)
+    if luma > max_depth or chroma_depth > max_depth:
+        return "sps_incompatible"
+    chroma = sps.get("chroma_format_idc", 1)
+    if chroma is None:
+        chroma = 1
+    if int(chroma) != 1:
+        return "sps_incompatible"
+    return None
+
+
 def _has_b_slice(pictures):
     for pic in pictures:
         for s in pic.get("slices") or []:
@@ -207,30 +278,37 @@ def select_proposed(stream, advertised=None, checks=None):
     )
     ff_profile = ffmpeg_profile_from_sps(pictures[0]["sps"])
     scan = pictures if checks.get("scan_all_pictures", True) else pictures[:1]
-    for index, picture in enumerate(scan):
-        reason = picture_disallowed(picture, checks)
-        if reason:
-            return {
-                "status": "reject",
-                "reason": reason,
-                "va_profile": None,
-                "ffmpeg_profile": ff_profile,
-                "exact_match": False,
-                "picture_index": index,
-                "path": "proposed",
-                "decoded_frame_evidence": False,
-            }
-    va_profile, why = proposed_va_for_safe_stream(ff_profile, pictures)
-    if va_profile is None:
-        return {
+
+    def _reject(reason, picture_index=None):
+        result = {
             "status": "reject",
-            "reason": why,
+            "reason": reason,
             "va_profile": None,
             "ffmpeg_profile": ff_profile,
             "exact_match": False,
             "path": "proposed",
             "decoded_frame_evidence": False,
         }
+        if picture_index is not None:
+            result["picture_index"] = picture_index
+        return result
+
+    for index, picture in enumerate(scan):
+        reason = picture_disallowed(picture, checks)
+        if reason:
+            return _reject(reason, index)
+        if checks.get("slice_types", True):
+            reason = picture_slice_disallowed(picture, ff_profile)
+            if reason:
+                return _reject(reason, index)
+    va_profile, why = proposed_va_for_safe_stream(ff_profile, scan)
+    if va_profile is None:
+        return _reject(why)
+    if checks.get("sps_compat", True):
+        for index, picture in enumerate(scan):
+            reason = sps_incompatible_with_va(picture.get("sps") or {}, va_profile)
+            if reason:
+                return _reject(reason, index)
     if va_profile not in advertised:
         return {
             "status": "reject",
