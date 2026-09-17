@@ -14,6 +14,7 @@
 #define CMD_SLICE 275
 #define CMD_FLAGS 8
 #define CMD_PACKED (CMD_SPS + CMD_PPS + CMD_SCALING + CMD_SLICE + CMD_FLAGS)
+#define TRACE_CAPTURE_BYTES 1261568u
 
 enum cmd_phase { CMD_OFF, CMD_ARMED, CMD_ACTIVE, CMD_DRAINED, CMD_SEALED };
 enum cmd_error {
@@ -38,6 +39,7 @@ struct cmd_hist {
 };
 struct cmd_window {
 	unsigned int picture, poc, type, nwords, nbytes, inactive;
+	unsigned int slice_size, slice_rel, slice_flags, slice_coded;
 	unsigned char controls[CMD_CONTROL];
 	unsigned int words[CMD_WORDS];
 	unsigned short sites[CMD_WORDS];
@@ -48,6 +50,8 @@ struct cmd_capture {
 	struct cmd_hist hist[CMD_PICTURES];
 	struct cmd_window window[CMD_WINDOW];
 };
+/* Peak while both recorders are live and both snapshots are open. */
+#define PEAK_ALLOC_BYTES (2u * TRACE_CAPTURE_BYTES + 2u * (unsigned)sizeof(struct cmd_capture))
 
 static inline int cmd_selected(const struct cmd_capture *c,
 			       unsigned long long context)
@@ -89,7 +93,7 @@ static inline void cmd_bind(struct cmd_capture *c, unsigned long long pid,
 
 static inline void cmd_start(struct cmd_capture *c, unsigned long long context,
 			     unsigned int slices, unsigned int entry_capacity,
-			     unsigned int entry_points)
+			     unsigned int entry_points, unsigned int tiles)
 {
 	struct cmd_window *w;
 	if (!cmd_selected(c, context))
@@ -99,7 +103,8 @@ static inline void cmd_start(struct cmd_capture *c, unsigned long long context,
 	c->pending = ++c->pictures;
 	if (c->pictures > CMD_PICTURES)
 		c->errors |= CMD_EXTENT;
-	if (slices != 1 || !entry_capacity || entry_capacity > 256 || entry_points)
+	if (slices != 1 || tiles || entry_points ||
+	    !entry_capacity || entry_capacity > 256)
 		c->errors |= CMD_SHAPE;
 	if (cmd_detail(c)) {
 		w = cmd_slot(c);
@@ -107,6 +112,7 @@ static inline void cmd_start(struct cmd_capture *c, unsigned long long context,
 		w->nbytes = 0;
 		w->nwords = 0;
 		w->inactive = 0;
+		w->slice_size = w->slice_rel = w->slice_flags = w->slice_coded = 0;
 	}
 }
 
@@ -124,6 +130,10 @@ static inline void cmd_hist_set(struct cmd_capture *c, unsigned int poc,
 	h->target = target;
 	h->flags = flags;
 	h->intra = intra;
+	if (cmd_detail(c)) {
+		c->window[c->pictures - CMD_FIRST].poc = poc;
+		c->window[c->pictures - CMD_FIRST].type = type;
+	}
 }
 
 static inline void cmd_controls(struct cmd_capture *c, const unsigned char *packed,
@@ -133,8 +143,10 @@ static inline void cmd_controls(struct cmd_capture *c, const unsigned char *pack
 	unsigned int i;
 	if (!w)
 		return;
-	if (n > CMD_PACKED)
-		n = CMD_PACKED;
+	if (n != CMD_PACKED) {
+		c->errors |= CMD_OVERFLOW;
+		return;
+	}
 	for (i = 0; i < n; i++)
 		w->controls[i] = packed[i];
 	for (; i < CMD_CONTROL; i++)
@@ -155,6 +167,23 @@ static inline void cmd_word(struct cmd_capture *c, unsigned int site,
 	w->sites[w->nwords] = (unsigned short)site;
 	w->words[w->nwords] = word;
 	w->nwords++;
+}
+
+static inline void cmd_slice_meta(struct cmd_capture *c, unsigned int size,
+				  unsigned int rel, unsigned int flags,
+				  unsigned int data_byte_offset)
+{
+	struct cmd_window *w = cmd_slot(c);
+	if (!w)
+		return;
+	w->slice_size = size;
+	w->slice_rel = rel;
+	w->slice_flags = flags;
+	w->slice_coded = rel + data_byte_offset;
+	cmd_word(c, CMD_SITE_SLICE_META, size);
+	cmd_word(c, CMD_SITE_SLICE_META, rel);
+	cmd_word(c, CMD_SITE_SLICE_META, flags);
+	cmd_word(c, CMD_SITE_SLICE_META, w->slice_coded);
 }
 
 static inline void cmd_inactive(struct cmd_capture *c, unsigned int site)

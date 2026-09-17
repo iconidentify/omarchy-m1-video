@@ -26,7 +26,8 @@ void avd_cmdtrace_done(struct avd_ctx *ctx, int success);
 void avd_cmdtrace_word(struct avd_ctx *ctx, unsigned int site);
 void avd_cmdtrace_inactive(struct avd_ctx *ctx, unsigned int site);
 void avd_cmdtrace_slice_meta(struct avd_ctx *ctx, unsigned int size,
-			     unsigned int rel, unsigned int flags);
+			     unsigned int rel, unsigned int flags,
+			     unsigned int data_byte_offset);
 static inline u32 avd_cmdtrace_last_word(struct avd_ctx *ctx)
 {
 	struct avd_segment *seg = &ctx->job.segments[ctx->job.num];

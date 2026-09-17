@@ -27,15 +27,17 @@ python3 experiments/hevc-avd-command-trace/source-tests.py /tmp/avd-pristine
 ```
 
 `prepare.py` applies the 15 shipped patches and the **accepted**
-`hevc-avd-trace/hooks.patch` read-only, then additive command-trace sources.
-It does not install or execute a module. Omit `--headers` unless recording a
-matching ARM64 module build as a campaign gate.
+`hevc-avd-trace/hooks.patch` read-only, then additive command-trace sources,
+and only then optionally builds. It does not install or execute a module.
+Omit `--headers` unless recording a matching ARM64 module build as a campaign
+gate. A header build must contain `avd_cmdtrace_start` in the `.ko`.
 
 Debugfs (after a later authorized load, not this PR):
 `/sys/kernel/debug/apple_avd_hevc_cmdtrace/{control,status,snapshot}` with the
 same `arm RUN TGID` / `seal RUN` / `off` verbs as the accepted recorder.
-Allocation: `sizeof(cmd_capture) + 1,261,568` (schema-2 history) is asserted
-`<= 2 MiB`.
+Peak allocation `PEAK_ALLOC_BYTES` is `2 * 1,261,568 + 2 * sizeof(cmd_capture)`
+when both recorders are live and both snapshots are open. That exceeds 2 MiB;
+the previous 2 MiB claim omitted live snapshots.
 
 ## What is and is not recorded
 
