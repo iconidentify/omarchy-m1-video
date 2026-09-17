@@ -1,0 +1,349 @@
+From: z23 <3616196+z23@users.noreply.github.com>
+Subject: [PATCH] Experimental VAAPI-scoped H264 stop guards (no remap)
+
+Original proposal by z23; maintainer corrections preserve non-VA ownership.
+Pinned FFmpeg bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa.
+Not installed or submitted upstream. See README for remaining parser proof.
+
+--- libavcodec/h264dec.c
++++ libavcodec/h264dec.c
+@@ -44,6 +44,9 @@
+ #include "avcodec.h"
+ #include "h264.h"
+ #include "h264dec.h"
++#if CONFIG_H264_VAAPI_HWACCEL
++#include "h264_vaapi_admit.h"
++#endif
+ #include "h2645_parse.h"
+ #include "h264data.h"
+ #include "h264_ps.h"
+@@ -611,13 +614,22 @@
+     if (ret < 0) {
+         av_log(avctx, AV_LOG_ERROR,
+                "Error splitting the input into NAL units.\n");
++#if CONFIG_H264_VAAPI_HWACCEL
++        if (ff_h264_vaapi_admit_is_active(avctx))
++            ff_h264_vaapi_admit_reject(avctx);
++#endif
+         return ret;
+     }
+ 
+     if (avctx->active_thread_type & FF_THREAD_FRAME)
+         nals_needed = get_last_needed_nal(h);
+-    if (nals_needed < 0)
++    if (nals_needed < 0) {
++#if CONFIG_H264_VAAPI_HWACCEL
++        if (ff_h264_vaapi_admit_is_active(avctx))
++            ff_h264_vaapi_admit_reject(avctx);
++#endif
+         return nals_needed;
++    }
+ 
+     for (i = 0; i < h->pkt.nb_nals; i++) {
+         H2645NAL *nal = &h->pkt.nals[i];
+@@ -631,6 +643,11 @@
+         h->nal_ref_idc   = nal->ref_idc;
+         h->nal_unit_type = nal->type;
+ 
++#if CONFIG_H264_VAAPI_HWACCEL
++        ret = ff_h264_vaapi_admit_nal(avctx, nal->type);
++        if (ret < 0)
++            goto end;
++#endif
+         err = 0;
+         switch (nal->type) {
+         case H264_NAL_IDR_SLICE:
+@@ -652,6 +669,12 @@
+             if ((err = ff_h264_queue_decode_slice(h, nal))) {
+                 H264SliceContext *sl = h->slice_ctx + h->nb_slice_ctx_queued;
+                 sl->ref_count[0] = sl->ref_count[1] = 0;
++#if CONFIG_H264_VAAPI_HWACCEL
++                if (err < 0 && ff_h264_vaapi_admit_is_active(avctx)) {
++                    ret = err;
++                    goto end;
++                }
++#endif
+                 break;
+             }
+ 
+@@ -675,7 +698,11 @@
+                     h->nb_slice_ctx_queued = 0;
+                 } else
+                     ret = ff_h264_execute_decode_slices(h);
+-                if (ret < 0 && (h->avctx->err_recognition & AV_EF_EXPLODE))
++                if (ret < 0 && (
++#if CONFIG_H264_VAAPI_HWACCEL
++                    ff_h264_vaapi_admit_is_active(avctx) ||
++#endif
++                    (h->avctx->err_recognition & AV_EF_EXPLODE)))
+                     goto end;
+             }
+             break;
+@@ -693,7 +720,11 @@
+             h->has_recovery_point = h->has_recovery_point || h->sei.recovery_point.recovery_frame_cnt != -1;
+             if (avctx->debug & FF_DEBUG_GREEN_MD)
+                 debug_green_metadata(&h->sei.green_metadata, h->avctx);
+-            if (ret < 0 && (h->avctx->err_recognition & AV_EF_EXPLODE))
++            if (ret < 0 && (
++#if CONFIG_H264_VAAPI_HWACCEL
++                    ff_h264_vaapi_admit_is_active(avctx) ||
++#endif
++                    (h->avctx->err_recognition & AV_EF_EXPLODE)))
+                 goto end;
+             break;
+         case H264_NAL_SPS: {
+@@ -711,6 +742,12 @@
+             init_get_bits8(&tmp_gb, nal->raw_data + 1, nal->raw_size - 1);
+             if (ff_h264_decode_seq_parameter_set(&tmp_gb, avctx, &h->ps, 0) >= 0)
+                 break;
++#if CONFIG_H264_VAAPI_HWACCEL
++            if (ff_h264_vaapi_admit_is_active(avctx)) {
++                ret = AVERROR_INVALIDDATA;
++                goto end;
++            }
++#endif
+             ff_h264_decode_seq_parameter_set(&nal->gb, avctx, &h->ps, 1);
+             break;
+         }
+@@ -723,7 +760,11 @@
+             }
+             ret = ff_h264_decode_picture_parameter_set(&nal->gb, avctx, &h->ps,
+                                                        nal->size_bits);
+-            if (ret < 0 && (h->avctx->err_recognition & AV_EF_EXPLODE))
++            if (ret < 0 && (
++#if CONFIG_H264_VAAPI_HWACCEL
++                    ff_h264_vaapi_admit_is_active(avctx) ||
++#endif
++                    (h->avctx->err_recognition & AV_EF_EXPLODE)))
+                 goto end;
+             break;
+         case H264_NAL_AUD:
+@@ -746,7 +787,11 @@
+     }
+ 
+     ret = ff_h264_execute_decode_slices(h);
+-    if (ret < 0 && (h->avctx->err_recognition & AV_EF_EXPLODE))
++    if (ret < 0 && (
++#if CONFIG_H264_VAAPI_HWACCEL
++                    ff_h264_vaapi_admit_is_active(avctx) ||
++#endif
++                    (h->avctx->err_recognition & AV_EF_EXPLODE)))
+         goto end;
+ 
+     // set decode_error_flags to allow users to detect concealed decoding errors
+@@ -765,6 +810,10 @@
+ 
+     ret = 0;
+ end:
++#if CONFIG_H264_VAAPI_HWACCEL
++    if (ret < 0 && ff_h264_vaapi_admit_is_active(avctx))
++        ff_h264_vaapi_admit_reject(avctx);
++#endif
+ 
+ #if CONFIG_ERROR_RESILIENCE
+     /*
+
+--- libavcodec/Makefile
++++ libavcodec/Makefile
+@@ -1061,7 +1061,7 @@
+ OBJS-$(CONFIG_H264_D3D12VA_HWACCEL)       += dxva2_h264.o d3d12va_h264.o
+ OBJS-$(CONFIG_H264_NVDEC_HWACCEL)         += nvdec_h264.o
+ OBJS-$(CONFIG_H264_QSV_HWACCEL)           += qsvdec.o
+-OBJS-$(CONFIG_H264_VAAPI_HWACCEL)         += vaapi_h264.o
++OBJS-$(CONFIG_H264_VAAPI_HWACCEL)         += vaapi_h264.o h264_vaapi_admit.o
+ OBJS-$(CONFIG_H264_VDPAU_HWACCEL)         += vdpau_h264.o
+ OBJS-$(CONFIG_H264_VIDEOTOOLBOX_HWACCEL)  += videotoolbox.o
+ OBJS-$(CONFIG_H264_VULKAN_HWACCEL)        += vulkan_decode.o vulkan_h264.o
+
+--- libavcodec/vaapi_decode.h
++++ libavcodec/vaapi_decode.h
+@@ -47,6 +47,9 @@
+ typedef struct VAAPIDecodeContext {
+     VAConfigID            va_config;
+     VAContextID           va_context;
++    int                   h264_admit_sticky;
++    int                   h264_admit_in_picture;
++    int                   h264_admit_slices;
+ 
+     AVHWDeviceContext    *device;
+     AVVAAPIDeviceContext *hwctx;
+
+--- libavcodec/vaapi_h264.c
++++ libavcodec/vaapi_h264.c
+@@ -24,6 +24,7 @@
+ #include "h264_ps.h"
+ #include "hwaccel_internal.h"
+ #include "vaapi_decode.h"
++#include "h264_vaapi_admit.h"
+ 
+ /**
+  * @file
+@@ -243,6 +244,9 @@
+     VAPictureParameterBufferH264 pic_param;
+     VAIQMatrixBufferH264 iq_matrix;
+     int err;
++
++    if ((err = ff_h264_vaapi_admit_start(avctx, h)) < 0)
++        return err;
+ 
+     pic->output_surface = ff_vaapi_get_surface_id(h->cur_pic_ptr->f);
+ 
+@@ -323,6 +327,11 @@
+     H264SliceContext *sl = &h->slice_ctx[0];
+     int ret;
+ 
++    if (ff_h264_vaapi_admit_end(avctx) < 0) {
++        ff_vaapi_decode_cancel(avctx, pic);
++        return AVERROR(EINVAL);
++    }
++
+     ret = ff_vaapi_decode_issue(avctx, pic);
+     if (ret < 0)
+         goto finish;
+@@ -343,6 +352,11 @@
+     const H264SliceContext *sl  = &h->slice_ctx[0];
+     VASliceParameterBufferH264 slice_param;
+     int err;
++
++    if ((err = ff_h264_vaapi_admit_slice(avctx, h)) < 0) {
++        ff_vaapi_decode_cancel(avctx, pic);
++        return err;
++    }
+ 
+     slice_param = (VASliceParameterBufferH264) {
+         .slice_data_size               = size,
+
+--- /dev/null
++++ libavcodec/h264_vaapi_admit.c
+@@ -0,0 +1,108 @@
++/* SPDX-License-Identifier: LGPL-2.1-or-later
++ * Experimental local FFmpeg n9.0.1 H.264 VAAPI stop guards. No profile remap.
++ * Original proposal: z23; bounded maintainer correction. Not installed/upstream. */
++#include <limits.h>
++#include "h264dec.h"
++#include "h264_ps.h"
++#include "internal.h"
++#include "vaapi_decode.h"
++#include "h264_vaapi_admit.h"
++
++int ff_h264_vaapi_admit_is_active(const AVCodecContext *avctx)
++{
++    return avctx && avctx->hwaccel && avctx->hwaccel->pix_fmt == AV_PIX_FMT_VAAPI;
++}
++
++static VAAPIDecodeContext *admit_context(AVCodecContext *avctx)
++{
++    if (!ff_h264_vaapi_admit_is_active(avctx) || !avctx->internal)
++        return NULL;
++    return avctx->internal->hwaccel_priv_data;
++}
++
++int ff_h264_vaapi_admit_reject(AVCodecContext *avctx)
++{
++    VAAPIDecodeContext *ctx = admit_context(avctx);
++    if (ctx) {
++        ctx->h264_admit_sticky = 1;
++        ctx->h264_admit_in_picture = 0;
++        ctx->h264_admit_slices = 0;
++    }
++    return AVERROR(EINVAL);
++}
++
++int ff_h264_vaapi_admit_nal(AVCodecContext *avctx, int type)
++{
++    VAAPIDecodeContext *ctx;
++    if (!ff_h264_vaapi_admit_is_active(avctx))
++        return 0;
++    ctx = admit_context(avctx);
++    if (!ctx || ctx->h264_admit_sticky)
++        return AVERROR(EINVAL);
++    switch (type) {
++    case H264_NAL_SLICE:
++    case H264_NAL_IDR_SLICE:
++    case H264_NAL_SEI:
++    case H264_NAL_SPS:
++    case H264_NAL_PPS:
++    case H264_NAL_AUD:
++    case H264_NAL_END_SEQUENCE:
++    case H264_NAL_END_STREAM:
++    case H264_NAL_FILLER_DATA:
++        return 0;
++    default: /* includes partitions, auxiliary/extension and unknown NALs */
++        return ff_h264_vaapi_admit_reject(avctx);
++    }
++}
++
++static int admit_picture(AVCodecContext *avctx, const H264Context *h)
++{
++    if (!h || !h->ps.sps || !h->ps.pps || !h->slice_ctx ||
++        h->ps.pps->slice_group_count != 1 || h->ps.pps->redundant_pic_cnt_present ||
++        !h->ps.sps->frame_mbs_only_flag || h->ps.sps->mb_aff ||
++        h->picture_structure != PICT_FRAME)
++        return ff_h264_vaapi_admit_reject(avctx);
++    return 0;
++}
++
++int ff_h264_vaapi_admit_start(AVCodecContext *avctx, const H264Context *h)
++{
++    VAAPIDecodeContext *ctx = admit_context(avctx);
++    if (!ctx)
++        return AVERROR(EINVAL);
++    if (ctx->h264_admit_sticky || ctx->h264_admit_in_picture || admit_picture(avctx, h) < 0)
++        return ff_h264_vaapi_admit_reject(avctx);
++    ctx->h264_admit_slices = 0;
++    ctx->h264_admit_in_picture = 1;
++    return 0;
++}
++
++int ff_h264_vaapi_admit_slice(AVCodecContext *avctx, const H264Context *h)
++{
++    VAAPIDecodeContext *ctx = admit_context(avctx);
++    if (!ctx)
++        return AVERROR(EINVAL);
++    if (ctx->h264_admit_sticky || !ctx->h264_admit_in_picture ||
++        ctx->h264_admit_slices == INT_MAX || admit_picture(avctx, h) < 0)
++        return ff_h264_vaapi_admit_reject(avctx);
++    if (h->nal_unit_type != H264_NAL_SLICE && h->nal_unit_type != H264_NAL_IDR_SLICE)
++        return ff_h264_vaapi_admit_reject(avctx);
++    if (h->slice_ctx[0].slice_type != AV_PICTURE_TYPE_I &&
++        h->slice_ctx[0].slice_type != AV_PICTURE_TYPE_P &&
++        h->slice_ctx[0].slice_type != AV_PICTURE_TYPE_B)
++        return ff_h264_vaapi_admit_reject(avctx);
++    ctx->h264_admit_slices++;
++    return 0;
++}
++
++int ff_h264_vaapi_admit_end(AVCodecContext *avctx)
++{
++    VAAPIDecodeContext *ctx = admit_context(avctx);
++    if (!ctx)
++        return AVERROR(EINVAL);
++    if (ctx->h264_admit_sticky || !ctx->h264_admit_in_picture || ctx->h264_admit_slices <= 0)
++        return ff_h264_vaapi_admit_reject(avctx);
++    ctx->h264_admit_in_picture = 0;
++    ctx->h264_admit_slices = 0;
++    return 0;
++}
+
+--- /dev/null
++++ libavcodec/h264_vaapi_admit.h
+@@ -0,0 +1,18 @@
++/*
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ * Local FFmpeg n9.0.1 H.264 VAAPI admission. Not installed, not upstream.
++ */
++#ifndef AVCODEC_H264_VAAPI_ADMIT_H
++#define AVCODEC_H264_VAAPI_ADMIT_H
++
++struct AVCodecContext;
++struct H264Context;
++
++int ff_h264_vaapi_admit_is_active(const struct AVCodecContext *avctx);
++int ff_h264_vaapi_admit_nal(struct AVCodecContext *avctx, int type);
++int ff_h264_vaapi_admit_start(struct AVCodecContext *avctx, const struct H264Context *h);
++int ff_h264_vaapi_admit_slice(struct AVCodecContext *avctx, const struct H264Context *h);
++int ff_h264_vaapi_admit_end(struct AVCodecContext *avctx);
++int ff_h264_vaapi_admit_reject(struct AVCodecContext *avctx);
++
++#endif
+

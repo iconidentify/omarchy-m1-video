@@ -1,0 +1,16 @@
+{
+  "schema": "omarchy-m1-video.h264-client-admission-sources/1",
+  "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/79",
+  "parent": "https://github.com/iconidentify/libva-v4l2_request/issues/37",
+  "ffmpeg": {
+    "tag": "n9.0.1",
+    "commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
+    "archive_sha256": "fb1931fd4eb29297ee1c1017a24f800c4d8fbea35b4f2aaeb28308a48a9149b4"
+  },
+  "driver": "b5deb8c319f4e53b5243bc0583fee1800e8faa42",
+  "rejected_prerequisite": {
+    "ticket": 73,
+    "head": "89c2371015ca342225038f1ead55463339d3f0e0",
+    "note": "Do not enable the archived patch."
+  }
+}
