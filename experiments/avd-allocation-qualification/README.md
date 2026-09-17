@@ -50,7 +50,7 @@ python3 experiments/avd-allocation-qualification/report-tests.py
 ```
 
 Eleven controller groups include an actual restoration-health source mutation and
-wrong-output rejection. Evidence verification rejects twelve semantic mutations
+wrong-output rejection. Evidence verification rejects thirteen semantic mutations
 including changed pixels, missing runs, false restoration, hidden faults and erased
 known failures. Hosted CI never loads a module or opens a device.
 

@@ -27,8 +27,11 @@ class EvidenceTests(unittest.TestCase):
         def early(e): e['early_export_checks']['candidate']=0
         def lease(e): e['events'][-1]['lease']='another-run'
         def stage(e): next(r for r in e['events'] if r['event']=='job-exit')['returncode']=1
+        def reordered(e):
+            i=next(i for i,r in enumerate(e['events']) if r['event']=='transition-result')
+            e['events'].insert(0,e['events'].pop(i))
         def pin(e): e['config_sha256']='0'*64
-        for fn in (output,missing,count,fault,transition,note,claim,guard,early,lease,stage,pin):
+        for fn in (output,missing,count,fault,transition,note,claim,guard,early,lease,stage,pin,reordered):
             with self.subTest(mutation=fn.__name__):
                 e=copy.deepcopy(self.e);fn(e)
                 with self.assertRaises(AssertionError):report.check(e,self.i)

@@ -47,6 +47,14 @@ def check(evidence, identities):
     transitions=[e for e in events if e['event']=='transition-result']
     assert [e['argv'] for e in transitions]==[['rmmod','apple_avd'],['insmod','$CANDIDATE'],['rmmod','apple_avd'],['modprobe','apple_avd']]
     assert all(e['returncode']==0 for e in transitions)
+    ordered=[]
+    for e in events:
+        if e['event']=='job-accepted':ordered.append((e['stage'],e['name']))
+        elif e['event']=='transition-result':ordered.append(tuple(e['argv']))
+    expected_order=[('baseline',n) for n in jobs]+[('rmmod','apple_avd'),('insmod','$CANDIDATE')]
+    expected_order += [('candidate',n) for n in jobs]+[('rmmod','apple_avd'),('modprobe','apple_avd')]
+    expected_order += [('restored',n) for n in jobs]
+    assert ordered==expected_order
     assert len([e for e in events if e['event']=='original-restored'])==1
     health=[e for e in events if e['event']=='health']
     assert health and all(not e['holders'] and not e['stuck_tasks'] and not e['faults'] for e in health)
