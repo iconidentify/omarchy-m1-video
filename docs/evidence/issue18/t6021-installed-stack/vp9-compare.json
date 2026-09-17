@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "baseline_suite": "VP9-TEST-VECTORS",
+  "candidate_suite": "VP9-TEST-VECTORS",
+  "baseline_total": "216/305",
+  "candidate_total": "216/305",
+  "lost_passes": [],
+  "new_passes": [],
+  "missing_vectors": [],
+  "extra_vectors": [],
+  "category_changes": [],
+  "first_differing_frames": [],
+  "errors": []
+}

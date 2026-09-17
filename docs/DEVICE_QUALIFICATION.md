@@ -13,7 +13,7 @@ reboot and suspend are separate activities with their own authorization gates.
 | --- | --- | --- |
 | M1 / T8103, MacBookPro17,1 | Historical r11 userspace tests on `linux-asahi 7.1.13.asahi3-1`; [record](codec-validation-r11-2026-09-15.json) | Experimental; HEVC 144/147, AVC 73/135, opt-in High 10 FRExt 27/69, VP9 216/305; boot/display/codec gaps remain |
 | M2 / `apple,j413`, `apple,t8112` | Inventory only; kernel `7.1.13-3-1-ARCH`, package `linux-asahi 7.1.13.asahi3-1`, installed VA driver `1.3.r5-1` | Experimental; capabilities unknown, no decode attempted; `apple_avd` absent from loaded-module sysfs, `video0` is `apple-isp` / `apple_isp` |
-| M2 Max / `apple,j416c`, `apple,t6021` | Inventory and two contributor-reported three-vector smoke runs; kernel `7.1.13-3-1-ARCH`, package `linux-asahi 7.1.13.asahi3-1`; selected library `27da69dd5fcb438deab970061a2edcc68a9e1d93`; [inventory](evidence/issue18/m2-j416c-inventory.json), [campaign 1](evidence/issue18/t6021-in-tree-smoke/README.md), [campaign 2](evidence/issue18/t6021-patched-smoke/README.md) | Experimental; all 238 reported frame hashes agree with independent output. Exact loaded-module and 15-patch attribution remain unverified; [review and provenance limits](evidence/issue18/t6021-review.md). These records do not qualify full suites, clients or boot-enabled use. |
+| M2 Max / `apple,j416c`, `apple,t6021` | Inventory, earlier reported smokes, and later contributor-attributed installed-stack/boot records; [initial review](evidence/issue18/t6021-review.md), [follow-up review](evidence/issue18/t6021-followup-review.md) | Experimental. Submitted full-suite summaries have the same r11 passing-vector sets: HEVC 144/147, AVC 73/135, opt-in FRExt 27/69, VP9 216/305. Failure categories differ; AVC comparison remains non-green. One reported boot-enabled login is supported by a short module-startup excerpt, not full boot qualification or exact loaded-binary attribution. |
 | Other Apple Silicon devices | No record in this workflow | Untested; do not inherit these rows |
 
 The M1 record used an isolated r11 library while its installed package was r5.
@@ -41,8 +41,18 @@ those two campaigns. These operation claims lack original command/authorization
 records in this contribution and are not independently verified. The
 [review assessment](evidence/issue18/t6021-review.md) preserves those unknowns and
 limits acceptance to the inventory and reported smoke output. It does not establish
-which patchset was active, a benefit from the patches, or the outcome of any later
-installation/boot campaign. M1 r11 totals must not be copied onto `t6021`.
+which patchset was active or a benefit from the patches during those two smokes.
+
+The contributor later reported an installation from `a88d45cc74ec41d0e95ace3763900137d2ce9b19`,
+full suites and export/lifecycle/mpv checks, followed by one consented reboot.
+The [follow-up review](evidence/issue18/t6021-followup-review.md) validates the
+submitted result schemas and exact pass sets, preserves guard outcomes and
+separates reported provenance from independently checkable content. The short
+journal excerpt shows an out-of-tree AVD module initializing with hardware
+version 30010. It does not identify the exact loaded binary or prove a
+fault-free boot interval. The LUKS-wait explanation and operation consent are
+contributor reports; original records are not included. All 32 raw artifacts
+are preserved. Issue #18 and boot/release gates #13/#17 remain open.
 
 ## Inventory without opening a decoder
 
