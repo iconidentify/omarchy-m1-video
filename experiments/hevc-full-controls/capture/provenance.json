@@ -1,0 +1,55 @@
+{
+  "schema": "hevc-full-controls.campaign/1",
+  "base_commit": "3cdf66b327e21e3d89d94cf31e82d1586b636352",
+  "device": "Apple j293 / T8103 / arm-platform",
+  "architecture": "aarch64",
+  "kernel": "7.1.13-3-1-ARCH",
+  "packages": [
+    "linux-asahi 7.1.13.asahi3-1",
+    "linux-asahi-headers 7.1.13.asahi3-1",
+    "ffmpeg 2:9.0.1-4",
+    "gstreamer 1.28.7-1",
+    "gst-plugins-bad-libs 1.28.7-1",
+    "v4l-utils 1.32.0-2",
+    "libva 2.24.1-1"
+  ],
+  "userspace_driver": {
+    "source": "266269ee49d2fbb147f4983307b4b2492bd1a829",
+    "sha256": "b0ee879441c9857740b62b932eb23fc452aba2663c57bcce30f2a47ba23fe58e",
+    "installation": "not installed; selected by LIBVA_DRIVERS_PATH"
+  },
+  "helper": {
+    "source_url": "https://github.com/iconidentify/libva-v4l2_request/blob/266269ee49d2fbb147f4983307b4b2492bd1a829/tests/frame-check.c",
+    "change": "one av_log_set_level argument: AV_LOG_WARNING -> AV_LOG_DEBUG; no decode/hash change",
+    "source_sha256": "76e4510f4408cf1853d1985be504f52da5bc62ccf216f68d5aa02213b5e1114b",
+    "binary_sha256": "a4cec589e5647f27911b09485c1a7e2ba08a383d849d7ab9096ccf2613ccdf91"
+  },
+  "external_sources": {
+    "gstreamer": "070125524a8422e29d3b69a372ed4f62fd343ffa",
+    "v4l_utils": "5a666c7ce89c00d66aa8e53c8f098a0c6c401f91",
+    "ffmpeg": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
+    "kernel_tag_commit": "94fb23346d522edf53722357c426a3e58030beea"
+  },
+  "guard_source": "b5deb8c319f4e53b5243bc0583fee1800e8faa42",
+  "binaries": {
+    "libgstv4l2codecs.so": "54a6fb6d7ecbe190c8d2f092185f0cab3a3e38ce3154ba340003e2e6c8e521a2",
+    "v4l2-tracer": "b2b9fafd285c5e654adc6a58c4f93a5caeaef2a0ccf27512c7683f3306e2735d"
+  },
+  "loaded_module_sha256": "e50540e1d0fc48c7e0bf9b21ff028758bdb35f94aa7070af00de88e61e5c70e9",
+  "loaded_build_id_note_matches": true,
+  "module_changed": false,
+  "fixed_boundary": "2026-09-17T17:09:48.295096+00:00",
+  "guard_deadline_seconds": 90,
+  "guard_poll_seconds": 0.1,
+  "final_idle": true,
+  "new_faults": 0,
+  "reference_frames_sha256": "6f25d3ad30b99ac0e8ee5c9cf2338b19f89dd3b884ed6607ef438bf8977a8cbf",
+  "prior_provenance_sha256": "683c9871d668594351641bf5ff14eb34f590d5690b3f1142778e35cfe97ba2e5",
+  "scope": "Eight short serial workloads on existing module; no reload/install/reboot. Normalized userspace arguments and successful ioctl return values, not copied kernel controls or firmware commands.",
+  "limitations": [
+    "One M1/two vectors, no full-suite/concurrency/soak/boot/throughput qualification.",
+    "Kernel may process later; ioctl returns are not an observation at the job hook.",
+    "Pre-QBUF payload digests do not prove later DMA/firmware reads.",
+    "Private raw digests do not independently authenticate their contents."
+  ]
+}

@@ -1,0 +1,109 @@
+[
+  {
+    "event": "authorized-transition-start",
+    "boundary": "2026-09-17T17:09:48.295096+00:00",
+    "prior_fixed_boundary": "2026-09-17T16:02:51.266903+00:00",
+    "idle": true,
+    "new_faults": 0,
+    "authorization": "Owner explicitly confirmed saved work, closed apps and the corrected temporary experiment; later granted standing machine control.",
+    "time": "2026-09-17T10:09:48-0700"
+  },
+  {
+    "event": "unload-existing",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T10:09:48-0700"
+  },
+  {
+    "event": "load-standard-dependency",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T10:09:48-0700"
+  },
+  {
+    "event": "load-standard-dependency",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T10:09:48-0700"
+  },
+  {
+    "event": "load-standard-dependency",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T10:09:48-0700"
+  },
+  {
+    "event": "load-standard-dependency",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T10:09:48-0700"
+  },
+  {
+    "event": "load-standard-dependency",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T10:09:48-0700"
+  },
+  {
+    "event": "load-standard-dependency",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T10:09:48-0700"
+  },
+  {
+    "event": "load-standard-dependency",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T10:09:48-0700"
+  },
+  {
+    "event": "load-standard-dependency",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T10:09:48-0700"
+  },
+  {
+    "event": "load-experimental",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T10:09:48-0700"
+  },
+  {
+    "event": "transition-complete",
+    "loaded_build_id_matches": true,
+    "trace_status": "S 1 0 0 0 0 0 0 0 0 0",
+    "idle": true,
+    "new_faults": 0,
+    "time": "2026-09-17T10:09:48-0700"
+  },
+  {
+    "event": "authorized-healthy-restoration-start",
+    "boundary_unchanged": "2026-09-17T17:09:48.295096+00:00",
+    "idle": true,
+    "new_faults": 0,
+    "reason": "authorized campaign ended; restore only if decoder healthy",
+    "time": "2026-09-17T10:15:43-0700"
+  },
+  {
+    "event": "unload-experimental",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T10:15:43-0700"
+  },
+  {
+    "event": "restore-existing",
+    "returncode": 0,
+    "stderr": "",
+    "time": "2026-09-17T10:15:43-0700"
+  },
+  {
+    "event": "restoration-complete",
+    "loaded": "existing",
+    "idle": true,
+    "new_faults": 0,
+    "loaded_build_id_matches": true,
+    "installed_module_sha256": "e50540e1d0fc48c7e0bf9b21ff028758bdb35f94aa7070af00de88e61e5c70e9",
+    "boundary_unchanged": "2026-09-17T17:09:48.295096+00:00",
+    "time": "2026-09-17T10:15:44-0700"
+  }
+]

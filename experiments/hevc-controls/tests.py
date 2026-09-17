@@ -89,6 +89,50 @@ def control(events, name, picture=0):
 
 
 class Tests(unittest.TestCase):
+    def test_unused_querycap_input_bytes_are_scoped(self):
+        events = fixture()
+        query = ioctl("VIDIOC_QUERYCAP", "from_userspace",
+                      dict(v4l2_capability=dict(driver="BAD_BYTES")))
+        query["from_driver"] = dict(v4l2_capability=dict(driver="avd"))
+        events.insert(2, query)
+        raw = json.dumps(events).encode().replace(b"BAD_BYTES", b"\xff")
+        parsed = n.parse(raw)
+        self.assertNotIn("from_userspace", parsed[2])
+        self.assertEqual(len(n.normalize(parsed, 4, "1234567890abcdef")[0]), 4)
+        # The same invalid bytes are forbidden in returned or other metadata.
+        for op, direction in (("VIDIOC_QUERYCAP", "from_driver"),
+                              ("VIDIOC_G_FMT", "from_userspace")):
+            events[2] = ioctl(op, direction, dict(v4l2_capability=dict(driver="BAD_BYTES")))
+            with self.subTest(op=op, direction=direction), self.assertRaises(n.Reject):
+                n.parse(json.dumps(events).encode().replace(b"BAD_BYTES", b"\xff"))
+
+    def test_negotiation_sps_does_not_replace_request_sps(self):
+        events = fixture()
+        global_sps = copy.deepcopy(control(events, "SPS"))
+        global_event = ioctl("VIDIOC_S_EXT_CTRLS", "from_userspace", dict(v4l2_ext_controls=dict(
+            which="V4L2_CTRL_WHICH_CUR_VAL", count=1, controls=[global_sps])))
+        events.insert(2, global_event)
+        self.assertEqual(len(convert(events)[0]), 4)
+        ext(events, 1)["controls"].pop()
+        ext(events, 1)["count"] = 2
+        with self.assertRaises(n.Reject):
+            convert(events)
+        events = fixture()
+        events.insert(-2, global_event)
+        with self.assertRaises(n.Reject):
+            convert(events)
+
+    def test_i_slice_has_no_active_collocated_reference(self):
+        events = fixture()
+        sl = control(events, "SLICE_PARAMS")["v4l2_ctrl_hevc_slice_params"]
+        sl.update(flags="V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_TEMPORAL_MVP_ENABLED", collocated_ref_idx=255)
+        records, _ = convert(events)
+        self.assertEqual(records[0]["slices"][0]["col"], 255)
+        self.assertEqual(records[0]["slices"][0]["l0"], [])
+        sl["collocated_ref_idx"] = 256
+        with self.assertRaises(n.Reject):
+            convert(events)
+
     def test_zero_timestamp_reordering_reuse_and_flag_bug(self):
         records, pics = convert(fixture())
         self.assertEqual([r["poc"] for r in records], [0, 2, 1, 3])

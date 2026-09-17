@@ -1,0 +1,788 @@
+{
+  "schema": "hevc-controls.capture-decision/1",
+  "runs": [
+    {
+      "id": "B-va-off",
+      "frames": 300,
+      "wrong_indices": [],
+      "md5": "6d1ed392b067050ebd3a24a37281da03",
+      "association": "available in private log; not selected"
+    },
+    {
+      "id": "B-va-on",
+      "frames": 300,
+      "wrong_indices": [],
+      "md5": "6d1ed392b067050ebd3a24a37281da03",
+      "association": "selected/published"
+    },
+    {
+      "id": "B-gst-off",
+      "frames": 300,
+      "wrong_indices": [],
+      "md5": "6d1ed392b067050ebd3a24a37281da03",
+      "association": "unavailable: initial debug category did not enable HEVC output events"
+    },
+    {
+      "id": "B-gst-on",
+      "frames": 300,
+      "wrong_indices": [],
+      "md5": "6d1ed392b067050ebd3a24a37281da03",
+      "association": "unavailable: initial debug category did not enable HEVC output events"
+    },
+    {
+      "id": "B-gst-on-outputlog",
+      "frames": 300,
+      "wrong_indices": [],
+      "md5": "6d1ed392b067050ebd3a24a37281da03",
+      "association": "selected/published"
+    },
+    {
+      "id": "E-va-off",
+      "frames": 300,
+      "wrong_indices": [
+        31,
+        73,
+        74,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        117,
+        123,
+        221
+      ],
+      "md5": "b09ac8e0bd31a96d8354505d7c2ebdd5",
+      "association": "available in private log; not selected"
+    },
+    {
+      "id": "E-va-on",
+      "frames": 300,
+      "wrong_indices": [
+        31,
+        73,
+        74,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        117,
+        123,
+        221
+      ],
+      "md5": "b09ac8e0bd31a96d8354505d7c2ebdd5",
+      "association": "selected/published"
+    },
+    {
+      "id": "E-gst-off",
+      "frames": 300,
+      "wrong_indices": [
+        26,
+        28,
+        29,
+        30,
+        31,
+        74,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        85,
+        88,
+        91,
+        94,
+        181,
+        185,
+        217,
+        218,
+        220,
+        221,
+        283
+      ],
+      "md5": "53952960ec7512d9cb64f8c7020ece03",
+      "association": "unavailable: initial debug category did not enable HEVC output events"
+    },
+    {
+      "id": "E-gst-on",
+      "frames": 300,
+      "wrong_indices": [
+        26,
+        28,
+        29,
+        30,
+        31,
+        74,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        85,
+        88,
+        91,
+        94,
+        181,
+        185,
+        217,
+        218,
+        220,
+        221,
+        283
+      ],
+      "md5": "53952960ec7512d9cb64f8c7020ece03",
+      "association": "unavailable: initial debug category did not enable HEVC output events"
+    },
+    {
+      "id": "E-gst-on-outputlog",
+      "frames": 300,
+      "wrong_indices": [
+        26,
+        28,
+        29,
+        30,
+        31,
+        74,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        85,
+        88,
+        91,
+        94,
+        181,
+        185,
+        217,
+        218,
+        220,
+        221,
+        283
+      ],
+      "md5": "53952960ec7512d9cb64f8c7020ece03",
+      "association": "selected/published"
+    }
+  ],
+  "vectors": {
+    "B": {
+      "first_strict_difference": {
+        "equal": false,
+        "scope": "recorded reference fields only",
+        "extent": "expected picture count",
+        "context_a": 1,
+        "context_b": 1,
+        "pictures_a": 300,
+        "pictures_b": 300,
+        "pictures_compared": 15,
+        "difference": {
+          "pic": 15,
+          "poc_a": 13,
+          "poc_b": 13,
+          "field": "req[0].dpb[1].src",
+          "a": [
+            5,
+            1
+          ],
+          "b": [
+            14,
+            11
+          ],
+          "line_a": 15,
+          "line_b": 15
+        }
+      },
+      "semantic_differences": {
+        "poc": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "irap": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "idr": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "ltr_sps": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "total_curr": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "st_before": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "st_after": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "lt_curr": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "dpb_membership": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "dpb_order": {
+          "count": 239,
+          "first_picture": 15,
+          "first_poc": 13
+        },
+        "slices": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        }
+      },
+      "first_bad": {
+        "va": null,
+        "gst": null
+      }
+    },
+    "E": {
+      "first_strict_difference": {
+        "equal": false,
+        "scope": "recorded reference fields only",
+        "extent": "expected picture count",
+        "context_a": 1,
+        "context_b": 1,
+        "pictures_a": 300,
+        "pictures_b": 300,
+        "pictures_compared": 9,
+        "difference": {
+          "pic": 9,
+          "poc_a": 4,
+          "poc_b": 4,
+          "field": "req[0].lt_curr",
+          "a": [
+            6,
+            1
+          ],
+          "b": [
+            1,
+            6
+          ],
+          "line_a": 9,
+          "line_b": 9
+        }
+      },
+      "semantic_differences": {
+        "poc": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "irap": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "idr": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "ltr_sps": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "total_curr": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "st_before": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "st_after": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "lt_curr": {
+          "count": 69,
+          "first_picture": 9,
+          "first_poc": 4
+        },
+        "dpb_membership": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        },
+        "dpb_order": {
+          "count": 271,
+          "first_picture": 14,
+          "first_poc": 16
+        },
+        "slices": {
+          "count": 0,
+          "first_picture": null,
+          "first_poc": null
+        }
+      },
+      "first_bad": {
+        "va": {
+          "first_output": {
+            "output_index": 31,
+            "pic": 31,
+            "poc": 31,
+            "layer": 0
+          },
+          "first_decode": {
+            "output_index": 31,
+            "pic": 31,
+            "poc": 31,
+            "layer": 0
+          },
+          "first_decode_references": {
+            "poc": 31,
+            "irap": 0,
+            "idr": 0,
+            "ltr_sps": 1,
+            "total_curr": 8,
+            "st_before": [
+              30,
+              28
+            ],
+            "st_after": [
+              32
+            ],
+            "lt_curr": [
+              0,
+              4,
+              6,
+              8,
+              10
+            ],
+            "dpb_membership": [
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                4,
+                1,
+                0
+              ],
+              [
+                6,
+                1,
+                0
+              ],
+              [
+                8,
+                1,
+                0
+              ],
+              [
+                10,
+                1,
+                0
+              ],
+              [
+                11,
+                1,
+                0
+              ],
+              [
+                16,
+                1,
+                0
+              ],
+              [
+                21,
+                1,
+                0
+              ],
+              [
+                23,
+                1,
+                0
+              ],
+              [
+                24,
+                1,
+                0
+              ],
+              [
+                25,
+                1,
+                0
+              ],
+              [
+                27,
+                1,
+                0
+              ],
+              [
+                28,
+                0,
+                0
+              ],
+              [
+                30,
+                0,
+                0
+              ],
+              [
+                32,
+                0,
+                0
+              ]
+            ],
+            "dpb_order": [
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                16,
+                1,
+                0
+              ],
+              [
+                8,
+                1,
+                0
+              ],
+              [
+                6,
+                1,
+                0
+              ],
+              [
+                28,
+                0,
+                0
+              ],
+              [
+                30,
+                0,
+                0
+              ],
+              [
+                21,
+                1,
+                0
+              ],
+              [
+                24,
+                1,
+                0
+              ],
+              [
+                4,
+                1,
+                0
+              ],
+              [
+                10,
+                1,
+                0
+              ],
+              [
+                23,
+                1,
+                0
+              ],
+              [
+                27,
+                1,
+                0
+              ],
+              [
+                25,
+                1,
+                0
+              ],
+              [
+                32,
+                0,
+                0
+              ],
+              [
+                11,
+                1,
+                0
+              ]
+            ],
+            "slices": [
+              {
+                "type": "B",
+                "nal": 9,
+                "tmvp": 1,
+                "l0": [
+                  30,
+                  28
+                ],
+                "l1": [
+                  32,
+                  30
+                ],
+                "col_l0": 1,
+                "col": 0,
+                "collocated_poc": 30
+              }
+            ]
+          }
+        },
+        "gst": {
+          "first_output": {
+            "output_index": 26,
+            "pic": 32,
+            "poc": 26,
+            "system_frame_number": 31
+          },
+          "first_decode": {
+            "output_index": 28,
+            "pic": 29,
+            "poc": 28,
+            "system_frame_number": 28
+          },
+          "first_decode_references": {
+            "poc": 28,
+            "irap": 0,
+            "idr": 0,
+            "ltr_sps": 1,
+            "total_curr": 8,
+            "st_before": [],
+            "st_after": [
+              32
+            ],
+            "lt_curr": [
+              16,
+              11,
+              10,
+              8,
+              6,
+              4,
+              0
+            ],
+            "dpb_membership": [
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                4,
+                1,
+                0
+              ],
+              [
+                6,
+                1,
+                0
+              ],
+              [
+                8,
+                1,
+                0
+              ],
+              [
+                10,
+                1,
+                0
+              ],
+              [
+                11,
+                1,
+                0
+              ],
+              [
+                16,
+                1,
+                0
+              ],
+              [
+                21,
+                1,
+                0
+              ],
+              [
+                22,
+                1,
+                0
+              ],
+              [
+                23,
+                1,
+                0
+              ],
+              [
+                24,
+                1,
+                0
+              ],
+              [
+                25,
+                1,
+                0
+              ],
+              [
+                27,
+                1,
+                0
+              ],
+              [
+                32,
+                0,
+                0
+              ]
+            ],
+            "dpb_order": [
+              [
+                0,
+                1,
+                0
+              ],
+              [
+                8,
+                1,
+                0
+              ],
+              [
+                6,
+                1,
+                0
+              ],
+              [
+                4,
+                1,
+                0
+              ],
+              [
+                10,
+                1,
+                0
+              ],
+              [
+                16,
+                1,
+                0
+              ],
+              [
+                11,
+                1,
+                0
+              ],
+              [
+                22,
+                1,
+                0
+              ],
+              [
+                23,
+                1,
+                0
+              ],
+              [
+                21,
+                1,
+                0
+              ],
+              [
+                24,
+                1,
+                0
+              ],
+              [
+                27,
+                1,
+                0
+              ],
+              [
+                25,
+                1,
+                0
+              ],
+              [
+                32,
+                0,
+                0
+              ]
+            ],
+            "slices": [
+              {
+                "type": "B",
+                "nal": 9,
+                "tmvp": 1,
+                "l0": [
+                  32,
+                  16
+                ],
+                "l1": [
+                  32,
+                  16
+                ],
+                "col_l0": 0,
+                "col": 0,
+                "collocated_poc": 32
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

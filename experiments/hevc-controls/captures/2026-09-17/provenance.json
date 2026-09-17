@@ -1,0 +1,61 @@
+{
+  "schema": "hevc-controls.provenance/1",
+  "device": "MacBook Pro M1 T8103",
+  "compatible": [
+    "apple,j293",
+    "apple,t8103",
+    "apple,arm-platform"
+  ],
+  "kernel": "7.1.13-3-1-ARCH",
+  "architecture": "aarch64",
+  "packages": [
+    "linux-asahi 7.1.13.asahi3-1",
+    "ffmpeg 2:9.0.1-4",
+    "gstreamer 1.28.7-1",
+    "gst-plugins-bad-libs 1.28.7-1",
+    "v4l-utils 1.32.0-2",
+    "libva 2.24.1-1",
+    "libva-v4l2_request-avd 1.3.r11-2"
+  ],
+  "userspace_driver": {
+    "source": "266269ee49d2fbb147f4983307b4b2492bd1a829",
+    "sha256": "b0ee879441c9857740b62b932eb23fc452aba2663c57bcce30f2a47ba23fe58e",
+    "installation": "not installed; selected by LIBVA_DRIVERS_PATH"
+  },
+  "helper": {
+    "source_url": "https://github.com/iconidentify/libva-v4l2_request/blob/266269ee49d2fbb147f4983307b4b2492bd1a829/tests/frame-check.c",
+    "change": "one av_log_set_level argument: AV_LOG_WARNING -> AV_LOG_DEBUG; no decode/hash change",
+    "source_sha256": "76e4510f4408cf1853d1985be504f52da5bc62ccf216f68d5aa02213b5e1114b",
+    "binary_sha256": "a4cec589e5647f27911b09485c1a7e2ba08a383d849d7ab9096ccf2613ccdf91"
+  },
+  "module": {
+    "selected_file": "updates/apple-avd.ko",
+    "file_sha256": "e50540e1d0fc48c7e0bf9b21ff028758bdb35f94aa7070af00de88e61e5c70e9",
+    "after_hash_matches": true,
+    "build_stamp": "tag=asahi-7.1.13-3 patches=029f57377a00",
+    "checked_in_patch_content_hash": "029f57377a00",
+    "fresh_reload": true,
+    "limit": "Selected file hashed before/after one successful explicit unload/load; no independent hash of resident module text or reproducible kernel-module build proof."
+  },
+  "recovery_boundary": "2026-09-17T13:34:56.013333+00:00",
+  "guard_source": "266269ee49d2fbb147f4983307b4b2492bd1a829",
+  "external_sources": {
+    "gstreamer": "070125524a8422e29d3b69a372ed4f62fd343ffa",
+    "v4l_utils": "5a666c7ce89c00d66aa8e53c8f098a0c6c401f91",
+    "ffmpeg": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
+    "kernel_tag_commit": "94fb23346d522edf53722357c426a3e58030beea"
+  },
+  "binaries": {
+    "libgstv4l2codecs.so": "54a6fb6d7ecbe190c8d2f092185f0cab3a3e38ce3154ba340003e2e6c8e521a2",
+    "v4l2-tracer": "b2b9fafd285c5e654adc6a58c4f93a5caeaef2a0ccf27512c7683f3306e2735d"
+  },
+  "sources": {
+    "ffmpeg-hevc-refs.c": "9f31686986b528abd579d41d7380fb6344955d2ef574372e9e83d1cb8cdf0dd2",
+    "avd-hevc.c": "a9cc1dd4303ac8c482f1dd8aa6a5de866f0c4e11a9fdf98796fe479e1e260bb9"
+  },
+  "limits": [
+    "One selected M1 and existing module; ten short serial captures, no full suite, concurrency, performance or boot qualification.",
+    "Private raw traces/outputs remain local; published hashes do not let an external reviewer independently reconstruct or verify those private artifacts.",
+    "Reference subset only: complete SPS/PPS, weights, offsets and bitstream equality are not established."
+  ]
+}
