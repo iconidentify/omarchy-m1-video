@@ -68,18 +68,40 @@ discussion elaborating the claim beyond the README line itself.
 
 ## 3. What the RE author's own code implies
 
-The README assertion is not isolated; the same conclusion is load-bearing in two places in the
+**Correction (2026-09-17):** an earlier version of this section additionally claimed that the
+`decoder.py` geometry assertions reject interlace-capable SPSs. That claim was wrong and has
+been removed after review by HerrStolzier, who supplied a synthetic counterexample. `refresh_sps()`
+computes `ctx.orig_height` using the `(2 - sps.frame_mbs_only_flag)` factor
+([lines 66–70](https://github.com/eiln/avd/blob/e8dfcb70dcef9fbf6cc4f11443647d9d49c3d270/avid/h264/decoder.py#L66-L70)),
+so it already accounts for interlaced frame height. The later assertion
+`assert(height_mbs == (ctx.orig_height + 15) // 16)`
+([lines 112–115](https://github.com/eiln/avd/blob/e8dfcb70dcef9fbf6cc4f11443647d9d49c3d270/avid/h264/decoder.py#L112-L115))
+compares that value against one derived by the same formula, so it holds regardless of
+`frame_mbs_only_flag`: for a synthetic `frame_mbs_only_flag=0`, `pic_width_in_mbs_minus1=44`,
+`pic_height_in_map_units_minus1=14` SPS (720×480, no crop), both assertions pass
+(`width_mbs=45`, `height_mbs=30`, `(720+15)//16=45`, `(480+15)//16=30`) — independently
+re-derived here and confirmed. It is a self-consistency check, not an interlace rejection; the
+neighboring `# No interlaced` comment does not establish otherwise. This geometry code is
+therefore **not** evidence for the "unsupported by hardware" claim and is removed from the
+evidence base below.
+
+The README assertion is not isolated, though: the same conclusion is load-bearing in the
 author's own from-scratch reference model, which is a stronger form of evidence than a README
 sentence because the code had to be written to actually decode the conformance corpus:
 
-- `avid/h264/decoder.py` (format/geometry setup): `assert(width_mbs == (ctx.orig_width + 15) // 16)  # No interlaced`
-  — the frame-geometry math is written assuming `frame_mbs_only_flag = 1` and will hard-fail
-  an interlaced SPS before any decode is attempted, not just reject a specific unimplemented
-  path.
 - `avid/h264/rlm.py`, `init_slice()`: `raise NotImplementedError("top/bottom fields not supported by hardware.")`,
   guarded by `if (sl.field_pic_flag):` — the reference-list-management model, which reproduces
   the *hardware's* DPB/reference behavior (not just bitstream syntax), has no path for field
-  pictures at all.
+  pictures at all. This is the sole code-level corroboration; see the gap noted below.
+
+**Gap this leaves open:** MBAFF-capable frame pictures (`frame_mbs_only_flag = 0` with
+`mb_adaptive_frame_field_flag = 1`, `field_pic_flag = 0`, matching issue-10 §3.1's 21 "frame
+pictures, MBAFF enabled" vectors) never set `field_pic_flag`, so they would not trip the
+`rlm.py` guard above. Neither the geometry code (which is interlace-aware, section 3 above) nor
+this reference-list guard demonstrably rejects that specific case in the author's model. This
+narrows, rather than removes, the uncertainty this document already flags in section 4: the
+"unsupported by hardware" claim is best supported for field-coded/PAFF content
+(`field_pic_flag = 1`), and less directly supported by this code for MBAFF-only frame pictures.
 
 This is the same author, so it is not independent corroboration of the README line — but it
 does show the claim is structural to their model of the hardware's reference-management
@@ -136,7 +158,7 @@ encoding was found in the published command vocabulary.
 | AVD firmware command vocabulary (`avd-inst.h`) has no field-parity/pairing bit | **source-observed** | direct read of `avd-inst.h` at `94fb233…`, section 3.2 above; matches issue-10 §9.1 |
 | Kernel driver rejects any SPS with `!FRAME_MBS_ONLY` at `STREAMON` | **source-observed** | direct read of `avd-h264.c` `avd_h264_validate_sps`, section 3.2 above |
 | "Unsupported by hardware: MBAFF/PAFF interlaced, top/bottom field coding" | **reported by original reverse engineer, uncited within the repo** | `eiln/avd` README, commits `a5061d`/`191dcf`, section 2; no linked trace, firmware error, or sample |
-| eiln's own hardware/reference-list model (`rlm.py`, `decoder.py`) has no field-picture code path and assumes frame-only geometry | **source-observed**, and consistent with the README claim | direct read of `avid/h264/{decoder,rlm}.py`, section 3 above — same author, not independent of the README claim |
+| eiln's own reference-list model (`rlm.py`) raises `NotImplementedError` for `field_pic_flag`-set pictures; does not demonstrably cover MBAFF-only frame pictures | **source-observed**, and consistent with the README claim for field-coded/PAFF content only | direct read of `avid/h264/rlm.py`, section 3 above — same author, not independent of the README claim. `decoder.py`'s geometry code is interlace-aware, not a rejection, and is not evidence here (corrected in section 3 after review) |
 | Kernel driver's `/* no interlaced support */` comment is independent confirmation, separate from eiln's finding | **unresolved / no public record either way** | no citation in the introducing commit; ecosystem credits eiln for the underlying RE, section 3.2 |
 | Client (FFmpeg), VA-API contract, V4L2 UAPI and userspace VA driver all carry full field/PAFF/MBAFF syntax | **source-observed** | already established in issue-10 §4/§9.2–9.4; re-confirmed here only for the bitstream-parser layer (§3.1), unchanged |
 | Whether Apple's firmware itself (as opposed to every RE'd model of it) can decode field pictures | **unknown** | no public trace, firmware disassembly, or hardware experiment establishes this either way; unchanged from issue-10 |
@@ -152,12 +174,14 @@ the ISA/firmware level and is not overturned here: no public source, including e
 model, contains a traced firmware command, error code, or capability register that directly
 demonstrates the AVD coprocessor rejects field mode in hardware. The claim's true status is
 **"unsupported by hardware," reported once by the original reverse engineer without a cited
-trace, and structurally assumed throughout that author's own reference model** — meaningfully
-stronger than "no information," but short of "independently measured." Issue-10 (and by
-extension the design #14 depends on) should cite this claim explicitly by name and source
-rather than leaving the firmware layer as bare "unknown," since a named domain expert's
-uncited claim and total silence are not the same evidentiary state and readers of #14 should
-see the distinction.
+trace, and given one concrete rejection path in that author's own reference model for
+field-coded/PAFF content (`rlm.py`, section 3)** — meaningfully stronger than "no information"
+for that subset, but short of "independently measured," and, per the gap noted in section 3,
+not demonstrably covering MBAFF-only frame pictures at all. Issue-10 (and by extension the
+design #14 depends on) should cite this claim explicitly by name and source rather than leaving
+the firmware layer as bare "unknown," since a named domain expert's uncited claim and total
+silence are not the same evidentiary state and readers of #14 should see the distinction — and
+should note the claim's support is uneven across the field-coded/PAFF and MBAFF-only cases.
 
 This record makes **no promise of recovering the 49 failing Main-profile vectors** and does not
 change the C1 gap classification, the kernel rejection, or #14's blocked status.
