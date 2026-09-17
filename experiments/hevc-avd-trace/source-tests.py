@@ -41,6 +41,13 @@ def verify(source):
         mv=new[new.index('static void stream_slice_mv('):new.index('static void set_slice(')]
         if not mv.index('return;') < mv.index('avd_get_ref_buf_observed(') < mv.index('ref_valid ='):
             raise ValueError('motion control flow changed')
+        if calls(new, 'avd_trace_start') != ['ctx,dst,run.decode,&run.sl[0],run.num_slices,run.num_entry_point_offsets']:
+            raise ValueError('trace start no longer receives copied control array')
+        recorder=(work/'avd-trace.c').read_text()
+        if calls(recorder, 'atr_start') != ['capture,ctx->trace_context,slices,entry_capacity,sl->num_entry_point_offsets']:
+            raise ValueError('shape guard confuses control capacity with slice usage')
+        for assignment in ('r->v[5] = entry_capacity;', 'r->v[27] = sl->num_entry_point_offsets;'):
+            if assignment not in recorder:raise ValueError('entry-point evidence omitted')
         drv=(work/'avd-drv.c').read_text()
         if drv.count('avd_trace_job(ctx);')!=1:raise ValueError('unexpected job hook')
         if drv.index('cancel_delayed_work_sync(&ctx->watchdog_work);',drv.index('static int avd_release'))>drv.index('avd_trace_close(ctx);'):

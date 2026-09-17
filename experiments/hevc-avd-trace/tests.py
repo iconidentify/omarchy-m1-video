@@ -29,7 +29,7 @@ def synthetic(vector='E', client='gst'):
         b['intra'] = int(b['intra'])
         buffers[target] = b
         start = dict(kind=1, picture=p, previous_writer=prev, poc=source['poc'],
-                     slice_poc=source['poc'], type=typ, slices=1, entries=0,
+                     slice_poc=source['poc'], type=typ, slices=1, entry_capacity=1, slice_entries=0,
                      dpb_count=len(source['dpb']), width=416, height=240, **b)
         records.append(start)
         if 24 <= p <= 34:
@@ -70,7 +70,7 @@ def synthetic(vector='E', client='gst'):
 
 def encode(capture):
     rows = capture['records']
-    lines = [f'H 1 {capture["run"]} {capture["context"]} 4 0 {len(rows)} {len(rows)} 300 300 2048 24 34 {c.RECORD_SIZE}']
+    lines = [f'H 2 {capture["run"]} {capture["context"]} 4 0 {len(rows)} {len(rows)} 300 300 2048 24 34 {c.RECORD_SIZE}']
     for seq, row in enumerate(rows, 1):
         vals = [row[k] & 0xffffffff if k in ('poc','slice_poc') else row[k] for k in c.FIELDS[row['kind']]]
         vals += [0] * (c.VALUES-len(vals))
@@ -121,7 +121,7 @@ class TraceTests(unittest.TestCase):
 
     def test_header_sequence_context_and_loss(self):
         raw=encode(self.trace)
-        for field,value in ((2,'108'),(4,'2'),(5,'2'),(6,'1'),(8,'299'),(10,'4096'),(13,'8')):
+        for field,value in ((1,'1'),(2,'108'),(4,'2'),(5,'2'),(6,'1'),(8,'299'),(10,'4096'),(13,'8')):
             lines=raw.splitlines(); h=lines[0].split(); h[field]=value;lines[0]=' '.join(h)
             with self.subTest(header_field=field), self.assertRaises(c.Reject):
                 c.read_capture('\n'.join(lines),107)
@@ -145,8 +145,23 @@ class TraceTests(unittest.TestCase):
 
     def test_extra_slice_or_extent(self):
         self.row(1)['slices']=2;self.rejected()
-        self.trace,_=synthetic();self.row(1)['entries']=1;self.rejected()
+        self.trace,_=synthetic();self.row(1)['slice_entries']=1;self.rejected()
         self.trace,_=synthetic();self.trace['records']+=self.trace['records'][-2:];self.rejected()
+
+    def test_unused_entry_array_capacity_is_not_slice_usage(self):
+        # Hardware schema 1 rejected a one-element unused control array. Schema 2
+        # records both counts; these are synthetic histories, not a repaired run.
+        for capacity in (1, 256):
+            for row in self.trace['records']:
+                if row['kind'] == 1:
+                    row['entry_capacity'] = capacity
+            self.assertEqual(self.result()['findings'], [])
+        for capacity in (0, 257, 2**32):
+            self.row(1)['entry_capacity'] = capacity
+            self.rejected()
+        self.trace, _ = synthetic()
+        self.row(1)['slice_entries'] = 1
+        self.rejected()
 
     def test_stale_writer_and_intra(self):
         self.row(3)['writer']=299;self.finding('stale-or-unknown-writer')

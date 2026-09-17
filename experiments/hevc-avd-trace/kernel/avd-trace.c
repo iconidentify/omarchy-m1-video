@@ -148,14 +148,15 @@ void avd_trace_buf_cleanup(struct vb2_buffer *vb)
 
 void avd_trace_start(struct avd_ctx *ctx, struct avd_decoded_buffer *dst,
 	const struct v4l2_ctrl_hevc_decode_params *decode,
-	const struct v4l2_ctrl_hevc_slice_params *sl, u32 slices, u32 entries)
+	const struct v4l2_ctrl_hevc_slice_params *sl, u32 slices, u32 entry_capacity)
 {
 	struct atr_record *r;
 	unsigned long flags;
 	u64 previous;
 	spin_lock_irqsave(&atr_lock, flags);
 	if (selected(ctx)) {
-		atr_start(capture, ctx->trace_context, slices, entries);
+		atr_start(capture, ctx->trace_context, slices, entry_capacity,
+			  sl->num_entry_point_offsets);
 		previous = dst->trace_writer;
 		dst->trace_writer = capture->pictures;
 		dst->trace_completed = false;
@@ -166,11 +167,12 @@ void avd_trace_start(struct avd_ctx *ctx, struct avd_decoded_buffer *dst,
 			r->v[2] = (u32)sl->slice_pic_order_cnt;
 			r->v[3] = sl->slice_type;
 			r->v[4] = slices;
-			r->v[5] = entries;
+			r->v[5] = entry_capacity;
 			r->v[6] = decode->num_active_dpb_entries;
 			r->v[7] = fmt_width(ctx);
 			r->v[8] = fmt_height(ctx);
 			buffer_values(ctx, dst, &r->v[9]);
+			r->v[27] = sl->num_entry_point_offsets;
 		}
 	}
 	spin_unlock_irqrestore(&atr_lock, flags);
@@ -342,7 +344,7 @@ static int snapshot_show(struct seq_file *s, void *unused)
 {
 	const struct atr_capture *c = s->private;
 	unsigned int i, j;
-	seq_printf(s, "H 1 %llu %llu %llu %llu %llu %llu %llu %llu %u %u %u %zu\n",
+	seq_printf(s, "H 2 %llu %llu %llu %llu %llu %llu %llu %llu %u %u %u %zu\n",
 		c->run, c->context, c->phase, c->errors, c->count, c->attempted,
 		c->pictures, c->completions, ATR_CAPACITY, ATR_FIRST, ATR_LAST,
 		sizeof(struct atr_record));

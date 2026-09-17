@@ -18,7 +18,7 @@ TMVP, MVD_ZERO, CABAC, COL_L0, DEPENDENT = 4, 8, 16, 32, 512
 TYPES = {0: 'B', 1: 'P', 2: 'I'}
 BUFFER = ('buffer timestamp copied intra writer completed allocation length '
           'comp_start comp_size off0 off1 off2 off3 mv_size mv_offset bounds memory').split()
-START = 'previous_writer poc slice_poc type slices entries dpb_count width height'.split() + BUFFER
+START = 'previous_writer poc slice_poc type slices entry_capacity dpb_count width height'.split() + BUFFER + ['slice_entries']
 TABLE = 'slot poc flags requested_timestamp word matched'.split() + BUFFER + ['emitted_comp' + str(i) for i in range(4)]
 MOTION = ('flags type merge l0_minus1 l1_minus1 col_index first slot requested_timestamp '
           'lookup matched valid word emitted').split() + BUFFER + ['l0_' + str(i) for i in range(16)] + ['l1_' + str(i) for i in range(16)] + ['emitted_mv', 'quirks']
@@ -54,7 +54,7 @@ def read_capture(text, expected_run):
     h = lines[0].split()
     need(len(h) == 14 and h[0] == 'H', 'missing/invalid header')
     version, run, ctx, phase, errors, count, attempted, pictures, done, cap, first, last, size = map(unsigned, h[1:])
-    need(version == 1 and run == expected_run and run > 0 and ctx > 0, 'wrong schema/run/context')
+    need(version == 2 and run == expected_run and run > 0 and ctx > 0, 'wrong schema/run/context')
     need(phase == 4 and errors == 0, 'unsealed or kernel-invalid capture')
     need((pictures, done, cap, first, last, size) == (PICTURES, PICTURES, CAPACITY, FIRST, LAST, RECORD_SIZE), 'wrong extent/schema constants')
     need(count == attempted == len(lines) - 1 and 600 <= count <= 1139, 'loss/overflow/extent mismatch')
@@ -157,7 +157,7 @@ def validate(capture, expected=None):
         start, done = g[0], g[-1]
         pic = start['picture']
         need(start['kind'] == 1 and done['kind'] == 2 and all(r['picture'] == pic for r in g), 'incomplete/mixed picture group')
-        need(start['type'] in TYPES and start['slices'] == 1 and start['entries'] == 0 and start['dpb_count'] <= 16, 'unsupported slice/extent')
+        need(start['type'] in TYPES and start['slices'] == 1 and start['slice_entries'] == 0 and 1 <= start['entry_capacity'] <= 256 and start['dpb_count'] <= 16, 'unsupported slice/extent')
         need(0 < start['width'] <= 16384 and 0 < start['height'] <= 16384, 'invalid negotiated dimensions')
         need(start['writer'] == pic and start['completed'] == 0 and done['result'] == 5 and done['completed'] == 1, 'invalid start/completion state')
         need(all(start[k] == done[k] for k in BUFFER if k != 'completed'), 'destination changed before completion')
@@ -249,7 +249,7 @@ def validate(capture, expected=None):
             if field in out:
                 out[field + '_writer'] = timestamps.get(out.pop(field))
         normalized.append(out)
-    return dict(schema='hevc-avd-trace.normalized/1', run=capture['run'], context=capture['context'],
+    return dict(schema='hevc-avd-trace.normalized/2', run=capture['run'], context=capture['context'],
                 structural_validation='passed', userspace_correlated=expected is not None,
                 findings=findings, records=normalized,
                 limitations=['No pixel, firmware, boot or stability conclusion.',

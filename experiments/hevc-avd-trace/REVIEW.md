@@ -1,9 +1,29 @@
-# Offline review and execution handoff
+# Review and execution handoff
 
-AI self-review by session `codex-hevc-avd-trace-20260917T1515Z`, routed through
+AI self-review by sessions `codex-hevc-avd-trace-20260917T1515Z` and
+`codex-hevc-avd-live-20260917T1600Z`, routed through
 iconidentify. **No independent kernel review has occurred.** This artifact can be
 merged as experimental source/tooling; merging it neither loads it nor establishes
 runtime safety. Parent #61 retains kernel review routing and execution acceptance.
+
+## Schema-2 correction after the stopped campaign
+
+The [first authorized campaign](captures/2026-09-17/README.md) stopped because
+schema 1 confused copied control array extent with used slice entry points.
+The original module is restored; no hardware test was retried. The new recorder
+passes the copied first slice's actual entry count to its shape guard, preserves
+array capacity separately, and exports both in a version-2 snapshot. Old schema-1
+reserved zeroes cannot supply the missing fact: the parser rejects the old version.
+The existing single-slice/zero-used-entry domain, finite extent, overflow and
+stop-on-error behavior remain. Pinned control capacity is bounded at 1–256.
+
+Review checked the applied/copied control lifetime, unchanged hook, new start field
+27, zero padding from field 28, unchanged 616-byte record and 2,048-record capacity,
+status-schema compatibility with the supervisor, and strict rejection of old/error/
+incomplete snapshots. The new field uses an existing owned slice pointer; it adds
+no pointer retention, allocation or submission change. New shared-C regressions
+cover capacities 1–256 versus actual usage, with parser histories and source-path
+checks; the correction has not been loaded. No independent kernel review is claimed.
 
 ## What is preserved and observed
 
@@ -76,7 +96,7 @@ Do not represent the portable C state tests as a kernel concurrency test.
 
 - Prior map: four 300-picture reports reproduced; 11 primary source/licence hashes
   and 19 verbatim instruction macros verified before implementation.
-- 18 Python test groups pass: four synthetic full histories, record/extent/loss/
+- 19 Python test groups pass (18 original groups plus entry capacity/usage): four synthetic full histories, record/extent/loss/
   context rejection, writer/intra/copied/completion errors, lookup fallback findings,
   full words and emitted offsets, actual slice POC, allocation changes, I inactive
   inputs and early return, TMVP-disabled lookup, dependent gating, trusted-model
@@ -95,9 +115,12 @@ Do not represent the portable C state tests as a kernel concurrency test.
   four key header inputs, source/patch revisions, command, vermagic and module hash.
 - Required companion Bash syntax and mocked rebuild tests pass. Dedicated `avd-trace`
   CI runs the synthetic tests and exact source/patch checks; existing CI is retained.
-  Exact-head CI/merge evidence is recorded in PR #63 at acceptance.
+  Original exact-head CI/merge evidence is recorded in PR #63; correction CI is
+  recorded separately in its PR.
 
-No hardware lease, decoder invocation, module operation, installer, boot setting or
+The original #62 preparation used no hardware or module operations. The later
+#61 schema-1 execution and restoration are recorded separately in the campaign
+report. Schema-2 correction/build/tests are offline; no installer, boot setting or
 reboot was used. The only children executed by supervisor tests are `/bin/sh` with
 an immediate exit, `/bin/true`, and bounded `/bin/sleep` processes using a fake trace
 backend. Raw historical captures and licensed vectors were not changed or published.
@@ -105,16 +128,17 @@ backend. Raw historical captures and licensed vectors were not changed or publis
 ## Specific later operation
 
 Candidate module:
-`/home/chrisk/hevc-avd-trace-20260917/build-v4/apple-avd.ko`
+`/home/chrisk/hevc-avd-live-20260917/build-schema2/apple-avd.ko`
 
-SHA-256: `d37a2c7f18ca425c66457c9978c965e579d8ca8ce3c41c63ce4c95ba9e00af77`.
+SHA-256: `bf890e4def112022cb1381261f51ccab747ec3e4f6184201d4776ee350e19ce3`.
 It is an experimental build, currently **unloaded**. The selected installed module
 and boot path are untouched. Recheck exact source/module/header hashes and loaded
 identity before any authorized campaign; provenance in this file describes only
 this offline build, not a future loaded state.
 
-After explicit owner consent and a fresh saved-work/closed-app window, the proposed
-operation is to unload the existing module once, temporarily load this exact file,
+The previous window ended on error and restoration. After fresh explicit owner
+consent and a saved-work/closed-app window, the proposed
+operation is to unload the existing module once, load any standard dependencies removed by that unload, temporarily load this exact file,
 run the eight guarded B/E × VA/Gst × off/on comparisons, then unload it and restore
 the unchanged existing module on the clean path. No permanent installation, package
 change or reboot. A fault/wedge ends the campaign and requires recovery coordination;
