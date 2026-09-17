@@ -264,6 +264,8 @@ def normalize(events, expected, run):
                     require(output_buffers.pop(bi, None) == ts, "OUTPUT completion mismatch")
                 else:
                     require(bi in capture_buffers, "CAPTURE completion without QBUF")
+                    require("V4L2_BUF_FLAG_TIMESTAMP_COPY" in bf,
+                            "CAPTURE timestamp is not copied from OUTPUT")
                     capture_buffers.remove(bi)
                     req = by_timestamp[ts]
                     require(not req.get("complete"), "duplicate CAPTURE timestamp")

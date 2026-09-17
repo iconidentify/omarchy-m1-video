@@ -151,6 +151,7 @@ class Tests(unittest.TestCase):
         mutate("partial picture", lambda e: selected(e, "VIDIOC_QBUF")[1]["from_userspace"]["v4l2_buffer"].update(flags="V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF"))
         mutate("orphan capture", lambda e: selected(e, "VIDIOC_DQBUF")[1]["from_driver"]["v4l2_buffer"].update(index=99))
         mutate("unrecorded capture plane", lambda e: selected(e, "VIDIOC_DQBUF")[1]["from_driver"]["v4l2_buffer"].update(length=2))
+        mutate("unattributable capture timestamp", lambda e: selected(e, "VIDIOC_DQBUF")[1]["from_driver"]["v4l2_buffer"].update(flags="V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC"))
         mutate("duplicate queue", lambda e: e.insert(6, copy.deepcopy(selected(e, "MEDIA_REQUEST_IOC_QUEUE")[0])))
         mutate("duplicate capture", lambda e: e.insert(8, copy.deepcopy(selected(e, "VIDIOC_DQBUF")[1])))
         mutate("missing close", lambda e: e.pop())
