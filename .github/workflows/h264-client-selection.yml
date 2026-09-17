@@ -1,0 +1,21 @@
+name: H.264 client selection
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  client-selection:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Standalone proposal model and rejected-prepare boundary
+        run: python3 experiments/h264-client-selection/tests.py
+      - name: Actual rejected end gate and repair mutation
+        run: python3 experiments/h264-client-selection/actual-gate-test.py
+      - name: Install hosted offline build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libva-dev pkg-config
+      - name: Real baseline link and exact rejected-proposal failures
+        run: python3 experiments/h264-client-selection/build-reproduction.py "$RUNNER_TEMP/h264-rejected-build"

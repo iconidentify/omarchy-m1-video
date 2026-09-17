@@ -1,0 +1,34 @@
+{
+  "schema": "omarchy-m1-video.h264-rejected-build/1",
+  "status": "blocked-design-not-a-working-client",
+  "ffmpeg_commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
+  "source_archive_sha256": "fb1931fd4eb29297ee1c1017a24f800c4d8fbea35b4f2aaeb28308a48a9149b4",
+  "patch_sha256": "bc35a77aeea220c5864660e3c66998b8bf99a0ec90873cf7a6d906488427fe49",
+  "configure_flags": [
+    "--disable-everything",
+    "--disable-autodetect",
+    "--disable-asm",
+    "--disable-doc",
+    "--enable-decoder=h264",
+    "--enable-parser=h264",
+    "--enable-vaapi",
+    "--enable-hwaccel=h264_vaapi"
+  ],
+  "compiler": "cc (GCC) 16.1.1 20260430",
+  "libva_version": "1.24.0",
+  "architecture": "aarch64",
+  "baseline_link": "pass",
+  "baseline_binary_sha256": "e9253bf3145b08ef52077f56930cdd33a3699228800b3d70cc290acecef7218f",
+  "rejected_link": "missing-five-glue-symbols",
+  "enabled_glue": "NAL-macro-collision-and-incomplete-AVCodecInternal",
+  "logs": {
+    "baseline.log": "2ac63b336aa5da0dd916478a20bd7907de6ff75beecaf49709e10deb77d41e6e",
+    "configure.log": "8d47c57c44d913a868454c5bcf3ce1f9358eabe36835b058e5799172a1428117",
+    "enabled-glue.log": "268090c9f59d77404880289ea3917fcca9bd87dab83749ee4b5912df294a349b",
+    "patch.log": "78c7ec9b46d2d29ff2b2266806a3a089d8391982c7c35728fbdb4a167f0f14e4",
+    "rejected-link.log": "f998cf54274ea08012ff514207ea8ba78dd85c4b2508bb4a5adc4227309222dc",
+    "symbols.log": "3cc3efc0c3be60aaa08aaea9cf0718dbde8afbbe5d6953ca7854c8633f26cb75"
+  },
+  "hardware": "none",
+  "installed_changes": "none"
+}
