@@ -3,9 +3,14 @@
 This repository sets up hardware video decoding on Apple Silicon Macs running Omarchy with the
 `linux-asahi` kernel. Read `README.md` fully before acting.
 
-1. **Check the machine first.** `uname -m` must be `aarch64`, `/proc/device-tree/compatible` must
-   contain `apple,`, and `pacman -Q linux-asahi` must succeed. Otherwise stop and tell the user
-   this repository does not apply.
+1. **Separate offline contribution from system work.** Source analysis, documentation and
+   no-device tests are open to contributors without Apple hardware; start at
+   `docs/CONTRIBUTOR_START.md`, `CONTRIBUTING.md` and the live shared agent workflow.
+   Use a ready leaf, a unique-session claim and an isolated branch from current `main`.
+   Linux is required for Linux C builds; source/Python tasks can use other suitable hosts.
+   Before any installer, module or Apple hardware action, `uname -m` must be `aarch64`,
+   `/proc/device-tree/compatible` must contain `apple,`, and `pacman -Q linux-asahi`
+   must succeed. Otherwise stop that system/hardware action; offline work can continue.
 2. **Get the user's explicit consent before installing.** Explain in your own words that this
    installs an out-of-tree kernel module that loads at every boot, that the test Mac hard-reset
    twice shortly after boot with these patches loaded at boot (cause unknown; one later boot with all

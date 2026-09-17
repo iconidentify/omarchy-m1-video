@@ -4,8 +4,14 @@ Use the shared [agent claim and execution guide](https://github.com/iconidentify
 Its [GitHub issue copy](https://github.com/iconidentify/libva-v4l2_request/issues/8) is also available.
 The cross-repository [roadmap index](ROADMAP.md) links workstreams and individual tickets.
 
+Start with [the contributor entry point](CONTRIBUTOR_START.md) for bounded offline
+codec/AVD tasks and live ready queues. No Apple hardware is needed for those tasks.
+A blocked hardware parent can have an independently claimable offline child; only
+the child's own acceptance is completed by its PR.
+
 Read this repository's [AGENTS.md](../AGENTS.md) and [README.md](../README.md) first.
-Those instructions remain in force, including machine checks, installation consent,
+Those instructions remain in force, including machine checks for system/hardware
+actions, installation consent,
 shipped-patch constraints, saved work before module unload/reboot, OpenGL output and
 reporting setup problems in our own repositories.
 
