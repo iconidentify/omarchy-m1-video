@@ -8,7 +8,9 @@
     "files": {
       "libavcodec/vaapi_h264.c": "69b6a6f3af6dcaa26b91672639592e37d0405a8c0206938f8078565cd811c588",
       "libavcodec/vaapi_decode.c": "dd9db7f515923d288935af0620498cea97054561bce67a7e797d3facc5764586",
-      "libavcodec/vaapi_decode.h": "514eb0c49e575a1d59d341d7d28755baa67c73c10668e72185e419fcee85b2c3"
+      "libavcodec/vaapi_decode.h": "514eb0c49e575a1d59d341d7d28755baa67c73c10668e72185e419fcee85b2c3",
+      "libavcodec/h264dec.c": "e78a93bc5ebc01e31f8d18c2a8e045391da525e768b34204f8f3c3a63f6148ac",
+      "libavcodec/Makefile": "4ac6f88ab0660089b9ede52fe276057ab2d2f0d7c4d784cfca51a11b5592e6bb"
     }
   },
   "driver": {

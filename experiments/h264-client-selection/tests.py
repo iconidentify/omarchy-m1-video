@@ -69,8 +69,11 @@ class Pins(unittest.TestCase):
             subprocess.run(["python3", str(HERE / "prepare.py"), str(dest)],
                            check=True, timeout=60)
             self.assertTrue((dest / "ident.json").exists())
-            patched = (dest / "libavcodec/vaapi_h264.c").read_text()
-            self.assertIn("h264_gate_sticky", patched)
+            patched = (dest / "libavcodec/h264dec.c").read_text()
+            self.assertIn("ff_h264_vaapi_mark_unsupported", patched)
+            select = (dest / "libavcodec/h264_vaapi_select.c").read_bytes()
+            self.assertEqual(hashlib.sha256(select).hexdigest(),
+                             hashlib.sha256((HERE / "h264_vaapi_select.c").read_bytes()).hexdigest())
 
     def test_decision_separates_oracle_and_hardware(self):
         d = (HERE / "README.md").read_text().lower()

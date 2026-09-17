@@ -10,14 +10,19 @@ operation. AVC remains 73/135 through ordinary VA-API. Parent #37 stays open.
 
 ## Parser / callback order
 
-FFmpeg n9.0.1 `ff_vaapi_decode_init` / `vaapi_decode_make_config` picks a VA
-profile once from `avctx->profile`. Hardware buffers are created in
-`vaapi_h264_start_frame` and `vaapi_h264_decode_slice`. `vaapi_h264_end_frame`
-calls `ff_vaapi_decode_issue`. A later PPS/slice change is therefore checked
-in start_frame and decode_slice **before** those VA calls. A rejected picture
-sets a sticky flag, cancels, and end_frame does not issue. Already-issued
-earlier pictures are not undone. This is an **explicit stop**, not software
-fallback or reference-state replay.
+FFmpeg n9.0.1 `decode_nal_units` only calls the hardware `decode_slice`
+callback for NAL 1/5. DPA/DPB/DPC (`avpriv_request_sample` + break) never
+reached the old VA-only check. This leaf hooks that switch: with a VA
+hwaccel those NALs call `ff_h264_vaapi_mark_unsupported` and `goto end`
+before `ff_vaapi_decode_issue`. Slice-header failures and hwaccel
+`decode_slice` errors also abort the access unit when hwaccel is active,
+without requiring `AV_EF_EXPLODE`.
+
+`start_frame` / `decode_slice` still run the parsed-feature contract
+(FMO, fields/MBAFF, CABAC/B against Constrained Baseline, SP/SI, depth,
+chroma, redundancy, slice order). Sticky cancel; end_frame does not issue.
+This is an **explicit stop**, not software fallback. The C file tests
+compile is the same `h264_vaapi_select.c` the n9.0.1 patch adds.
 
 The whole-inventory Python oracle under `experiments/h264-profile-selection/`
 is not this live callback path. Fixture flags there remain synthetic.
