@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/81",
+  "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
+  "note": "Counts are over the shipped-patched pinned tree; tests.py re-derives and compares them.",
+  "call_sites": {
+    "avd-av1.c": 15,
+    "avd-drv.c": 1,
+    "avd-h264.c": 8,
+    "avd-hevc.c": 11,
+    "avd-vp9.c": 12
+  },
+  "total": 47
+}

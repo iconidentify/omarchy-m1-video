@@ -1,0 +1,114 @@
+Subject: [PATCH] media: apple: avd: reuse a large enough allocation
+
+Variant of candidate.patch that additionally restores the reuse the
+pinned fast path evidently intended: a request no larger than the
+existing allocation keeps it.
+
+This is NOT behaviour preserving.  Because the pinned condition is
+inverted, reuse has never occurred, so every caller has so far received
+a freshly allocated buffer.  Adopting this variant requires evidence
+that each of the repeat-call sites writes every byte the firmware reads
+before submission.  See AUDIT.md: that evidence does not exist offline
+for the per-frame scratch paths.
+
+Signed-off-by: tankbottoms <tankbottoms@users.noreply.github.com>
+---
+--- a/drivers/media/platform/apple/avd/avd-drv.c
++++ b/drivers/media/platform/apple/avd/avd-drv.c
+@@ -73,18 +73,22 @@
+ 
+ int avd_buf_alloc(struct avd_dev *avd, struct avd_buf *buf, size_t size)
+ {
+-	if (!buf->cpu && size < buf->size)
++	if (buf->cpu && size <= buf->size)
+ 		return 0;
+ 	else if (buf->cpu)
+ 		avd_buf_free(avd, buf);
+ 
+ 	if (size <= 0)
++		return -ENOMEM;
++
++	buf->cpu = dma_alloc_coherent(avd->dev, size, &buf->addr, GFP_KERNEL);
++	if (!buf->cpu) {
++		memset(buf, 0, sizeof(*buf));
+ 		return -ENOMEM;
++	}
+ 
+ 	buf->size = size;
+-	buf->cpu =
+-		dma_alloc_coherent(avd->dev, buf->size, &buf->addr, GFP_KERNEL);
+-	return buf->cpu ? 0 : -ENOMEM;
++	return 0;
+ }
+ 
+ void avd_buf_free(struct avd_dev *avd, struct avd_buf *buf)
+--- a/drivers/media/platform/apple/avd/avd-h264.c
++++ b/drivers/media/platform/apple/avd/avd-h264.c
+@@ -591,6 +591,8 @@
+ 
+ 	return 0;
+ }
++
++static void avd_h264_stop(struct avd_ctx *ctx);
+ 
+ static int avd_h264_start(struct avd_ctx *ctx)
+ {
+@@ -619,7 +621,7 @@
+ 	return 0;
+ 
+ err_free_ctx:
+-	kfree(h264_ctx);
++	avd_h264_stop(ctx);
+ 	ctx->priv = NULL;
+ 	return ret;
+ }
+--- a/drivers/media/platform/apple/avd/avd-hevc.c
++++ b/drivers/media/platform/apple/avd/avd-hevc.c
+@@ -1046,6 +1046,8 @@
+ 
+ 	return 0;
+ }
++
++static void avd_hevc_stop(struct avd_ctx *ctx);
+ 
+ static int avd_hevc_start(struct avd_ctx *ctx)
+ {
+@@ -1064,7 +1066,7 @@
+ 	return 0;
+ 
+ err_free_ctx:
+-	kfree(hevc_ctx);
++	avd_hevc_stop(ctx);
+ 	ctx->priv = NULL;
+ 	return ret;
+ }
+--- a/drivers/media/platform/apple/avd/avd-vp9.c
++++ b/drivers/media/platform/apple/avd/avd-vp9.c
+@@ -978,6 +978,8 @@
+ 					}
+ 				}
+ }
++
++static void avd_vp9_stop(struct avd_ctx *ctx);
+ 
+ static int avd_vp9_start(struct avd_ctx *ctx)
+ {
+@@ -998,7 +1000,7 @@
+ 	return 0;
+ 
+ err_free_ctx:
+-	kfree(vp9_ctx);
++	avd_vp9_stop(ctx);
+ 	ctx->priv = NULL;
+ 	return ret;
+ }
+@@ -1008,6 +1010,9 @@
+ 	struct avd_vp9_ctx *vp9_ctx = ctx->priv;
+ 	struct avd_dev *avd = ctx->dev;
+ 
++	if (!vp9_ctx)
++		return;
++
+ 	avd_buf_free(avd, &vp9_ctx->bufs.pipe_state);
+ 	avd_buf_free(avd, &vp9_ctx->bufs.inst);
+ 	avd_buf_free(avd, &vp9_ctx->bufs.probs);
