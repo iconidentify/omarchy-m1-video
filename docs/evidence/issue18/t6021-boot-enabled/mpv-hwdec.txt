@@ -1,0 +1,6 @@
+[vo/gpu-next/vaapi/vaapi] Initialized VAAPI: version 1.24
+[vd] Trying hardware decoding via h264-vaapi.
+[vd] Using hardware decoding (vaapi).
+[vd] Decoder format: 640x360 vaapi[nv12] auto/auto/auto/auto/auto CL=mpeg2/4/h264 crop=640x360+0+0 A=none
+[cplayer] VO: [gpu-next] 640x360 vaapi[nv12]
+[cplayer] finished playback, success (reason 0)

@@ -35,7 +35,7 @@ full Fluster suites were waiting on corpus download when this record was written
 | VP9 HIGH `vp92-2-20-10bit-yuv420.webm` | hardware_pass, 1/1 |
 | mpv `--hwdec=vaapi --gpu-api=opengl --vo=gpu-next` | `Using hardware decoding (vaapi)`, `VO: [gpu-next] 640x360 vaapi[nv12]` |
 | FRExt `JVT-FR-EXT` (High 10 mode) | **27/69**, exact r11 pass set (`ok: true`) |
-| Boot-enabled load | module loaded by `modprobe`; reboot to be performed after this record |
+| Boot-enabled load | one successful login after `shutdown -r`; LUKS wait accounts for the 06:40–09:12 gap; see [t6021-boot-enabled](../t6021-boot-enabled/README.md) |
 
 Guard child-error on HEVC is expected: `conformance.py` exits 1 when 3/147 fail, matching r11.
 No wedge, timeout, or new AVD kernel fault.
