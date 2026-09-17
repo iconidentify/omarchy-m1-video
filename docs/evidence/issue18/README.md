@@ -1,10 +1,12 @@
 # Issue 18: device inventories and qualification gates
 
 This directory contains historical read-only inventories and separately reported
-hardware smoke campaigns for [issue 18](https://github.com/iconidentify/omarchy-m1-video/issues/18).
+hardware campaigns for [issue 18](https://github.com/iconidentify/omarchy-m1-video/issues/18).
 The M2 Max smoke contribution includes reported package/module operations; the
 no-install description applies only to its inventory and first smoke phase.
-See the [maintainer review and provenance limits](t6021-review.md) for the accepted scope.
+See the [maintainer review and provenance limits](t6021-review.md) for the accepted
+scope of those early records. Later installed-stack and one boot-enabled login
+records are indexed below; they do not close the issue or promote `t6021` to supported.
 The original [M2 j413 inventory](m2-inventory.json) was collected with the committed tool at
 `819d9e132fde09ba2ffe2076dded3f92f6da2fce`. The later [M2 Max j416c inventory](m2-j416c-inventory.json)
 was collected with the merged collector at `9cbaa55718e54f6833f1f38f265c293c33daf9e6`.
@@ -31,11 +33,11 @@ loading for manual trial. It was preserved.
 | Issue criterion | Evidence / remaining work |
 | --- | --- |
 | Portable no-install collection and refusal of unsupported claims | Collector and 15 offline/CLI tests; both historical inventories remain unqualified |
-| Two independent qualified Apple devices | **Not met**: [historical M1 r11 record](../../codec-validation-r11-2026-09-15.json) plus j413 and j416c inventories exist; neither additional machine has hardware qualification |
-| Per-device codec/profile and software identity | Inventories retain `not_probed`; separate M2 Max reports cover three smoke vectors only. Exact loaded-module/patch attribution is unverified; full qualification remains open |
-| Reset/corruption remains experimental; no automatic install/load | Collector performs no system changes. Later contributor-reported manual package/module operations are recorded separately; all device rows remain experimental |
-| Scoped evidence and tests not run | Inventories, limited smoke reports and [review assessment](t6021-review.md); full conformance, export, lifecycle, client and boot qualification are not supplied by this contribution |
-| Merged changes and completion protocol | This is a partial contribution; issue #18 stays open until its remaining qualification evidence is reviewed and merged |
+| Two independent qualified Apple devices | **Not met**: [historical M1 r11 record](../../codec-validation-r11-2026-09-15.json) plus j413 inventory and a t6021 campaign that is still experimental pending review |
+| Per-device codec/profile and software identity | Inventories retain `not_probed`. t6021 later records add guarded Fluster/export/lifecycle/mpv on installed `1.3.r11-2` + `updates/`; `loaded_binary_sha256` remains unknown |
+| Reset/corruption remains experimental; no automatic install/load | Collector performs no system changes. Later contributor-reported install and one consented reboot are recorded separately; all device rows remain experimental |
+| Scoped evidence and tests not run | Early smokes: [review assessment](t6021-review.md). Later: [installed stack](t6021-installed-stack/README.md) and [one boot-enabled login](t6021-boot-enabled/README.md). Not a reset matrix; issues 13/17 stay open |
+| Merged changes and completion protocol | This is a partial contribution; issue #18 stays open until remaining qualification evidence is reviewed and merged |
 
 ## Historical j413 tooling verification
 
@@ -122,6 +124,31 @@ See [campaign 1](t6021-in-tree-smoke/README.md),
 are preserved byte-for-byte. Exact kernel/patch attribution and parts of the
 execution/authorization history remain unverified; this contribution accepts
 reported output, not a reproducible qualification of either kernel stack.
-Full suites, export, lifecycle, client and boot evidence are outside these records.
-Later work under the contributor's separate boot-qualification claim is not
-accepted by this merge. The device remains experimental and issue #18 stays open.
+Full suites, export, lifecycle, client and boot evidence are outside these
+early smoke records. The later installed-stack and boot-enabled records below
+are a separate contribution; they were not part of the PR #40 merge. The
+device remains experimental and issue #18 stays open.
+
+## t6021 installed stack, 2026-09-17
+
+After explicit boot-risk acceptance, `./install.sh --i-accept-boot-risk` from
+`a88d45cc74ec41d0e95ace3763900137d2ce9b19` installed
+`libva-v4l2_request-avd 1.3.r11-2` and the `updates/` module
+(stamp `tag=asahi-7.1.13-3 patches=029f57377a00`). Guarded Fluster HEVC 144/147,
+AVC 73/135, FRExt High 10 27/69 and VP9 216/305 match the published r11 pass
+sets except AVC `FM1_FT_E` (`software_fallback` vs `decode_error`). Export,
+lifecycle generated matrices and mpv OpenGL VA-API also pass.
+
+See [installed-stack evidence](t6021-installed-stack/README.md). Matching r11
+totals on this host is not a support claim and must not be copied onto other
+chips. `loaded_binary_sha256` remains unknown.
+
+## t6021 one boot-enabled login, 2026-09-17
+
+One consented reboot loaded the same out-of-tree module at login (taint `O`,
+firmware 30010). The 06:40–09:12 UTC journal gap is the LUKS unlock prompt,
+not a hang or reset. Post-boot smokes of `AMP_A_Samsung_7`, `AUD_MW_E` and
+`vp90-2-00-quantizer-00.webm` plus mpv OpenGL VA-API pass.
+
+See [boot-enabled evidence](t6021-boot-enabled/README.md). This is one
+successful login, not a boot matrix and not closure of issues 13/17.

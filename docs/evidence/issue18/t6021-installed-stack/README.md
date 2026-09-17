@@ -2,8 +2,9 @@
 
 Boot-risk accepted. `./install.sh --i-accept-boot-risk` was run from
 `a88d45cc74ec41d0e95ace3763900137d2ce9b19`. The patched module was then loaded
-with `modprobe` **before** any reboot. This is still experimental: AVC/FRExt/VP9
-full Fluster suites were waiting on corpus download when this record was written.
+with `modprobe` **before** any reboot. Full Fluster HEVC/AVC/FRExt/VP9 plus
+export/lifecycle matrices and mpv OpenGL VA-API were recorded on this stack
+before the later consented reboot. This remains experimental.
 
 ## Installed identities
 
@@ -15,12 +16,12 @@ full Fluster suites were waiting on corpus download when this record was written
 | Module | `/lib/modules/7.1.13-3-1-ARCH/updates/apple-avd.ko` SHA-256 `27f9cfa4aef2842fd0a18ee794a68924e6b9092af10635de5d13f2867c96c5d6` |
 | Stamp | `tag=asahi-7.1.13-3 patches=029f57377a00` |
 | Taint | `O` |
-| Boot service | `apple-avd-rebuild.service` enabled; no reboot yet |
+| Boot service | `apple-avd-rebuild.service` enabled; one later consented reboot is recorded in [t6021-boot-enabled](../t6021-boot-enabled/README.md) |
 | Device | `apple,j416c` / `apple,t6021` |
 
 `vainfo --display drm`: H.264 Constrained Baseline/Main/High, HEVC Main/Main10, VP9 0/2.
 
-## Results so far
+## Results
 
 | Check | Result |
 | --- | --- |
