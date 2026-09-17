@@ -1,11 +1,11 @@
-name: HEVC control adapter
+name: HEVC AVD source map
 on:
   push:
   pull_request:
 permissions:
   contents: read
 jobs:
-  offline:
+  avd-map:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,13 +17,15 @@ jobs:
           ref: ba66572ff7e1e380377eb2414a7eb7d7f97bb0d9
           path: driver-checker
           persist-credentials: false
-      - name: Synthetic and pinned driver-checker interoperability tests
+      - name: Source-derived model, counterexamples and upstream C macro parity
+        run: python3 experiments/hevc-avd-map/tests.py
+      - name: Reproduce public metadata decision (no hardware)
         env:
           HEVC_REFTRACE_CHECKER: driver-checker/tests/hevc-reftrace-check.py
-        run: python3 experiments/hevc-controls/tests.py
-      - name: Published capture consistency and rejection checks (no device)
+        run: python3 experiments/hevc-avd-map/report.py --verify
+      - name: Reproduce measured kernel campaign and reject altered evidence (no hardware)
         env:
           HEVC_REFTRACE_CHECKER: driver-checker/tests/hevc-reftrace-check.py
         run: |
-          python3 experiments/hevc-controls/report-tests.py
-          python3 experiments/hevc-controls/report.py experiments/hevc-controls/captures/2026-09-17 --verify
+          python3 experiments/hevc-avd-trace/campaign-report.py --verify
+          python3 experiments/hevc-avd-trace/campaign-tests.py

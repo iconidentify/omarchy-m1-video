@@ -1,0 +1,2 @@
+# Unified-diff context carries literal leading spaces/tabs; check applied C separately.
+hooks.patch -whitespace

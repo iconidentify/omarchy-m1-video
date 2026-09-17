@@ -1,0 +1,51 @@
+{
+  "schema": "hevc-avd-trace.build/1",
+  "source_manifest_sha256": "a16ebf3b486144d45ed91122ed78040dc64bbaa9901a312669e11c31bc8ff7d3",
+  "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
+  "patch_stack_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390",
+  "hooks_sha256": "3950037a6838eaba2fa92cd63f350d1bc16b87da6d4dc3347f25291d6868d713",
+  "candidate_files": {
+    "Kconfig": "160a8cd3fe4984bb37266261a5c877b08e53f406fa2623271a07c969acf74b26",
+    "Makefile": "9404be9627dfc592ddff376498582d477897c005461a2137ab9488a71effd7bb",
+    "avd-av1-entropymode.c": "9508eaa9733faa95d2f0868b93aa1bd3bdbcda4e77cc27a997e47ccd0c5c619c",
+    "avd-av1-entropymode.h": "2d848076d83d7426cf2e3eea7f5fa2aa2e03183fae79586bda56110375b330bb",
+    "avd-av1.c": "4b0d73d916073977410be386a6f3080f462adb8d5ee3f7fa49eba3b2e443f301",
+    "avd-drv.c": "c63454d790a31844c82b456a907f3ce8fe40613e95ca37c5ef4025c4e49de755",
+    "avd-h264.c": "20632b724f846ec882f1c3e0e28996776923594ca1305a9580c902df0587ac9a",
+    "avd-hevc.c": "b05fc1fd104b75bdf3db18738bdf6d97c936787ab37152a78b160fe079919672",
+    "avd-hw.c": "c9b15028adae725cf9a4fcfc1a928cba0d26b894210c34a4dc8d8c21b6b8dc6f",
+    "avd-inst.h": "c271d9f266e685dc3db3d0394dda15a9e84ff426d9f12ce10d9dc726a5625816",
+    "avd-regs.h": "a000d3e57e32b00b2e7b9edb10d3491c2200dda5efc179e4d7c109b5af84ad4a",
+    "avd-trace-core.h": "1956101f725049bff47ced18cb5b2757a4752404758bbae191903944bf8f9a4c",
+    "avd-trace.c": "489a31cabe0ee67a4452524c0ece126681b079356de2182ece76cc3322071112",
+    "avd-trace.h": "e95631a8d564c0fc2712bc01338e486ab49e3395d0a112e4d07c6f7e7b12afc4",
+    "avd-v4l2.c": "acb20b08cbcde410826ddeeaae34ecbd6a8ea555e665876187c4b9914b5dcdfe",
+    "avd-vp9.c": "065e2343426559569b44aa39d16a7ff2bd780e65003874093fddc17b9c07e1a4",
+    "avd.h": "f1dd679824ff34d9d1dae4e1423598bd23e352ad615247220d6001b5337e2567"
+  },
+  "hardware_used": false,
+  "installed": false,
+  "loaded": false,
+  "headers": {
+    ".config": "5bcf435f6be7dc4eda10daca087b0697bc4e581b6308510a9152b5caf90f0352",
+    "Module.symvers": "e78fab7f70a53240c5145f76b4265aee5018e4fc7eb2ed42f738135d92a7177f",
+    "include/generated/autoconf.h": "f5d82842456723dd6e24b365d382ecd573782a28ddcc6e4dde275c39761f1f73",
+    "include/generated/utsrelease.h": "bc525e00ce245e9a0c5ab6663b4c5c29eb89f323cd3e876d39fa7f60308d5bcb"
+  },
+  "kernel_release": "7.1.13-3-1-ARCH",
+  "compiler": "cc (GCC) 16.1.1 20260430",
+  "command": [
+    "make",
+    "-s",
+    "-C",
+    "/usr/lib/modules/7.1.13-3-1-ARCH/build",
+    "M=/home/chrisk/hevc-avd-live-20260917/build-schema2",
+    "CONFIG_VIDEO_APPLE_AVD=m",
+    "modules",
+    "-j4"
+  ],
+  "module_sha256": "bf890e4def112022cb1381261f51ccab747ec3e4f6184201d4776ee350e19ce3",
+  "vermagic": "7.1.13-3-1-ARCH SMP preempt mod_unload aarch64",
+  "build_log": "Empty: successful build produced no warnings or errors.",
+  "review": "AI self-review; no independent kernel review. Schema 2 correction built offline, not loaded; prior schema 1 campaign is separately recorded."
+}

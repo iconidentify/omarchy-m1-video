@@ -14,6 +14,7 @@ jobs:
       - run: python3 tests/vp9-sub64-scan-test.py
       - run: python3 experiments/vp9-state/validate.py --self-test
       - run: python3 experiments/h264-profile-selection/validate.py --self-test
+      - run: python3 experiments/hevc-avd-controls-map/verify-source.py
       - run: python3 tests/qualify-device-test.py
       - run: python3 tests/boot-evidence-test.py
       - run: python3 -m pip install jsonschema==4.25.1

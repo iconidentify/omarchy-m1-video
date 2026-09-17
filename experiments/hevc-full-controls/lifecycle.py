@@ -1,143 +1,21 @@
-#!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""Offline, deliberately narrow v4l2-tracer 1.32.0 HEVC adapter.
+"""Copied lifecycle checker from ../hevc-controls/normalize.py at 3cdf66b.
 
-See README.md for supported inputs, source pins and evidence limitations.
-No device, subprocess, network or raw media output is used by this module.
+One scoped change: accept final source buffers returned by successful OUTPUT
+STREAMOFF after ALL expected CAPTURE completions. No DQBUF event is invented.
+The original direct-client adapter and its historical contract stay unchanged.
 """
-import argparse
-import hashlib
-import json
+import importlib.util
 from pathlib import Path
+spec = importlib.util.spec_from_file_location("lifecycle_reference", Path(__file__).resolve().parent.parent / "hevc-controls/normalize.py")
+base = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(base)
+SCHEMA, MAX_PICTURES, CID, OUT, CAP = base.SCHEMA, base.MAX_PICTURES, base.CID, base.OUT, base.CAP
+SPS_FLAGS, SLICE_FLAGS = base.SPS_FLAGS, base.SLICE_FLAGS
+Reject, require, integer = base.Reject, base.require, base.integer
+arguments, controls, payload = base.arguments, base.controls, base.payload
+flags, timestamp, buffer_flags = base.flags, base.timestamp, base.buffer_flags
 import re
-import sys
-
-SCHEMA = "libva-v4l2request.hevc-refs/1"
-MAX_BYTES = 128 * 1024 * 1024
-MAX_PICTURES = 10000
-CID = "V4L2_CID_STATELESS_HEVC_"
-OUT = "V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE"
-CAP = "V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE"
-SIZES = {"SPS": 40, "DECODE_PARAMS": 328, "SLICE_PARAMS": 280}
-SPS_FLAGS = "SEPARATE_COLOUR_PLANE SCALING_LIST_ENABLED AMP_ENABLED SAMPLE_ADAPTIVE_OFFSET PCM_ENABLED PCM_LOOP_FILTER_DISABLED LONG_TERM_REF_PICS_PRESENT SPS_TEMPORAL_MVP_ENABLED STRONG_INTRA_SMOOTHING_ENABLED".split()
-SLICE_FLAGS = "SLICE_SAO_LUMA SLICE_SAO_CHROMA SLICE_TEMPORAL_MVP_ENABLED MVD_L1_ZERO CABAC_INIT COLLOCATED_FROM_L0 USE_INTEGER_MV SLICE_DEBLOCKING_FILTER_DISABLED SLICE_LOOP_FILTER_ACROSS_SLICES_ENABLED DEPENDENT_SLICE_SEGMENT".split()
-
-
-class Reject(ValueError):
-    """Unavailable or ambiguous evidence; never interpret it as equality."""
-
-
-def require(condition, message):
-    if not condition:
-        raise Reject(message)
-
-
-def integer(value, low=0, high=2**32 - 1):
-    require(type(value) is int and low <= value <= high, "invalid integer")
-    return value
-
-
-def unique(pairs):
-    result = {}
-    for key, value in pairs:
-        require(key not in result, "duplicate JSON key")
-        result[key] = value
-    return result
-
-
-def load(path):
-    with Path(path).open("rb") as stream:
-        raw = stream.read(MAX_BYTES + 1)
-    require(len(raw) <= MAX_BYTES, "input exceeds byte limit")
-    return raw
-
-
-def parse(raw):
-    require(len(raw) <= MAX_BYTES, "input exceeds byte limit")
-    def constant(_):
-        raise Reject("non-JSON numeric constant")
-    try:
-        # With -u, this pinned tracer serializes uninitialized QUERYCAP input
-        # strings, even though QUERYCAP has no input fields. Keep the raw file
-        # unchanged; discard only that meaningless pre-call argument object.
-        events = json.loads(raw.decode("utf-8", "surrogateescape"),
-                            object_pairs_hook=unique, parse_constant=constant)
-    except (ValueError, RecursionError, UnicodeError) as exc:
-        raise Reject("invalid JSON trace") from exc
-    require(isinstance(events, list) and 0 < len(events) <= 500000,
-            "expected bounded event array")
-    require(all(isinstance(e, dict) for e in events), "non-object event")
-    require(events[0].get("package_version") == "1.32.0",
-            "only v4l2-tracer 1.32.0 is supported")
-    for event in events:
-        if event.get("ioctl") == "VIDIOC_QUERYCAP":
-            event.pop("from_userspace", None)
-    # No replacement decoding: invalid strings anywhere else still reject.
-    try:
-        json.dumps(events, ensure_ascii=False).encode("utf-8")
-    except UnicodeError as exc:
-        raise Reject("invalid UTF-8 outside unused QUERYCAP inputs") from exc
-    return events
-
-
-def flags(value, prefix, allowed):
-    require(isinstance(value, str), "missing flags")
-    tokens = value.split("|") if value else []
-    tokens = [t.strip() for t in tokens]
-    require(len(tokens) == len(set(tokens)), "duplicate flag")
-    names = {prefix + name for name in allowed}
-    require(set(tokens) <= names, "unknown flag encoding")
-    return {t[len(prefix):] for t in tokens}
-
-
-def buffer_flags(value):
-    # Buffer flags outside this reference subset are ignored only when symbolic.
-    require(isinstance(value, str), "missing buffer flags")
-    tokens = [t.strip() for t in value.split("|")]
-    require(all(re.fullmatch(r"V4L2_BUF_FLAG_[A-Z0-9_]+", t) for t in tokens),
-            "unknown numeric buffer flag")
-    require("V4L2_BUF_FLAG_ERROR" not in tokens, "buffer error")
-    require("V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF" not in tokens,
-            "partial/multi-request pictures are unsupported")
-    return set(tokens)
-
-
-def timestamp(buf):
-    ns = integer(buf["timestamp_ns"], high=2**64 - 1)
-    tv = buf["timestamp"]
-    sec = integer(tv["tv_sec"], high=2**63 - 1)
-    usec = integer(tv["tv_usec"], high=999999)
-    require(ns == sec * 1000000000 + usec * 1000, "inconsistent timestamp")
-    require(ns % 1000 == 0 and ns // 1000 <= 2**32 - 1,
-            "not a GStreamer system-frame timestamp")
-    return ns
-
-
-def arguments(event, direction, key):
-    result = event[direction][key]
-    require(isinstance(result, dict), "missing ioctl arguments")
-    return result
-
-
-def controls(event):
-    ext = arguments(event, "from_userspace", "v4l2_ext_controls")
-    items = ext["controls"]
-    require(isinstance(items, list) and len(items) == integer(ext["count"], high=64),
-            "incomplete controls array")
-    require(all(isinstance(c, dict) and isinstance(c.get("id"), str) for c in items),
-            "invalid control")
-    require(len({c["id"] for c in items}) == len(items), "duplicate control")
-    return ext, {c["id"]: c for c in items}
-
-
-def payload(ctrls, name):
-    c = ctrls[CID + name]
-    require(integer(c["size"]) == SIZES[name],
-            "unsupported control size (multi-slice traces lose all but first slice)")
-    p = c["v4l2_ctrl_hevc_" + name.lower()]
-    require(isinstance(p, dict), "missing control payload")
-    return p
-
 
 def normalize(events, expected, run):
     """Return schema records and decode-order association metadata.
@@ -227,6 +105,10 @@ def normalize(events, expected, run):
             require(pictures and len(pictures) == expected
                     and all(p.get("complete") for p in pictures),
                     "stream stopped before expected captures completed")
+            # Successful OUTPUT STREAMOFF cancels any final source buffers
+            # the client did not dequeue; CAPTURE completion is still mandatory.
+            if e.get("from_userspace", {}).get("type") == OUT:
+                output_buffers.clear()
             stopped = True
             continue
         if op in ("VIDIOC_STREAMON", "VIDIOC_S_FMT", "VIDIOC_REQBUFS"):
@@ -354,70 +236,3 @@ def normalize(events, expected, run):
         associations.append(dict(pic=pic, poc=poc, system_frame_number=req["timestamp"] // 1000))
         last_writer[req["target"]] = pic
     return records, associations
-
-
-def associate(log, pictures, decoded_frames, tracee_status):
-    integer(decoded_frames, 1, MAX_PICTURES)
-    integer(tracee_status, high=255)
-    require(tracee_status == 0 and decoded_frames == len(pictures),
-            "association requires successful pipeline and independent full frame count")
-    require(len(log.encode("utf-8")) <= MAX_BYTES, "log exceeds byte limit")
-    ids = []
-    instances = set()
-    for line in log.splitlines():
-        if "Output picture" not in line:
-            continue
-        match = re.search(r"gst_v4l2_codec_h265_dec_output_picture:<([^>]+)> Output picture (\d+)\s*$", line)
-        require(match is not None, "unrecognized output-picture event")
-        instances.add(match[1])
-        ids.append(integer(int(match[2])))
-    require(len(instances) == 1 and len(ids) == len(pictures) and len(set(ids)) == len(ids),
-            "missing/duplicate/multiple-context output events")
-    by_id = {p["system_frame_number"]: p for p in pictures}
-    require(set(ids) == set(by_id), "output/decode picture identities differ")
-    return [dict(output_index=i, **by_id[f]) for i, f in enumerate(ids)]
-
-
-def main():
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("trace", type=Path)
-    ap.add_argument("--expected-pictures", type=int, required=True)
-    ap.add_argument("--output", type=Path, required=True)
-    ap.add_argument("--gst-log", type=Path)
-    ap.add_argument("--gstreamer-version", choices=["1.28.7"])
-    ap.add_argument("--decoded-frames", type=int)
-    ap.add_argument("--tracee-status", type=int)
-    ap.add_argument("--association", type=Path)
-    args = ap.parse_args()
-    try:
-        raw = load(args.trace)
-        digest = hashlib.sha256(raw).hexdigest()
-        records, pictures = normalize(parse(raw), args.expected_pictures, digest[:16])
-        mapping = None
-        require(bool(args.gst_log) == bool(args.association), "log and association output must be paired")
-        if args.gst_log:
-            require(args.gstreamer_version == "1.28.7", "pinned GStreamer version assertion required")
-            log = load(args.gst_log)
-            mapping = dict(schema="hevc-controls.output-association/1", trace_sha256=digest,
-                           log_sha256=hashlib.sha256(log).hexdigest(),
-                           evidence="log order plus caller-verified pipeline status/raw-frame count",
-                           frames=associate(log.decode("utf-8"), pictures, args.decoded_frames, args.tracee_status))
-        data = "".join(json.dumps(r, separators=(",", ":")) + "\n" for r in records)
-        require(all(len(line.encode()) + 1 <= 4096 for line in data.splitlines()), "schema record too large")
-        # Refuse overwrite, including accidental raw-input/output path aliasing.
-        with args.output.open("x") as stream:
-            stream.write(data)
-        if mapping is not None:
-            with args.association.open("x") as stream:
-                json.dump(mapping, stream, indent=2)
-                stream.write("\n")
-        print(f"converted {len(records)} complete request captures; reference subset only")
-        return 0
-    except (ValueError, KeyError, TypeError, IndexError, OSError, UnicodeError, RecursionError) as exc:
-        # Never print raw exception data: trace paths, payloads and addresses are private.
-        print(f"rejected input ({type(exc).__name__}); see supported contract in README", file=sys.stderr)
-        return 2
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

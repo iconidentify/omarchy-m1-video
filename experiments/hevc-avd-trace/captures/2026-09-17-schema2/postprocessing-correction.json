@@ -1,0 +1,24 @@
+{
+  "original_guard_status": "child-error",
+  "original_reason": "offline parser incorrectly required globally unique timestamps",
+  "kernel_errors": 0,
+  "actual_decoder_child_exit": 0,
+  "pictures": 300,
+  "frames_identical_to_off": true,
+  "validated_from_preserved_raw": true,
+  "checker_commit": "92d9e8ba77edca376edc51dadf3d2043cc0beaa3",
+  "checker_sha256": "143fc3b04ac1bf1d9c12a9ca0b7e5db0f95c20b8a3a9d5b7ba699b412a0eccf7",
+  "new_normalized_sha256": "5533bc06ccbd8fb0a099616f6629bf3dac4a0ff9413d0d526ba4ae993e0d4045",
+  "next_action": "continue only six unattempted workloads on unchanged module; no test retry or reset",
+  "preflight": {
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  "raw_sha256": "4d5fec5d26b292779759272bffdcfa8329886395eec521a88e8ec9eab8c42917",
+  "original_check_stderr_sha256": "92775942e5ac36e7bd5186d5b4d22d18c307127bdea72175e6e5533d4884d3e9",
+  "original_check_status": 2
+}
