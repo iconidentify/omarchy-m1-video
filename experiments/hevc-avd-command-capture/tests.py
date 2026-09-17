@@ -14,6 +14,7 @@ import time
 import unittest
 
 import capture
+import compare
 
 class Fake:
     def __init__(self,name,events,marker,fail=None,context=55):
@@ -137,5 +138,34 @@ capture.supervise([sys.executable,'-c',"import time;time.sleep(30)"],7,True,40,b
                 try:os.kill(child,signal.SIGKILL)
                 except ProcessLookupError:pass
             if fd is not None:os.close(fd)
+
+class ControlBinding(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        here=Path(__file__).resolve().parent
+        cls.flags=json.loads((here/'uapi-flags.json').read_text())
+        cls.rows=[json.loads(line) for line in (here.parent/'hevc-full-controls/capture/E-va-controls.jsonl').read_text().splitlines()]
+        cls.fixture=dict(pictures=[dict(picture=r['picture'],poc=r['poc'],target=r['target'],type=r['controls']['SLICE_PARAMS']['slice_type']) for r in cls.rows],
+                         windows=[dict(picture=r['picture'],poc=r['poc'],controls=compare.parser.pack_controls(compare.copied_fields(r,cls.flags))) for r in cls.rows[23:34]])
+    def test_full_window_binding(self):
+        self.assertEqual(compare.compare(self.fixture,self.rows,self.flags),[])
+    def test_every_copied_field_difference_is_visible(self):
+        for kind,name,count in compare.parser.LAYOUT:
+            fixture=copy.deepcopy(self.fixture);window=fixture['windows'][0]
+            fields=compare.parser.unpack_controls(window['controls'])
+            if kind=='BYTES':fields[name][0]^=1
+            else:fields[name]^=1
+            window['controls']=compare.parser.pack_controls(fields)
+            findings=compare.compare(fixture,self.rows,self.flags)
+            self.assertEqual([f['field'] for f in findings],[name])
+    def test_history_and_missing_fields_fail_closed(self):
+        for key in ('poc','target','picture'):
+            rows=copy.deepcopy(self.rows);rows[250][key]+=1
+            with self.assertRaises(ValueError):compare.compare(self.fixture,rows,self.flags)
+        rows=copy.deepcopy(self.rows);rows[23]['controls']['SPS'].pop('flags')
+        with self.assertRaises(KeyError):compare.compare(self.fixture,rows,self.flags)
+    def test_unknown_flag_fails_closed(self):
+        row=copy.deepcopy(self.rows[23]);row['controls']['SPS']['flags'].append('unknown')
+        with self.assertRaises(ValueError):compare.copied_fields(row,self.flags)
 
 if __name__=='__main__':unittest.main()
