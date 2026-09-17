@@ -8,6 +8,8 @@
 struct AVCodecContext;
 struct H264Context;
 
+int ff_h264_vaapi_admit_is_active(const struct AVCodecContext *avctx);
+int ff_h264_vaapi_admit_nal(struct AVCodecContext *avctx, int type);
 int ff_h264_vaapi_admit_start(struct AVCodecContext *avctx, const struct H264Context *h);
 int ff_h264_vaapi_admit_slice(struct AVCodecContext *avctx, const struct H264Context *h);
 int ff_h264_vaapi_admit_end(struct AVCodecContext *avctx);

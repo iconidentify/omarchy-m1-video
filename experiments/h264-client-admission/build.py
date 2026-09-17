@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import hashlib
 import json
 import os
@@ -53,6 +54,9 @@ def main():
     archive = args.archive.read_bytes() if args.archive else urllib.request.urlopen(
         f'https://codeload.github.com/FFmpeg/FFmpeg/tar.gz/{PIN}', timeout=60).read()
     tree = extract_archive(root, archive)
+    patch = HERE / 'ffmpeg-n9.0.1-h264-vaapi-admission.patch'
+    rc, _ = run(['patch','-p0','--fuzz=0','-i',str(patch)],tree,root/'patch-off.log')
+    if rc: raise RuntimeError('VAAPI-off patch application failed')
     jobs = ['make', '-j' + str(min(6, os.cpu_count() or 1)), 'ffmpeg']
 
     off = tree
@@ -63,7 +67,7 @@ def main():
     if rc:
         raise RuntimeError('VAAPI-off ffmpeg failed to link')
     off_sha = sha((off / 'ffmpeg').read_bytes())
-    nm_off = subprocess.check_output(['nm', str(off / 'ffmpeg')], text=True, errors='replace')
+    nm_off = subprocess.check_output(['nm', str(off / 'ffmpeg_g')], text=True, errors='replace')
     if 'ff_h264_vaapi_admit_end' in nm_off:
         raise RuntimeError('admit symbols present in VAAPI-off binary')
 
@@ -84,12 +88,20 @@ def main():
     if rc:
         raise RuntimeError('VAAPI-on patched ffmpeg failed to link')
     on_sha = sha((on / 'ffmpeg').read_bytes())
-    nm_on = subprocess.check_output(['nm', str(on / 'ffmpeg')], text=True, errors='replace')
+    nm_on = subprocess.check_output(['nm', str(on / 'ffmpeg_g')], text=True, errors='replace')
     for sym in ('ff_h264_vaapi_admit_start', 'ff_h264_vaapi_admit_slice',
                 'ff_h264_vaapi_admit_end', 'ff_h264_vaapi_admit_reject'):
         if sym not in nm_on:
             raise RuntimeError('missing ' + sym)
+    spec=importlib.util.spec_from_file_location('glue_test',HERE/'end-gate-test.py')
+    glue_test=importlib.util.module_from_spec(spec);spec.loader.exec_module(glue_test)
+    glue_report=glue_test.test(on)
     report = {
+        'glue_test':glue_report,
+        'compiler':subprocess.check_output(['cc','--version'],text=True).splitlines()[0],
+        'libva_version':subprocess.check_output(['pkg-config','--modversion','libva'],text=True).strip(),
+        'configure_off':OFF,'configure_on':ON,
+        'architecture':os.uname().machine,
         'schema': 'omarchy-m1-video.h264-client-admission-build/1',
         'ffmpeg_commit': PIN,
         'source_archive_sha256': ARCHIVE_SHA,
@@ -99,6 +111,7 @@ def main():
         'remap': 'disabled',
         'hardware': 'none',
         'installed_changes': 'none',
+        'logs':{p.name:sha(p.read_bytes()) for p in sorted(root.glob('*.log'))},
     }
     (root / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))

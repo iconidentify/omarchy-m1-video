@@ -1,0 +1,52 @@
+{
+  "glue_test": {
+    "actual_glue_sha256": "287e781610dfb9ecedf183e2116ff19ff1b4968e3224ce51096c2e41503eb03a",
+    "end_callback_sha256": "3cbf4f5e1b9b34e3ac1292d0be7dfe6aae402aadd22124735231e21f3a93ca12",
+    "mutations": [
+      "backend",
+      "slice-required",
+      "sticky",
+      "unsupported-nal"
+    ],
+    "parser_exercised": false,
+    "device_used": false
+  },
+  "compiler": "cc (GCC) 16.1.1 20260430",
+  "libva_version": "1.24.0",
+  "configure_off": [
+    "--disable-everything",
+    "--disable-autodetect",
+    "--disable-asm",
+    "--disable-doc",
+    "--enable-decoder=h264",
+    "--enable-parser=h264"
+  ],
+  "configure_on": [
+    "--disable-everything",
+    "--disable-autodetect",
+    "--disable-asm",
+    "--disable-doc",
+    "--enable-decoder=h264",
+    "--enable-parser=h264",
+    "--enable-vaapi",
+    "--enable-hwaccel=h264_vaapi"
+  ],
+  "architecture": "aarch64",
+  "schema": "omarchy-m1-video.h264-client-admission-build/1",
+  "ffmpeg_commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
+  "source_archive_sha256": "fb1931fd4eb29297ee1c1017a24f800c4d8fbea35b4f2aaeb28308a48a9149b4",
+  "patch_sha256": "dfd45a65cb3a4e94b7c46493ca555600a8614e20c851a2d0d8d1b5effb8754af",
+  "vaapi_off_ffmpeg_sha256": "55785786696a28f005f20c43510778a7424ec4d390102f1f1a7cdd431be2c866",
+  "vaapi_on_ffmpeg_sha256": "635f3a46a3b94e9bd9095eb4d4a333daa5af366fb9872e9cf7c85436fbcac6da",
+  "remap": "disabled",
+  "hardware": "none",
+  "installed_changes": "none",
+  "logs": {
+    "build-off.log": "9422a0d9c26d47f6a101bb2cedf6bb5bd501fde1a3f7f0869cd895b8c8f35cad",
+    "build-on.log": "53d53ef8076760ea1cfa9149c99b3d6a5f857c0657f737a4304eda3b7e670191",
+    "configure-off.log": "fc019cb1be569adca2683a05cb02e6b0db58ce42602aca2aebb9523cf47e6b3b",
+    "configure-on.log": "8d47c57c44d913a868454c5bcf3ce1f9358eabe36835b058e5799172a1428117",
+    "patch-off.log": "da252151989093a9a1ec109d9497c3ec8b42cf2743fff023853fd1377b49bf58",
+    "patch.log": "da252151989093a9a1ec109d9497c3ec8b42cf2743fff023853fd1377b49bf58"
+  }
+}
