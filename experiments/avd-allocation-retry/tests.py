@@ -187,7 +187,7 @@ class Candidate(unittest.TestCase):
             for scenario in ('use-after-retry', 'sequence'):
                 with self.subTest(scenario=scenario, failures=failures):
                     code, _, out = run('candidate', scenario, *failures)
-                    self.assertNotEqual(code, 94, out)
+                    self.assertEqual(code, 0, out)
 
     def test_zero_size_is_rejected_without_allocating(self):
         code, steps, out = run('candidate', 'zero')
@@ -261,7 +261,7 @@ class AlternativeReuse(unittest.TestCase):
         self.assertEqual(steps['second']['ret'], 0)
         self.assertEqual(steps['second']['cpu'], 'set')
         code, _, out = run('alternative', 'use-after-retry', 1)
-        self.assertNotEqual(code, 94, out)
+        self.assertEqual(code, 0, out)
 
 
 # --------------------------------------------------------------------------
@@ -404,6 +404,13 @@ class CallerAudit(unittest.TestCase):
         self.assertGreater(len(re.findall(r'avd_buf_alloc\(', scratch)), 1)
         run_fn = text('pinned', 'avd-hevc.c')
         self.assertIn('avd_hevc_alloc_scratch(ctx, &run)', run_fn)
+
+
+class ExecutedCallerLifecycle(unittest.TestCase):
+    def test_actual_start_alloc_bufs_stop_and_unwind_mutants(self):
+        import lifecycle
+        report = lifecycle.exercise(_state['variants'], _state['root'])
+        self.assertEqual(len(report), 9)
 
 
 # --------------------------------------------------------------------------

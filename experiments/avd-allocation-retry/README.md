@@ -47,7 +47,7 @@ same pinned revision, the same per-file hashes, and the same shipped-patch
 identity check. It then builds three variants — pinned, `candidate.patch`,
 `alternative-reuse.patch` — extracts `avd_buf_alloc()`, `avd_buf_free()` and
 `struct avd_buf` **verbatim** from each, and compiles them against
-`harness.c`. Nothing under test is handwritten here; a copy would test the copy.
+`harness.c`. Allocator bodies under test are mechanically extracted; their DMA environment is synthetic.
 
 `harness.c` is a userspace program, not a kernel module. It supplies a coherent
 DMA stand-in with deterministic fault injection by call index, full
@@ -55,19 +55,19 @@ allocation/free accounting, and size/address checks on every free. Allocations
 are poisoned with `0xA5` rather than zeroed, so no test can silently rely on
 fresh memory being blank.
 
-Like `experiments/hevc-reference-memory`, this suite is **not** wired into
-`.github/workflows/checks.yml`: it fetches pinned kernel sources, and CI runs
-offline. Run it locally.
+The additive `avd-allocation-retry.yml` hosted workflow runs the sanitizer suite.
+It fetches public hash-pinned source files, without a device or privileged execution.
+Existing `hevc-reference-memory.yml` already uses the same source-fetch approach.
 
 ## What the tests cover
 
-34 tests in six groups:
+36 test groups, including executed caller lifecycles:
 
 - **PinnedDefect** (5) — the defect in the actual pinned function: stale size
   after failure, a smaller retry reported as success with no allocation, a
   caller that trusts the return value reaching NULL, equal/larger retries
   unaffected, and the proof that reuse never happens in the pinned tree.
-- **Candidate** (8) — failure leaves nothing behind, the retry really
+- **Candidate** (9) — failure leaves nothing behind, the retry really
   allocates, a retry that also fails still reports failure, success is never
   reported without storage across every failure pattern, zero size is rejected
   without allocating, zero size after success still releases, alloc/free
@@ -85,7 +85,7 @@ offline. Run it locally.
   `avd_vp9_stop()` alone lacks that check, removing the unwind fails the audit,
   the 47 call sites match `caller-audit.json`, and the repeat-call sites are the
   per-frame scratch paths.
-- **Identity** (3) — the patches touch only the AVD directory and no shipped
+- **Identity** (4) — the patches touch only the AVD directory and no shipped
   patch is modified.
 
 ## Results and limits
@@ -102,6 +102,35 @@ Both patches apply to the shipped-patched pinned tree with `-p6 --fuzz=0`.
 Not established: whether either failure has been observed on hardware; whether
 the firmware faults on a zero DMA address; anything about `avd-av1.c`. Both
 paths are reached only under allocation failure, which this experiment injects.
-Module build qualification against matched kernel headers has not been done
-here — no matched-header tree is available on the machines used, and nothing was
-installed to obtain one.
+The maintainer subsequently completed a warning-free native ARM64 module build
+against existing matching 7.1.13-3-1-ARCH headers with `KCFLAGS=-Werror`.
+[Build evidence](build-evidence.json) records all source/patch/header/compiler/log
+and output identities. Nothing was loaded or installed. This qualifies compilation,
+not runtime behavior or the RPS_E corruption cause.
+
+```sh
+python3 experiments/avd-allocation-retry/build.py /tmp/avd-allocation-build \
+  --headers /path/to/matching/arm64/kernel/build
+```
+
+The destination must be new; `--source-cache` is optional. `patch-identities.json`
+locks both candidate/alternative files. Only the behavior-preserving candidate is
+built. Keep the resulting module isolated: loading requires a separately reviewed
+finite guarded plan, fresh health checks, exact build identity and restoration.
+Do not replace a shipped patch or combine it with withdrawn recorder candidates.
+
+## Executed caller cleanup regression
+
+`lifecycle.py` additionally extracts actual `alloc_bufs`, `start`, `stop` and allocator
+bodies for HEVC/H.264/VP9. It executes every allocation-failure index (2/7/12), context
+allocation failure and success/stop under ASan/UBSan. Original start paths leak after
+partial allocation; candidate paths balance all allocations. Replacing each actual
+start cleanup with its old bare `kfree` makes the same no-leak oracle fail.
+Mock allocations are reclaimed only after recording the expected baseline/mutant
+leak, so those negative fixtures do not intentionally leak the test process.
+
+The codec context layout, dimensions, SPS validation and VP9 table initialization
+are explicit synthetic stand-ins. This tests actual unwind control flow, not those
+codec algorithms or kernel ABI; the complete module build covers compilation.
+The 35 original contributor tests remain, with success checks strengthened to require
+exit zero rather than merely excluding the special NULL-storage exit code.

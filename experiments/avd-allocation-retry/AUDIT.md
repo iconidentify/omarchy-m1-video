@@ -23,8 +23,8 @@ both reproduced against the extracted function in `harness.c`:
 2. **A failure can be reported as success.** `buf->size` is assigned before the
    allocation is attempted, so a failed request leaves `size` set and `cpu`
    NULL. A following smaller request then satisfies the fast path and returns 0
-   with no storage. The caller writes through a NULL pointer, or hands address 0
-   to the firmware.
+   with no storage. A caller trusting that result can consume NULL storage or an invalid DMA address;
+   the actual hardware consequence has not been measured.
 
 ## Which callers can reach the failing sequence
 
@@ -97,3 +97,12 @@ covered by these tests.
   only under allocation failure, which this experiment injects.
 - Whether the firmware tolerates a zero DMA address, or faults.
 - Any claim about AV1.
+
+
+## Maintainer runtime follow-up
+
+The original set/text audit is supplemented by `lifecycle.py`: actual start,
+alloc_bufs and stop bodies execute at every failure index with tracked mock DMA.
+Baseline and reverted-cleanup mutants leak; the candidate unwinds to zero live
+allocations. Full module build evidence is in `build-evidence.json`. The scratch
+firmware overwrite contract and AV1 lifecycle are still outside this acceptance.
