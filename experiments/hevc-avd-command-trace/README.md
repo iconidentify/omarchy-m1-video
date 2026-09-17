@@ -1,6 +1,6 @@
 # HEVC copied controls and actual command recorder
 
-**Runtime correction (2026-09-17):** The original #70 module in `offline-build.json` is withdrawn: generated initialization prematurely removed the reference recorder and unload Oopsed before any decoder ran. See the [failed attempt](../hevc-avd-command-capture/failed-attempt-2026-09-17/README.md). The generator is corrected and its actual init/exit bodies plus the original-defect mutation are tested; [corrected build](corrected-build.json) is offline-only and has not been loaded. #71 remains open.
+**Runtime correction (2026-09-17):** The original #70 module in `offline-build.json` is withdrawn: generated initialization prematurely removed the reference recorder and unload Oopsed before any decoder ran. See the [failed attempt](../hevc-avd-command-capture/failed-attempt-2026-09-17/README.md). The generator is corrected and its actual init/exit bodies plus the original-defect mutation are tested; [corrected build](corrected-build.json) records its original offline preparation. The later [recovered campaign](../hevc-avd-command-capture/capture-2026-09-17/README.md) successfully probed its lifecycle, completed all eight captures, and restored the original module with no new faults. This supplies measurement evidence, not an HEVC correction.
 
 **AI disclosure:** Contributor implementation with AI maintainer review and remediation.
 

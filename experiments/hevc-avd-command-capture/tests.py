@@ -173,6 +173,38 @@ class ControlBinding(unittest.TestCase):
         with self.assertRaises(ValueError):compare.copied_fields(row,self.flags)
 
 class FailureEvidence(unittest.TestCase):
+    def test_default_off_endpoint_preflight(self):
+        c=campaign.Campaign.__new__(campaign.Campaign);c.record=mock.Mock()
+        state=dict(run=0,context=0,phase=0,errors=0,pictures=0,completions=0,opens=0)
+        with mock.patch.object(capture,'KernelTrace') as trace:
+            trace.return_value.status.return_value=state
+            c.recorder_preflight()
+            self.assertEqual([x.args[0] for x in trace.call_args_list],list(capture.PATHS))
+            trace.return_value.control.assert_not_called()
+            state['opens']=1
+            with self.assertRaises(RuntimeError):c.recorder_preflight()
+
+    def test_smoke_runs_full_lifecycle_without_decoder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            c=campaign.Campaign.__new__(campaign.Campaign);c.root=Path(tmp)
+            module=c.root/'module';module.write_bytes(b'fixture')
+            c.c=dict(candidate=str(module),candidate_sha256=campaign.sha(module),original=str(module),tool_sha256={})
+            c.config_path=c.root/'unused.json';c.changed=False;c.restored=False
+            c.record=mock.Mock();c.identity=mock.Mock();c.recorder_preflight=mock.Mock()
+            state=SimpleNamespace(module_loaded=True);calls=[]
+            def command(*args):
+                calls.append(args);state.module_loaded=args[0]!='rmmod'
+            c.command=command;c.healthy=lambda **kw:state;c.record_final_state=mock.Mock()
+            original=Path.read_bytes
+            def read(path):return b'apple,test' if str(path)=='/proc/device-tree/compatible' else original(path)
+            with mock.patch.dict(os.environ,LIBVA_HW_GUARD_LEASE='test'),mock.patch.object(os,'geteuid',return_value=1000),mock.patch.object(Path,'read_bytes',read),mock.patch.object(subprocess,'check_output',return_value='aarch64\n'),mock.patch.object(subprocess,'run') as run:
+                c.run(smoke_only=True)
+            self.assertEqual([call[0] for call in calls],['rmmod','insmod','rmmod','modprobe'])
+            self.assertEqual(run.call_count,1) # package inventory only, never measure.py
+            c.recorder_preflight.assert_called_once()
+            c.record.assert_any_call('complete',runs=0,restored=True,smoke_only=True)
+            self.assertTrue(c.restored)
+
     def test_preserved_incident_and_false_restoration_mutation(self):
         here=Path(__file__).resolve().parent
         spec=importlib.util.spec_from_file_location('incident',here/'incident-report.py')

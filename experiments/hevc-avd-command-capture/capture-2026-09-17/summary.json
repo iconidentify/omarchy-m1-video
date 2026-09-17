@@ -1,0 +1,370 @@
+{
+  "schema": "hevc-avd-command-capture.decision/1",
+  "workloads": 8,
+  "frames": 2400,
+  "paired_histories": 4,
+  "kernel_history_pictures": 1200,
+  "detailed_pictures": 44,
+  "selected_words": 1756,
+  "runs": {
+    "B-va-off": {
+      "frames": 300,
+      "wrong_outputs": 0,
+      "wrong_indices": [],
+      "first_bad_decode": null
+    },
+    "B-va-on": {
+      "frames": 300,
+      "wrong_outputs": 0,
+      "wrong_indices": [],
+      "first_bad_decode": null
+    },
+    "B-gst-off": {
+      "frames": 300,
+      "wrong_outputs": 0,
+      "wrong_indices": [],
+      "first_bad_decode": null
+    },
+    "B-gst-on": {
+      "frames": 300,
+      "wrong_outputs": 0,
+      "wrong_indices": [],
+      "first_bad_decode": null
+    },
+    "E-va-off": {
+      "frames": 300,
+      "wrong_outputs": 26,
+      "wrong_indices": [
+        31,
+        73,
+        74,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        117,
+        123,
+        221
+      ],
+      "first_bad_decode": {
+        "output_index": 31,
+        "pic": 31,
+        "poc": 31
+      }
+    },
+    "E-va-on": {
+      "frames": 300,
+      "wrong_outputs": 26,
+      "wrong_indices": [
+        31,
+        73,
+        74,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        117,
+        123,
+        221
+      ],
+      "first_bad_decode": {
+        "output_index": 31,
+        "pic": 31,
+        "poc": 31
+      }
+    },
+    "E-gst-off": {
+      "frames": 300,
+      "wrong_outputs": 25,
+      "wrong_indices": [
+        26,
+        28,
+        29,
+        30,
+        31,
+        74,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        85,
+        88,
+        91,
+        94,
+        181,
+        185,
+        217,
+        218,
+        220,
+        221,
+        283
+      ],
+      "first_bad_decode": {
+        "output_index": 28,
+        "pic": 29,
+        "poc": 28
+      }
+    },
+    "E-gst-on": {
+      "frames": 300,
+      "wrong_outputs": 25,
+      "wrong_indices": [
+        26,
+        28,
+        29,
+        30,
+        31,
+        74,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        85,
+        88,
+        91,
+        94,
+        181,
+        185,
+        217,
+        218,
+        220,
+        221,
+        283
+      ],
+      "first_bad_decode": {
+        "output_index": 28,
+        "pic": 29,
+        "poc": 28
+      }
+    }
+  },
+  "vectors": {
+    "B": {
+      "pictures": [
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34
+      ],
+      "pocs": [
+        23,
+        20,
+        26,
+        28,
+        30,
+        31,
+        27,
+        29,
+        32,
+        25,
+        35
+      ],
+      "words_per_client": 439,
+      "commands_equal": true,
+      "copied_control_differences_between_clients": {
+        "sps_max_num_reorder_pics": [
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34
+        ],
+        "pps_flags": [
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34
+        ],
+        "ref_idx_l0": [
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34
+        ],
+        "ref_idx_l1": [
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34
+        ],
+        "slice_flags": [
+          32
+        ]
+      },
+      "reference_motion_equal": true,
+      "encoded_inputs_equal": 300
+    },
+    "E": {
+      "pictures": [
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34
+      ],
+      "pocs": [
+        24,
+        17,
+        27,
+        25,
+        32,
+        28,
+        30,
+        31,
+        26,
+        29,
+        37
+      ],
+      "words_per_client": 439,
+      "commands_equal": true,
+      "copied_control_differences_between_clients": {
+        "sps_max_num_reorder_pics": [
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34
+        ],
+        "pps_flags": [
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34
+        ],
+        "ref_idx_l0": [
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34
+        ],
+        "ref_idx_l1": [
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34
+        ],
+        "slice_flags": [
+          28
+        ]
+      },
+      "reference_motion_equal": true,
+      "encoded_inputs_equal": 300
+    }
+  },
+  "original_restored": true,
+  "new_faults": 0,
+  "decision": "No discrepancy in copied controls or selected actual commands; RPS_E corruption unchanged. Next investigate compressed-reference contents/lifetime and DMA/cache/firmware state.",
+  "limits": [
+    "Pinned C is a source-packing oracle, not a proved firmware contract.",
+    "Encoded hashes precede QBUF, not a measurement of bytes later read by DMA.",
+    "Symbolic metadata replay cannot independently authenticate private raw output.",
+    "No HEVC fix, codec-count increase, full-suite, concurrency, boot or stability qualification."
+  ]
+}

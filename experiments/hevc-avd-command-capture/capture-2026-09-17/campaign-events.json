@@ -1,0 +1,456 @@
+[
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "transition-attempt",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "argv": [
+      "rmmod",
+      "apple_avd"
+    ]
+  },
+  {
+    "event": "transition-result",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "argv": [
+      "rmmod",
+      "apple_avd"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": false,
+    "video_node": null,
+    "media_node": null,
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "transition-attempt",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "argv": [
+      "insmod",
+      "<private>/apple-avd.ko"
+    ]
+  },
+  {
+    "event": "transition-result",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "argv": [
+      "insmod",
+      "<private>/apple-avd.ko"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "recorder-preflight",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "recorder": "reference",
+    "status": {
+      "run": 0,
+      "context": 0,
+      "phase": 0,
+      "errors": 0,
+      "count": 0,
+      "attempted": 0,
+      "pictures": 0,
+      "completions": 0,
+      "opens": 0
+    }
+  },
+  {
+    "event": "recorder-preflight",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "recorder": "command",
+    "status": {
+      "run": 0,
+      "context": 0,
+      "phase": 0,
+      "errors": 0,
+      "pictures": 0,
+      "completions": 0,
+      "opens": 0
+    }
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "run-start",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "B-va-off",
+    "run_id": 1
+  },
+  {
+    "event": "run-result",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "B-va-off",
+    "run_id": 1,
+    "returncode": 0
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "run-start",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "B-va-on",
+    "run_id": 2
+  },
+  {
+    "event": "run-result",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "B-va-on",
+    "run_id": 2,
+    "returncode": 0
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "run-start",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "B-gst-off",
+    "run_id": 3
+  },
+  {
+    "event": "run-result",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "B-gst-off",
+    "run_id": 3,
+    "returncode": 0
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "run-start",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "B-gst-on",
+    "run_id": 4
+  },
+  {
+    "event": "run-result",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "B-gst-on",
+    "run_id": 4,
+    "returncode": 0
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "run-start",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "E-va-off",
+    "run_id": 5
+  },
+  {
+    "event": "run-result",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "E-va-off",
+    "run_id": 5,
+    "returncode": 0
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "run-start",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "E-va-on",
+    "run_id": 6
+  },
+  {
+    "event": "run-result",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "E-va-on",
+    "run_id": 6,
+    "returncode": 0
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "run-start",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "E-gst-off",
+    "run_id": 7
+  },
+  {
+    "event": "run-result",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "E-gst-off",
+    "run_id": 7,
+    "returncode": 0
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "run-start",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "E-gst-on",
+    "run_id": 8
+  },
+  {
+    "event": "run-result",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "name": "E-gst-on",
+    "run_id": 8,
+    "returncode": 0
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "transition-attempt",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "argv": [
+      "rmmod",
+      "apple_avd"
+    ]
+  },
+  {
+    "event": "transition-result",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "argv": [
+      "rmmod",
+      "apple_avd"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": false,
+    "video_node": null,
+    "media_node": null,
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "transition-attempt",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "argv": [
+      "modprobe",
+      "apple_avd"
+    ]
+  },
+  {
+    "event": "transition-result",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "argv": [
+      "modprobe",
+      "apple_avd"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "event": "state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  {
+    "event": "original-restored",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "installed_sha256": "e50540e1d0fc48c7e0bf9b21ff028758bdb35f94aa7070af00de88e61e5c70e9"
+  },
+  {
+    "event": "terminal-state",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": [],
+    "module_initstate": "live",
+    "original_restored": true
+  },
+  {
+    "event": "complete",
+    "lease": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "runs": 8,
+    "restored": true,
+    "smoke_only": false
+  }
+]

@@ -1,0 +1,68 @@
+{
+  "schema": "hevc-avd-command-capture.campaign/1",
+  "base_commit": "4d179094133ad643e68fa90759a3d699d6674378",
+  "tool_commit": "0da54e80cec8f3f540e491e3c2f708067cc78a68",
+  "kernel": "7.1.13-3-1-ARCH",
+  "device": "Apple j293 / T8103 / arm-platform",
+  "packages": "linux-asahi 7.1.13.asahi3-1\nlinux-asahi-headers 7.1.13.asahi3-1\n",
+  "architecture": "aarch64",
+  "userspace_driver": {
+    "source": "266269ee49d2fbb147f4983307b4b2492bd1a829",
+    "sha256": "b0ee879441c9857740b62b932eb23fc452aba2663c57bcce30f2a47ba23fe58e",
+    "installation": "not installed; selected by LIBVA_DRIVERS_PATH"
+  },
+  "helper": {
+    "source_url": "https://github.com/iconidentify/libva-v4l2_request/blob/266269ee49d2fbb147f4983307b4b2492bd1a829/tests/frame-check.c",
+    "change": "one av_log_set_level argument: AV_LOG_WARNING -> AV_LOG_DEBUG; no decode/hash change",
+    "source_sha256": "76e4510f4408cf1853d1985be504f52da5bc62ccf216f68d5aa02213b5e1114b",
+    "binary_sha256": "a4cec589e5647f27911b09485c1a7e2ba08a383d849d7ab9096ccf2613ccdf91"
+  },
+  "binaries": {
+    "libgstv4l2codecs.so": "54a6fb6d7ecbe190c8d2f092185f0cab3a3e38ce3154ba340003e2e6c8e521a2",
+    "v4l2-tracer": "b2b9fafd285c5e654adc6a58c4f93a5caeaef2a0ccf27512c7683f3306e2735d"
+  },
+  "inputs": {
+    "B": "a5e2097201740c15824b75540b6d0d5050763681bedf7209cde80d93a3b88996",
+    "E": "b82c5c8c251943cc41b59e7f63f72890641fdcdbcec8e916223e4ee28a16c7ad"
+  },
+  "module_sha256": "7a00ffa548e89d4316eb2b1454c7e153128906f099729efb58b77c26fadcdf02",
+  "original_sha256": "e50540e1d0fc48c7e0bf9b21ff028758bdb35f94aa7070af00de88e61e5c70e9",
+  "candidate_build_sha256": "f31bb4887f0f64ee070ee608b21bae46551395bc5caec5c512dbe5dfce9de58a",
+  "oracle_identity_sha256": "c3f9c469e478c0874adf36c95a3796dd0ab376979adab3ca3ceacfd6dffe18cd",
+  "fixed_boundary": "2026-09-17T17:09:48.295096+00:00",
+  "boot_id": "bb406b03-cd02-4793-bfab-fffdcfb1f615",
+  "guard_sha256": "45d65351b33b13dbdd2145b3d37a83bf48c27cc08f1df08c5f37b196d7643d60",
+  "config_sha256": "0e38d413cd5dfddaf0435fd13cd20264df14d49917752e8a0b20a19aaf0f10b0",
+  "tool_sha256": {
+    "frame-check-debug": "a4cec589e5647f27911b09485c1a7e2ba08a383d849d7ab9096ccf2613ccdf91",
+    "hevc-reftrace-check.py": "666eacdde663e8ef890a0e974f5f0ce0f857803b25558b5e56db8f775f9d7dfa",
+    "hwguard.py": "45d65351b33b13dbdd2145b3d37a83bf48c27cc08f1df08c5f37b196d7643d60",
+    "v4l2-controls.h": "c86036741a6b878cc2a28796c2fdd1ff18488ccdd274ea662cfadc934569d9fb",
+    "campaign.py": "85e3a844b929ba7db4a4c8058206b891ea09e3ddb44cefcd46d2c84b1f302a31",
+    "capture.py": "ef4895cff4f049088ff3c6d2ddc60c16c255d000568678a99a906bff0d3fc7ca",
+    "compare.py": "19e0b924d604b2c4b6281380e8f11e1a60543e28c164a9431b5f34514e69d7d5",
+    "incident-report.py": "bd08de683cbde9b41dfa6f3392c664a101c5871148748b8cddeeedda21e546da",
+    "measure.py": "34109ba93fc2447b2ec2eaad95509e8fcc14ac0b71911bb839921282d0a29459",
+    "tests.py": "0bf01875574088d74d72e18ae57c148e597b6f805f4f68845f1b38984ebf5314"
+  },
+  "deadlines": {
+    "probe": 90,
+    "campaign": 1200,
+    "decoder": 60,
+    "tracer": 90,
+    "run_with_validation": 180
+  },
+  "reference_frames_sha256": "6f25d3ad30b99ac0e8ee5c9cf2338b19f89dd3b884ed6607ef438bf8977a8cbf",
+  "prior_frames_manifest_sha256": "a659b90bbcd752deb8ac8ed03d44915934f07a30cf0dbb2b32c1e1252ddc94c1",
+  "limitations": [
+    "One M1, two vectors, bounded command window, no wider-suite/boot/stability/concurrency qualification.",
+    "Same-run private raw digests do not independently authenticate observations.",
+    "Matching source packing does not establish the firmware contract or DMA/reference content correctness."
+  ],
+  "post_run_binary_verification": {
+    "v4l2_request_drv_video.so": "b0ee879441c9857740b62b932eb23fc452aba2663c57bcce30f2a47ba23fe58e",
+    "frame-check-debug": "a4cec589e5647f27911b09485c1a7e2ba08a383d849d7ab9096ccf2613ccdf91",
+    "libgstv4l2codecs.so": "54a6fb6d7ecbe190c8d2f092185f0cab3a3e38ce3154ba340003e2e6c8e521a2",
+    "v4l2-tracer": "b2b9fafd285c5e654adc6a58c4f93a5caeaef2a0ccf27512c7683f3306e2735d"
+  }
+}

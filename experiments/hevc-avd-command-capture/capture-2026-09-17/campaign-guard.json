@@ -1,0 +1,33 @@
+[
+  {
+    "event": "preflight",
+    "run_id": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "identity": "avd",
+    "idle": true,
+    "module_loaded": true,
+    "userspace": {
+      "libva_drivers_path": "<redacted>",
+      "libva_driver_name": "v4l2_request",
+      "loaded_module_limit": "sysfs shows whether apple_avd is present; this guard cannot certify which module binary was loaded earlier or that every patch is active",
+      "source_commit": "b5deb8c319f4e53b5243bc0583fee1800e8faa42"
+    },
+    "time": "2026-09-17T14:20:59-0700"
+  },
+  {
+    "event": "start",
+    "run_id": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "time": "2026-09-17T14:20:59-0700"
+  },
+  {
+    "event": "final",
+    "run_id": "b16d1ad7-fe57-478c-8a8f-35c24a156df7",
+    "status": "ok",
+    "returncode": 0,
+    "timed_out": false,
+    "wedged": false,
+    "abort_reason": null,
+    "idle": true,
+    "holders": [],
+    "time": "2026-09-17T14:21:26-0700"
+  }
+]

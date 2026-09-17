@@ -1,0 +1,13 @@
+{
+  "boot_id": "bb406b03-cd02-4793-bfab-fffdcfb1f615",
+  "original_loaded_build_id_matches": true,
+  "installed_original_sha256": "e50540e1d0fc48c7e0bf9b21ff028758bdb35f94aa7070af00de88e61e5c70e9",
+  "state": {
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  }
+}

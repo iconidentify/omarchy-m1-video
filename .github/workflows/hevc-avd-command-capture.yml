@@ -13,3 +13,14 @@ jobs:
           persist-credentials: false
       - name: Actual child lifecycle and paired evidence failures (no device)
         run: python3 experiments/hevc-avd-command-capture/tests.py
+      - name: Build source-pinned command oracle (no module execution)
+        run: |
+          python3 experiments/hevc-avd-trace/fetch.py "$RUNNER_TEMP/avd-pristine"
+          python3 experiments/hevc-avd-command-trace/prepare.py --source "$RUNNER_TEMP/avd-pristine" --destination "$RUNNER_TEMP/avd-candidate"
+          python3 experiments/hevc-avd-command-trace/oracle.py prepare --source "$RUNNER_TEMP/avd-pristine" --candidate "$RUNNER_TEMP/avd-candidate" --output "$RUNNER_TEMP/oracle"
+      - name: Reproduce paired capture and reject evidence mutations
+        run: |
+          curl --fail --location --retry 2 https://raw.githubusercontent.com/iconidentify/libva-v4l2_request/ba66572ff7e1e380377eb2414a7eb7d7f97bb0d9/tests/hevc-reftrace-check.py -o "$RUNNER_TEMP/hevc-reftrace-check.py"
+          export HEVC_REFTRACE_CHECKER="$RUNNER_TEMP/hevc-reftrace-check.py"
+          python3 experiments/hevc-avd-command-capture/campaign-report.py --oracle "$RUNNER_TEMP/oracle/compiled" --verify
+          python3 experiments/hevc-avd-command-capture/report-tests.py --oracle "$RUNNER_TEMP/oracle/compiled"

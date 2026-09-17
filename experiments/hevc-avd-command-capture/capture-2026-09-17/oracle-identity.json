@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "compiler": "cc (GCC) 16.1.1 20260430",
+  "uapi_sha256": "c86036741a6b878cc2a28796c2fdd1ff18488ccdd274ea662cfadc934569d9fb",
+  "harness_sha256": "f088f7bc6e1dba53a02ab94bafd2bb8791766d77cc4401182d3160d87c9c1ba6",
+  "layout_sha256": "6aac180d7d356ba24dd9447cc3f0a96bf7bceac5811dede9dfb90966bf225f79",
+  "serializer_sha256": "441658ab3bfddc22e9592c03acf0edd932232c8231fb6e3a4446447f509d79ca",
+  "builds": {
+    "baseline": {
+      "command": [
+        "cc",
+        "-std=gnu11",
+        "-Wall",
+        "-Werror",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-I",
+        "<private>/baseline",
+        "-I",
+        "<private>/oracle",
+        "<private>/packing-host.c",
+        "-o",
+        "<private>/packing"
+      ],
+      "source_sha256": "417cd4c0d39957ab6a281b706acb298c08e5132888e8cad2a6edf5d2673824f9",
+      "extracted_sha256": "603b5e55959e86ad926fb25fc6d837195740a95d560960cdc44e7bd2a571265c",
+      "binary_sha256": "de27d493221c64107e39bbea0bf9b8c9e635a0eea902a48ebfd43eee4517ec01"
+    },
+    "candidate": {
+      "command": [
+        "cc",
+        "-std=gnu11",
+        "-Wall",
+        "-Werror",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-I",
+        "<private>/candidate",
+        "-I",
+        "<private>/oracle",
+        "<private>/packing-host.c",
+        "-o",
+        "<private>/packing"
+      ],
+      "source_sha256": "8e8efddccd7a91d3c0d900c8d72c831684748d8b9e8a0d9ab73fdbfbbec98c33",
+      "extracted_sha256": "0ad3b87b948214dba32addd80246617590bcb0f72a2f7467c12304533eebcc96",
+      "binary_sha256": "d98837f95faa669a8c01f16caad7c986181bdc03cbce80c8ced26ec1697f4310"
+    }
+  },
+  "tool_sha256": {
+    "oracle.py": "22ae95cc1e7f464402c6c473b08f25ee188b07e03b20cc6c6d9600bf61064376",
+    "parser.py": "0a2cf31b34fee23464baff841c84eede9499d2cd98ab4a648f7983c8a4ed15d4",
+    "packing.py": "1845fc17dbe6b115eaa807eaf676292f3cd24f556b088971d09fa5be16a595ee"
+  }
+}
