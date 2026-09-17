@@ -1,0 +1,40 @@
+Subject: [PATCH] media: apple: avd: unwind AV1 start allocations on failure
+
+avd_av1_start() kfree()s the private context when avd_av1_alloc_bufs()
+fails, without freeing inst/pipe_state/probs that already succeeded.
+Call avd_av1_stop() like the reviewed HEVC/H.264/VP9 candidate. Add the
+NULL priv check so a failed kzalloc path is safe.
+
+Isolated candidate on the #84 stack. Not shipped, not loaded.
+
+---
+--- a/avd-av1.c
++++ b/avd-av1.c
+@@ -1331,6 +1331,8 @@ static int avd_av1_alloc_bufs(struct avd_ctx *ctx)
+ 	return 0;
+ }
+ 
++static void avd_av1_stop(struct avd_ctx *ctx);
++
+ static int avd_av1_start(struct avd_ctx *ctx)
+ {
+ 	struct avd_av1_ctx *av1_ctx;
+@@ -1350,7 +1352,7 @@ static int avd_av1_start(struct avd_ctx *ctx)
+ 	return 0;
+ 
+ err_free_ctx:
+-	kfree(av1_ctx);
++	avd_av1_stop(ctx);
+ 	ctx->priv = NULL;
+ 	return ret;
+ }
+@@ -1356,6 +1358,9 @@ static void avd_av1_stop(struct avd_ctx *ctx)
+ 	struct avd_av1_ctx *av1_ctx = ctx->priv;
+ 	struct avd_dev *avd = ctx->dev;
+ 
++	if (!av1_ctx)
++		return;
++
+ 	avd_buf_free(avd, &av1_ctx->bufs.rf_above_info);
+ 	avd_buf_free(avd, &av1_ctx->bufs.az_above);
+ 	avd_buf_free(avd, &av1_ctx->bufs.ip_above);
