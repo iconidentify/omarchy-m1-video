@@ -1,0 +1,19 @@
+name: HEVC AVD command trace
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  command-trace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Sanitized core, pins and predictor tests
+        run: python3 experiments/hevc-avd-command-trace/tests.py
+      - name: Fetch pinned AVD sources (no module execution)
+        run: python3 experiments/hevc-avd-trace/fetch.py "$RUNNER_TEMP/avd-pristine"
+      - name: Prepare isolated candidate and check additive hooks
+        run: python3 experiments/hevc-avd-command-trace/source-tests.py "$RUNNER_TEMP/avd-pristine"

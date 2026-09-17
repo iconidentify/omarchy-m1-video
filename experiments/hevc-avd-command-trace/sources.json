@@ -1,0 +1,8 @@
+{
+  "schema": "hevc-avd-command-trace.sources/1",
+  "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
+  "accepted_trace": "../hevc-avd-trace",
+  "trace_hooks_sha256": "3950037a6838eaba2fa92cd63f350d1bc16b87da6d4dc3347f25291d6868d713",
+  "patches_concatenated_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390",
+  "note": "Primary AVD files and the 15 shipped patches are those locked by experiments/hevc-avd-trace/sources.json. This experiment applies those hooks read-only, then additive command-trace sources."
+}
