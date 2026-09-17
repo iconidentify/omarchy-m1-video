@@ -140,6 +140,9 @@ def summarize(root,build):
             meta=read(root/(name+'-reference.json'))
             need((meta['run'],meta['context'])==(index,cmd['context']) and meta['userspace_sha256']==sha(refpath),'paired reference identity')
             need(meta['raw_sha256']==e['snapshots']['reference']['sha256']==private[f'campaign/{name}/kernel/reference.snapshot']['sha256'],'reference raw binding')
+            ref_status=e['status']['reference']
+            need(ref_status['count']==ref_status['attempted']==len(meta['records']),'reference record extent mismatch')
+            need(e['snapshots']['command']['bytes']==cmdpath.stat().st_size and 0<e['snapshots']['reference']['bytes']<=4*1024*1024,'snapshot byte extent')
             for status in e['status'].values():need((status['run'],status['context'],status['phase'],status['errors'],status['pictures'],status['completions'],status['opens'])==(index,cmd['context'],4,0,300,300,0),'sealed status mismatch')
             refs_report.symbolic_replay(meta,meta['records'],refs_report.check.model.map_records(refs,300))
             parser.bind_history(cmd,meta)

@@ -42,6 +42,7 @@ def run(build):
       'actual-word':command_word,
       'copied-control':copied_control,
       'late-recorder-error':lambda p:update(p,'runs.json',lambda x:x[1]['execution']['status']['command'].update(errors=1)),
+      'reference-record-extent':lambda p:update(p,'runs.json',lambda x:x[1]['execution']['status']['reference'].update(count=1)),
       'foreign-terminal-holder':lambda p:update(p,'campaign-events.json',lambda x:next(row for row in x if row['event']=='terminal-state')['holders'].append({'pid':'redacted'})),
       'failed-restoration':lambda p:update(p,'final-state.json',lambda x:x.update(loaded_original_build_id_matches=False)),
       'wrong-paired-context':lambda p:update(p,'B-va-on-reference.json',lambda x:x.update(context=x['context']+1)),
@@ -54,7 +55,7 @@ def run(build):
             try:r.summarize(root,build)
             except (ValueError,AssertionError) as exc:print('PASS reject',name,':',exc)
             else:raise AssertionError('accepted evidence mutation: '+name)
-    print('PASS: reproduced measured decision and rejected twelve semantic evidence mutations')
+    print('PASS: reproduced measured decision and rejected thirteen semantic evidence mutations')
 
 if __name__=='__main__':
     ap=argparse.ArgumentParser();ap.add_argument('--oracle',type=Path,required=True);a=ap.parse_args();run(a.oracle)

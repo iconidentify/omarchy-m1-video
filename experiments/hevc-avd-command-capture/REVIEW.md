@@ -13,7 +13,7 @@ Public report replay validates all 2,400 frames, exact prior wrong sets, full
 same-run returned controls and associations, four complete paired histories,
 44 copied-control windows and 1,756 selected words against pinned C. Both clients'
 selected words are identical; copied inactive metadata/list slots can differ and
-remain visible. Twelve mutations with refreshed inventories reject failures of
+remain visible. Thirteen mutations with refreshed inventories reject failures of
 status, lease, pixels, full hash, window, actual word, copied control, recorder,
 foreign holder, restoration, context and writer association. Twenty-two controller
 and binding tests pass. Required shell/rebuild checks pass. The report uses the
