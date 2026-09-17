@@ -11,3 +11,5 @@ jobs:
         with:
           python-version: '3.x'
       - run: python3 experiments/avd-allocation-qualification/tests.py
+      - run: python3 experiments/avd-allocation-qualification/report.py
+      - run: python3 experiments/avd-allocation-qualification/report-tests.py
