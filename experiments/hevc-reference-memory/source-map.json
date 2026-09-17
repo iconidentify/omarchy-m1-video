@@ -1,0 +1,19 @@
+{
+  "schema": "omarchy-m1-video.hevc-reference-memory-sources/1",
+  "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/77",
+  "parent": "https://github.com/iconidentify/libva-v4l2_request/issues/42",
+  "kernel_revision": "94fb23346d522edf53722357c426a3e58030beea",
+  "patches_concatenated_sha256": "029f57377a00f3584678f80a8011d8ba7a17c83f1708d9a429d3c91dbb2d0390",
+  "evidence": {
+    "path": "experiments/hevc-avd-command-capture/capture-2026-09-17",
+    "merged": "e5b226e843a145eabd846816d51a43ae9a58fee5"
+  },
+  "functions": {
+    "calc_tile_meta": "avd-drv.c:26-38",
+    "fill_comp": "avd-drv.c:41-70",
+    "avd_fill_decoded_pixfmt": "avd-v4l2.c:77-87",
+    "avd_hevc_adjust_decoded_fmt": "avd-hevc.c:977-982",
+    "mv_color_size": "avd-hevc.c:47-51",
+    "mv_color_placement": "avd-hevc.c:1281 run->addresses.mv_color = y_out + (dst_len - mv_color_len)"
+  }
+}
