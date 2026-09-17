@@ -1,0 +1,17 @@
+name: H.264 client selection
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  client-selection:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Extracted callback tests and FMO-gate negative
+        run: python3 experiments/h264-client-selection/tests.py
+      - name: Apply local n9.0.1 patch to pinned VA-API files
+        run: python3 experiments/h264-client-selection/prepare.py "$RUNNER_TEMP/ffmpeg-n901-h264"

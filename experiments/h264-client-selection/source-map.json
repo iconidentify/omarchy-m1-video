@@ -1,0 +1,23 @@
+{
+  "schema": "omarchy-m1-video.h264-client-selection-sources/1",
+  "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/73",
+  "parent": "https://github.com/iconidentify/libva-v4l2_request/issues/37",
+  "ffmpeg": {
+    "tag": "n9.0.1",
+    "commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
+    "files": {
+      "libavcodec/vaapi_h264.c": "69b6a6f3af6dcaa26b91672639592e37d0405a8c0206938f8078565cd811c588",
+      "libavcodec/vaapi_decode.c": "dd9db7f515923d288935af0620498cea97054561bce67a7e797d3facc5764586",
+      "libavcodec/vaapi_decode.h": "514eb0c49e575a1d59d341d7d28755baa67c73c10668e72185e419fcee85b2c3"
+    }
+  },
+  "driver": {
+    "commit": "b5deb8c319f4e53b5243bc0583fee1800e8faa42",
+    "note": "High 10 advertisement remains conditional; this leaf does not query a device."
+  },
+  "prototype": {
+    "path": "experiments/h264-profile-selection/",
+    "merged": "3d9e3f60c4d6b2447f95d1a529d7f9088306b09a",
+    "note": "Whole-inventory Python oracle is not a live parser. Fixture flags are synthetic."
+  }
+}

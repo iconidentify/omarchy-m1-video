@@ -1,0 +1,96 @@
+From: z23 <3616196+z23@users.noreply.github.com>
+Subject: [PATCH] vaapi_h264: gate Baseline/Extended on parsed picture features
+
+Local patch against FFmpeg n9.0.1 bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa
+for omarchy-m1-video#73. Not installed and not sent upstream.
+
+Per-picture checks run in start_frame and decode_slice before VA buffer
+creation. A rejected picture cancels; end_frame does not issue. Sticky
+after the first rejection. Explicit stop, not software fallback.
+
+Baseline maps tentatively to Constrained Baseline and Extended to Main.
+FMO, fields/MBAFF, data-partition NALs and SP/SI still reject.
+
+diff -u -N -r libavcodec/vaapi_decode.c /tmp/ffmpeg-n901-work/libavcodec/vaapi_decode.c
+--- libavcodec/vaapi_decode.c	2026-09-17 19:42:34.421674262 +0000
++++ /tmp/ffmpeg-n901-work/libavcodec/vaapi_decode.c	2026-09-17 19:43:50.557501278 +0000
+@@ -427,6 +427,8 @@
+ #endif
+     MAP(H264,        H264_CONSTRAINED_BASELINE,
+                            H264ConstrainedBaseline),
++    MAP(H264,        H264_BASELINE,   H264ConstrainedBaseline),
++    MAP(H264,        H264_EXTENDED,   H264Main    ),
+     MAP(H264,        H264_MAIN,       H264Main    ),
+     MAP(H264,        H264_HIGH,       H264High    ),
+ #if VA_CHECK_VERSION(0, 37, 0)
+diff -u -N -r libavcodec/vaapi_decode.h /tmp/ffmpeg-n901-work/libavcodec/vaapi_decode.h
+--- libavcodec/vaapi_decode.h	2026-09-17 19:42:34.802513671 +0000
++++ /tmp/ffmpeg-n901-work/libavcodec/vaapi_decode.h	2026-09-17 19:43:50.557348239 +0000
+@@ -47,6 +47,7 @@
+ typedef struct VAAPIDecodeContext {
+     VAConfigID            va_config;
+     VAContextID           va_context;
++    int                   h264_gate_sticky;
+ 
+     AVHWDeviceContext    *device;
+     AVVAAPIDeviceContext *hwctx;
+diff -u -N -r libavcodec/vaapi_h264.c /tmp/ffmpeg-n901-work/libavcodec/vaapi_h264.c
+--- libavcodec/vaapi_h264.c	2026-09-17 19:42:34.050681576 +0000
++++ /tmp/ffmpeg-n901-work/libavcodec/vaapi_h264.c	2026-09-17 19:43:50.557453612 +0000
+@@ -243,6 +243,22 @@
+     VAPictureParameterBufferH264 pic_param;
+     VAIQMatrixBufferH264 iq_matrix;
+     int err;
++    VAAPIDecodeContext *vactx = avctx->internal->hwaccel_priv_data;
++    const H264SliceContext *sl0 = &h->slice_ctx[0];
++
++    if (vactx->h264_gate_sticky)
++        return AVERROR(EINVAL);
++    if (!sps || !pps)
++        return AVERROR(EINVAL);
++    if (pps->slice_group_count > 1 ||
++        !sps->frame_mbs_only_flag || sps->mb_aff ||
++        h->picture_structure != PICT_FRAME ||
++        (h->nal_unit_type >= 2 && h->nal_unit_type <= 4) ||
++        sl0->slice_type == AV_PICTURE_TYPE_SP ||
++        sl0->slice_type == AV_PICTURE_TYPE_SI) {
++        vactx->h264_gate_sticky = 1;
++        return AVERROR(EINVAL);
++    }
+ 
+     pic->output_surface = ff_vaapi_get_surface_id(h->cur_pic_ptr->f);
+ 
+@@ -322,6 +338,12 @@
+     VAAPIDecodePicture *pic = h->cur_pic_ptr->hwaccel_picture_private;
+     H264SliceContext *sl = &h->slice_ctx[0];
+     int ret;
++    VAAPIDecodeContext *vactx = avctx->internal->hwaccel_priv_data;
++
++    if (vactx->h264_gate_sticky) {
++        ff_vaapi_decode_cancel(avctx, pic);
++        return AVERROR(EINVAL);
++    }
+ 
+     ret = ff_vaapi_decode_issue(avctx, pic);
+     if (ret < 0)
+@@ -343,6 +365,20 @@
+     const H264SliceContext *sl  = &h->slice_ctx[0];
+     VASliceParameterBufferH264 slice_param;
+     int err;
++    VAAPIDecodeContext *vactx = avctx->internal->hwaccel_priv_data;
++
++    if (vactx->h264_gate_sticky)
++        return AVERROR(EINVAL);
++    if (h->ps.pps && h->ps.pps->slice_group_count > 1) {
++        vactx->h264_gate_sticky = 1;
++        ff_vaapi_decode_cancel(avctx, pic);
++        return AVERROR(EINVAL);
++    }
++    if (h->nal_unit_type >= 2 && h->nal_unit_type <= 4) {
++        vactx->h264_gate_sticky = 1;
++        ff_vaapi_decode_cancel(avctx, pic);
++        return AVERROR(EINVAL);
++    }
+ 
+     slice_param = (VASliceParameterBufferH264) {
+         .slice_data_size               = size,
