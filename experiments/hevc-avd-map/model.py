@@ -69,10 +69,11 @@ def kernel_lookup(buffers, timestamp, destination):
     integer(timestamp, 0, (1 << 64) - 1)
     indices = [b['index'] for b in buffers]
     require(len(set(indices)) == len(indices) and destination in indices, 'ambiguous buffer snapshot')
-    for b in sorted(buffers, key=lambda b: b['index']):
+    for b in buffers:
         integer(b['index'], 0, (1 << 32) - 1)
         require(type(b['copied_timestamp']) is bool, 'missing timestamp validity')
         integer(b['timestamp'], 0, (1 << 64) - 1)
+    for b in sorted(buffers, key=lambda b: b['index']):
         if b['copied_timestamp'] and b['timestamp'] == timestamp:
             return dict(index=b['index'], fallback=False)
     return dict(index=destination, fallback=True)

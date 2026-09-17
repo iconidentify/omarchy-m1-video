@@ -60,6 +60,12 @@
       "revision": "94fb23346d522edf53722357c426a3e58030beea",
       "sha256": "e98046198bfaa7e05909cc88986c66c87b9638881fdcf88b5e090552d8d2eb77",
       "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/include/linux/bitfield.h"
+    },
+    {
+      "path": "LICENSES/preferred/MIT",
+      "revision": "94fb23346d522edf53722357c426a3e58030beea",
+      "sha256": "323c587d0ccf10e376f8bf9a7f31fb4ca6078105194b42e0b1e0ee2bc9bde71f",
+      "url": "https://github.com/AsahiLinux/linux/blob/94fb23346d522edf53722357c426a3e58030beea/LICENSES/preferred/MIT"
     }
   ],
   "capture_commit": "5c1b9239756bfcc0c594a1c55f4908e3b687bd73",
@@ -283,5 +289,84 @@
         ]
       }
     ]
+  },
+  "mapped_functions": [
+    {
+      "file": "avd-hevc.c",
+      "name": "mv_color_size"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "stream_refs"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "set_header"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "stream_slice_dqtblk"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "stream_slice_mv"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "stream_slices"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "update_dec_buf_info"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "avd_hevc_adjust_decoded_fmt"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "avd_hevc_run_preamble"
+    },
+    {
+      "file": "avd-hevc.c",
+      "name": "avd_hevc_run"
+    },
+    {
+      "file": "avd-drv.c",
+      "name": "avd_get_ref_buf"
+    },
+    {
+      "file": "avd-drv.c",
+      "name": "fill_comp"
+    },
+    {
+      "file": "avd-v4l2.c",
+      "name": "avd_fill_decoded_pixfmt"
+    },
+    {
+      "file": "avd-v4l2.c",
+      "name": "avd_run_preamble"
+    },
+    {
+      "file": "videobuf2-v4l2.c",
+      "name": "vb2_find_buffer"
+    }
+  ],
+  "patch_reconciliation": {
+    "0001": "MMAP cacheability and queue attributes; not reference/header/list/MV bit expressions.",
+    "0002": "H264 reference validation; not the HEVC helper fallback.",
+    "0003": "Job segment allocation, not these command definitions.",
+    "0004": "H264 slice counter reset.",
+    "0005": "Shared job submission/completion synchronization; runtime correctness still unobserved by this model.",
+    "0006": "Apply HEVC request before reading controls; use applied array counts.",
+    "0007": "Compressed chroma sizing changes for 422; current 420 behavior retained. Addresses/offsets remain unknown here.",
+    "0008": "H264 monochrome handling.",
+    "0009": "HEVC SPS format validation, later narrowed by0015.",
+    "0010": "Copy applied slice/entry-point arrays under control lock; no reference/MV formula change.",
+    "0011": "Entry-point bounds, initialized run, request completion/error handling; first-slice selection unchanged.",
+    "0012": "Free unsubmitted job tables at lifecycle boundaries.",
+    "0013": "H264 job-table and emulation-byte bounds.",
+    "0014": "H264 10-bit monochrome value.",
+    "0015": "HEVC format validation; no reference/MV formula change."
   }
 }

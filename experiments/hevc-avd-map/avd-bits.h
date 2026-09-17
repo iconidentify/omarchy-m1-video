@@ -1,7 +1,8 @@
-/* SPDX-License-Identifier: GPL-2.0-only
+/* SPDX-License-Identifier: MIT
  * Verbatim selected definitions from AsahiLinux/linux avd-inst.h.
- * Copyright The Asahi Linux Contributors; original AVD reverse engineering by
- * Eileen Yoon and contributors. Source/revision/hash: source-map.json.
+ * Attribution: the Asahi Linux Contributors; original AVD reverse engineering
+ * by Eileen Yoon and contributors. Source/revision/hash: source-map.json.
+ * Original file carries SPDX-License-Identifier: MIT (retained above).
  * Extracted definitions only; BIT/GENMASK/FIELD_PREP supplied by the test.
  */
 #define AVD_OP_SL_REF			FIELD_PREP(GENMASK(31, 24), 0x2d)
