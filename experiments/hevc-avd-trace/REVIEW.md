@@ -1,10 +1,37 @@
 # Review and execution handoff
 
 AI self-review by sessions `codex-hevc-avd-trace-20260917T1515Z` and
-`codex-hevc-avd-live-20260917T1600Z`, routed through
+`codex-hevc-avd-live-20260917T1600Z` and
+`codex-hevc-avd-schema2-20260917T1705Z`, routed through
 iconidentify. **No independent kernel review has occurred.** This artifact can be
 merged as experimental source/tooling; merging it neither loads it nor establishes
 runtime safety. Parent #61 retains kernel review routing and execution acceptance.
+
+## Completed schema-2 campaign and normalizer correction
+
+The [follow-up report](captures/2026-09-17-schema2/README.md) records eight complete
+300-frame workloads and four sealed histories, unchanged pixels, no new faults,
+and verified restoration. One outer guard retains its initial postprocessing
+failure; only the six unattempted workloads continued after offline correction.
+The module and raw snapshots were unchanged. All actual decoder exits were zero.
+
+VA timestamps are per capture index and may repeat across successive writers.
+Normalized schema 3 resolves at each picture's latest recorded writer per index,
+retires replaced associations, excludes future writers, retains ambiguity as
+candidate lists/findings and never maps absent I lookups to a real zero timestamp.
+The 24 test groups include five new counterexamples. Review checked chronology,
+allocation-token checks, unchanged raw schema, numeric timestamp privacy and the
+fact that unrecorded standalone cleanup is not proven by writer association.
+The public report uses symbolic tokens to recheck writer/control/word consistency;
+it does not claim to reconstruct private timestamp values. Twelve mutated-evidence
+checks exercise the report's failure paths and preserved guard exception.
+
+All recorded lookups, intra states, ranges and source-predicted reference/motion
+words match. Same-run userspace correlation is complete. This accepts #61's
+negative measurement, not an RPS_E correction or a firmware-contract proof.
+Raw payloads remain private; source digests cannot independently authenticate them.
+There was no independent kernel review. The new offline normalizer changes no
+kernel/driver behavior. Existing reference-control and raw motion-word checks remain.
 
 ## Schema-2 correction after the stopped campaign
 
@@ -23,7 +50,7 @@ status-schema compatibility with the supervisor, and strict rejection of old/err
 incomplete snapshots. The new field uses an existing owned slice pointer; it adds
 no pointer retention, allocation or submission change. New shared-C regressions
 cover capacities 1–256 versus actual usage, with parser histories and source-path
-checks; the correction has not been loaded. No independent kernel review is claimed.
+checks; the schema-2 recorder was subsequently loaded for the reported campaign. No independent kernel review is claimed.
 
 ## What is preserved and observed
 
@@ -88,15 +115,15 @@ ordering errors; a cancelled/incomplete job produces invalid extent at close.
   Default off allocates no capture. Permission and filtering are controls for this
   supervised experiment, not a general multi-tenant tracing facility.
 
-These arguments were checked against source and the actual local build. Live IRQ,
-watchdog, teardown, debugfs and memory-pressure races have **not** been runtime-tested.
+These arguments were checked against source and the actual local build. The short campaign exercised normal completion, teardown and debugfs access; IRQ,
+watchdog, teardown and memory-pressure race coverage remains unqualified.
 Do not represent the portable C state tests as a kernel concurrency test.
 
 ## Evidence
 
 - Prior map: four 300-picture reports reproduced; 11 primary source/licence hashes
   and 19 verbatim instruction macros verified before implementation.
-- 19 Python test groups pass (18 original groups plus entry capacity/usage):
+- 24 Python test groups pass (including entry capacity/usage and timestamp chronology):
   four synthetic full histories, record/extent/loss/context rejection, writer/intra/copied/completion errors, lookup fallback findings,
   full words and emitted offsets, actual slice POC, allocation changes, I inactive
   inputs and early return, TMVP-disabled lookup, dependent gating, trusted-model
@@ -120,32 +147,28 @@ Do not represent the portable C state tests as a kernel concurrency test.
 
 The original #62 preparation used no hardware or module operations. The later
 #61 schema-1 execution and restoration are recorded separately in the campaign
-report. Schema-2 correction/build/tests are offline; no installer, boot setting or
+report. The schema-2 build and timestamp-normalizer tests are offline; no installer, boot setting or
 reboot was used. The only children executed by supervisor tests are `/bin/sh` with
 an immediate exit, `/bin/true`, and bounded `/bin/sleep` processes using a fake trace
 backend. Raw historical captures and licensed vectors were not changed or published.
 
-## Specific later operation
+## Candidate and completed operation
 
 Candidate module:
 `/home/chrisk/hevc-avd-live-20260917/build-schema2/apple-avd.ko`
 
 SHA-256: `bf890e4def112022cb1381261f51ccab747ec3e4f6184201d4776ee350e19ce3`.
-It is an experimental build, currently **unloaded**. The selected installed module
+It is an experimental build, loaded once for the completed follow-up and now **unloaded**. The selected installed module
 and boot path are untouched. Recheck exact source/module/header hashes and loaded
 identity before any authorized campaign; provenance in this file describes only
 this offline build, not a future loaded state.
 
-The previous window ended on error and restoration. After fresh explicit owner
-consent and a saved-work/closed-app window, the proposed operation is to unload
-the existing module once, load any standard dependencies removed by that unload,
-and temporarily load this exact file,
-run the eight guarded B/E × VA/Gst × off/on comparisons, then unload it and restore
-the unchanged existing module on the clean path. No permanent installation, package
-change or reboot. A fault/wedge ends the campaign and requires recovery coordination;
-it is not permission to automatically cycle the module. Existing fault evidence
-must be preserved before choosing a justified fixed campaign boundary.
-
+The completed operation loaded standard dependencies, temporarily loaded this exact
+file, collected eight workloads with the documented offline-checker pause, and
+restored the unchanged original module. No installation, reboot, forced unload or
+hardware retry occurred. Future experiments use a separately recorded bounded plan,
+current owner authorization, an exclusive guard and a fixed justified fault boundary;
+a fault is not permission for blind module cycling.
 Each run needs actual child status, 300 output hashes, complete same-run userspace
 association and a sealed kernel snapshot for trace-on. The supervisor checks live
 trace errors and a finite deadline; the outer shared hwguard remains responsible

@@ -1,0 +1,62 @@
+{
+  "B-va-on": {
+    "schema": "hevc-avd-trace.normalized/3",
+    "run": 202,
+    "context": 31,
+    "structural_validation": "passed",
+    "userspace_correlated": true,
+    "findings": [],
+    "limitations": [
+      "No pixel, firmware, boot or stability conclusion.",
+      "Allocation identities are vb2 attachment lifetimes, not proof of physical contents.",
+      "Matching commands do not exhaust decoder controls or firmware state."
+    ],
+    "raw_sha256": "4d5fec5d26b292779759272bffdcfa8329886395eec521a88e8ec9eab8c42917",
+    "userspace_sha256": "51eaa65f9103e6f3603659b191ba93c01d9735979b42a8274df0bdd9e529b852"
+  },
+  "B-gst-on": {
+    "schema": "hevc-avd-trace.normalized/3",
+    "run": 204,
+    "context": 53,
+    "structural_validation": "passed",
+    "userspace_correlated": true,
+    "findings": [],
+    "limitations": [
+      "No pixel, firmware, boot or stability conclusion.",
+      "Allocation identities are vb2 attachment lifetimes, not proof of physical contents.",
+      "Matching commands do not exhaust decoder controls or firmware state."
+    ],
+    "raw_sha256": "5b9ae1da38cd9fffa2a287c49a041b0ee5fe2952a6494ebf2fd2e850cf6a54e3",
+    "userspace_sha256": "9c01e6d496cc2679127963d5946cd12d24260e850d4880aaac29c1afe6295d3b"
+  },
+  "E-va-on": {
+    "schema": "hevc-avd-trace.normalized/3",
+    "run": 206,
+    "context": 81,
+    "structural_validation": "passed",
+    "userspace_correlated": true,
+    "findings": [],
+    "limitations": [
+      "No pixel, firmware, boot or stability conclusion.",
+      "Allocation identities are vb2 attachment lifetimes, not proof of physical contents.",
+      "Matching commands do not exhaust decoder controls or firmware state."
+    ],
+    "raw_sha256": "1e0dc2c7e6bf191b5fac1f412960d3f875fa69b621afa03dd2b9214afad63f97",
+    "userspace_sha256": "bfa566d5b5706ee76201486cea9a552882a1626c7b580c68798440ac247b2825"
+  },
+  "E-gst-on": {
+    "schema": "hevc-avd-trace.normalized/3",
+    "run": 208,
+    "context": 101,
+    "structural_validation": "passed",
+    "userspace_correlated": true,
+    "findings": [],
+    "limitations": [
+      "No pixel, firmware, boot or stability conclusion.",
+      "Allocation identities are vb2 attachment lifetimes, not proof of physical contents.",
+      "Matching commands do not exhaust decoder controls or firmware state."
+    ],
+    "raw_sha256": "4e6d6ad7c8aea6f316928253694d3ee19f39586f4e2c343b29e8b08f55441c28",
+    "userspace_sha256": "d5b3c24efa4ffc8d818f2725624440c40e01f28fb0e975a501a5c5911aac4d88"
+  }
+}

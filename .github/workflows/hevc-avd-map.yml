@@ -23,3 +23,9 @@ jobs:
         env:
           HEVC_REFTRACE_CHECKER: driver-checker/tests/hevc-reftrace-check.py
         run: python3 experiments/hevc-avd-map/report.py --verify
+      - name: Reproduce measured kernel campaign and reject altered evidence (no hardware)
+        env:
+          HEVC_REFTRACE_CHECKER: driver-checker/tests/hevc-reftrace-check.py
+        run: |
+          python3 experiments/hevc-avd-trace/campaign-report.py --verify
+          python3 experiments/hevc-avd-trace/campaign-tests.py
