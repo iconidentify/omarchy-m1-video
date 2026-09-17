@@ -33,9 +33,9 @@ loading for manual trial. It was preserved.
 | Issue criterion | Evidence / remaining work |
 | --- | --- |
 | Portable no-install collection and refusal of unsupported claims | Collector and 15 offline/CLI tests; both historical inventories remain unqualified |
-| Two independent qualified Apple devices | **Not met**: [historical M1 r11 record](../../codec-validation-r11-2026-09-15.json) plus j413 inventory and a t6021 campaign that is still experimental pending review |
-| Per-device codec/profile and software identity | Inventories retain `not_probed`. t6021 later records add guarded Fluster/export/lifecycle/mpv on installed `1.3.r11-2` + `updates/`; `loaded_binary_sha256` remains unknown |
-| Reset/corruption remains experimental; no automatic install/load | Collector performs no system changes. Later contributor-reported install and one consented reboot are recorded separately; all device rows remain experimental |
+| Two independent qualified Apple devices | **Not met**: [historical M1 r11 record](../../codec-validation-r11-2026-09-15.json) plus j413 inventory and a t6021 campaign accepted as reported evidence with the [follow-up review limits](t6021-followup-review.md) |
+| Per-device codec/profile and software identity | Inventories retain `not_probed`. Later summaries/guard outcomes are attributed to t6021 by the contributor; exact loaded binary and per-result run binding remain unverified |
+| Reset/corruption remains experimental; no automatic install/load | Collector performs no system changes. Later contributor-reported install and one reported consented reboot are recorded separately; all device rows remain experimental |
 | Scoped evidence and tests not run | Early smokes: [review assessment](t6021-review.md). Later: [installed stack](t6021-installed-stack/README.md) and [one boot-enabled login](t6021-boot-enabled/README.md). Not a reset matrix; issues 13/17 stay open |
 | Merged changes and completion protocol | This is a partial contribution; issue #18 stays open until remaining qualification evidence is reviewed and merged |
 
@@ -129,26 +129,21 @@ early smoke records. The later installed-stack and boot-enabled records below
 are a separate contribution; they were not part of the PR #40 merge. The
 device remains experimental and issue #18 stays open.
 
-## t6021 installed stack, 2026-09-17
+## t6021 installed stack and boot follow-up, 2026-09-17
 
-After explicit boot-risk acceptance, `./install.sh --i-accept-boot-risk` from
-`a88d45cc74ec41d0e95ace3763900137d2ce9b19` installed
-`libva-v4l2_request-avd 1.3.r11-2` and the `updates/` module
-(stamp `tag=asahi-7.1.13-3 patches=029f57377a00`). Guarded Fluster HEVC 144/147,
-AVC 73/135, FRExt High 10 27/69 and VP9 216/305 match the published r11 pass
-sets except AVC `FM1_FT_E` (`software_fallback` vs `decode_error`). Export,
-lifecycle generated matrices and mpv OpenGL VA-API also pass.
+[PR #54](https://github.com/iconidentify/omarchy-m1-video/pull/54) adds the
+[reported installed-stack campaign](t6021-installed-stack/README.md) and
+[one reported boot-enabled login](t6021-boot-enabled/README.md).
+The [maintainer follow-up assessment](t6021-followup-review.md) and
+[machine-readable audit](t6021-followup-review.json) validate all eight submitted
+summaries, reproduce all four comparison records and hash all 32 raw artifacts.
+Every suite retains the r11 passing-vector set. HEVC failure categories differ
+for two streams; AVC `FM1_FT_E` becomes `software_fallback`, so its comparator
+remains non-green. No software fallback is counted as a hardware pass.
 
-See [installed-stack evidence](t6021-installed-stack/README.md). Matching r11
-totals on this host is not a support claim and must not be copied onto other
-chips. `loaded_binary_sha256` remains unknown.
-
-## t6021 one boot-enabled login, 2026-09-17
-
-One consented reboot loaded the same out-of-tree module at login (taint `O`,
-firmware 30010). The 06:40–09:12 UTC journal gap is the LUKS unlock prompt,
-not a hang or reset. Post-boot smokes of `AMP_A_Samsung_7`, `AUD_MW_E` and
-`vp90-2-00-quantizer-00.webm` plus mpv OpenGL VA-API pass.
-
-See [boot-enabled evidence](t6021-boot-enabled/README.md). This is one
-successful login, not a boot matrix and not closure of issues 13/17.
+Device/build/run attribution and detailed export/lifecycle counts remain
+contributor reports; a guard's zero child exit does not independently establish
+the omitted test output. A short startup excerpt corroborates an out-of-tree
+AVD initialization, but not the selected on-disk module's exact loaded bytes,
+consent history, LUKS explanation or a fault-free boot interval. This accepts
+partial reported evidence, keeps t6021 experimental and leaves #18/#13/#17 open.

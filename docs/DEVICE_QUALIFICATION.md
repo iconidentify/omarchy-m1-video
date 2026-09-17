@@ -13,7 +13,7 @@ reboot and suspend are separate activities with their own authorization gates.
 | --- | --- | --- |
 | M1 / T8103, MacBookPro17,1 | Historical r11 userspace tests on `linux-asahi 7.1.13.asahi3-1`; [record](codec-validation-r11-2026-09-15.json) | Experimental; HEVC 144/147, AVC 73/135, opt-in High 10 FRExt 27/69, VP9 216/305; boot/display/codec gaps remain |
 | M2 / `apple,j413`, `apple,t8112` | Inventory only; kernel `7.1.13-3-1-ARCH`, package `linux-asahi 7.1.13.asahi3-1`, installed VA driver `1.3.r5-1` | Experimental; capabilities unknown, no decode attempted; `apple_avd` absent from loaded-module sysfs, `video0` is `apple-isp` / `apple_isp` |
-| M2 Max / `apple,j416c`, `apple,t6021` | Inventory, two three-vector smokes, then a later installed `1.3.r11-2` + `updates/` campaign and one consented reboot; [inventory](evidence/issue18/m2-j416c-inventory.json), [campaign 1](evidence/issue18/t6021-in-tree-smoke/README.md), [campaign 2](evidence/issue18/t6021-patched-smoke/README.md), [review](evidence/issue18/t6021-review.md), [installed stack](evidence/issue18/t6021-installed-stack/README.md), [boot](evidence/issue18/t6021-boot-enabled/README.md) | Experimental. Early smokes: 238 reported hashes; loaded-module/patch attribution unverified. Installed-stack Fluster totals match published r11 pass sets except AVC `FM1_FT_E` (`software_fallback` vs `decode_error`). One boot-enabled login loaded the out-of-tree module (taint `O`, firmware 30010); LUKS wait explains 06:40–09:12; not a reset matrix. Do not copy these rows onto other chips. |
+| M2 Max / `apple,j416c`, `apple,t6021` | Inventory, earlier reported smokes, and later contributor-attributed installed-stack/boot records; [initial review](evidence/issue18/t6021-review.md), [follow-up review](evidence/issue18/t6021-followup-review.md) | Experimental. Submitted full-suite summaries have the same r11 passing-vector sets: HEVC 144/147, AVC 73/135, opt-in FRExt 27/69, VP9 216/305. Failure categories differ; AVC comparison remains non-green. One reported boot-enabled login is supported by a short module-startup excerpt, not full boot qualification or exact loaded-binary attribution. |
 | Other Apple Silicon devices | No record in this workflow | Untested; do not inherit these rows |
 
 The M1 record used an isolated r11 library while its installed package was r5.
@@ -43,23 +43,16 @@ records in this contribution and are not independently verified. The
 limits acceptance to the inventory and reported smoke output. It does not establish
 which patchset was active or a benefit from the patches during those two smokes.
 
-A later, separately authorized campaign on the same host ran
-`./install.sh --i-accept-boot-risk` from `a88d45cc74ec41d0e95ace3763900137d2ce9b19`,
-loaded `/lib/modules/7.1.13-3-1-ARCH/updates/apple-avd.ko` (SHA-256
-`27f9cfa4aef2842fd0a18ee794a68924e6b9092af10635de5d13f2867c96c5d6`, stamp
-`tag=asahi-7.1.13-3 patches=029f57377a00`), and installed
-`libva-v4l2_request-avd 1.3.r11-2` (stripped SHA-256
-`a9d6225e0fd348ca22fd738cb2367d7835d7cda1f789ba7b5aae278b32b6729b`). Guarded
-Fluster HEVC 144/147, AVC 73/135, FRExt High 10 27/69 and VP9 216/305 match the
-published r11 pass sets except AVC `FM1_FT_E`, which is `software_fallback`
-rather than `decode_error`. Export/lifecycle generated matrices and mpv OpenGL
-VA-API also pass. One consented reboot then loaded the same out-of-tree module
-at login (taint `O`, firmware 30010). The 06:40–09:12 UTC journal gap is the
-LUKS unlock prompt, not a hang or reset. Post-boot smokes of `AMP_A_Samsung_7`,
-`AUD_MW_E` and `vp90-2-00-quantizer-00.webm` plus mpv still pass. This is one
-successful boot-enabled login, not a reset matrix and not closure of issues 13/17.
-`loaded_binary_sha256` remains unknown. Matching r11 totals on this host is not
-a support claim and must not be copied onto other chips. Issue 18 stays open.
+The contributor later reported an installation from `a88d45cc74ec41d0e95ace3763900137d2ce9b19`,
+full suites and export/lifecycle/mpv checks, followed by one consented reboot.
+The [follow-up review](evidence/issue18/t6021-followup-review.md) validates the
+submitted result schemas and exact pass sets, preserves guard outcomes and
+separates reported provenance from independently checkable content. The short
+journal excerpt shows an out-of-tree AVD module initializing with hardware
+version 30010. It does not identify the exact loaded binary or prove a
+fault-free boot interval. The LUKS-wait explanation and operation consent are
+contributor reports; original records are not included. All 32 raw artifacts
+are preserved. Issue #18 and boot/release gates #13/#17 remain open.
 
 ## Inventory without opening a decoder
 

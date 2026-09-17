@@ -1,12 +1,12 @@
 # t6021 installed omarchy-m1-video stack, 2026-09-17
 
-Boot-risk accepted. `./install.sh --i-accept-boot-risk` was run from
-`a88d45cc74ec41d0e95ace3763900137d2ce9b19`. The patched module was then loaded
-with `modprobe` **before** any reboot. Full Fluster HEVC/AVC/FRExt/VP9 plus
-export/lifecycle matrices and mpv OpenGL VA-API were recorded on this stack
-before the later consented reboot. This remains experimental.
+The contributor reports accepting boot risk, running the installer from
+`a88d45cc74ec41d0e95ace3763900137d2ce9b19`, and loading the patched module
+before recording these suites and later rebooting. Original installation,
+load and consent logs are not included. See the [maintainer assessment](../t6021-followup-review.md)
+for verified artifact content and attribution limits. This remains experimental.
 
-## Installed identities
+## Contributor-reported installed identities
 
 | Item | Value |
 | --- | --- |
@@ -21,7 +21,7 @@ before the later consented reboot. This remains experimental.
 
 `vainfo --display drm`: H.264 Constrained Baseline/Main/High, HEVC Main/Main10, VP9 0/2.
 
-## Results
+## Submitted results and reported checks
 
 | Check | Result |
 | --- | --- |
@@ -36,7 +36,12 @@ before the later consented reboot. This remains experimental.
 | VP9 HIGH `vp92-2-20-10bit-yuv420.webm` | hardware_pass, 1/1 |
 | mpv `--hwdec=vaapi --gpu-api=opengl --vo=gpu-next` | `Using hardware decoding (vaapi)`, `VO: [gpu-next] 640x360 vaapi[nv12]` |
 | FRExt `JVT-FR-EXT` (High 10 mode) | **27/69**, exact r11 pass set (`ok: true`) |
-| Boot-enabled load | one successful login after `shutdown -r`; LUKS wait accounts for the 06:40–09:12 gap; see [t6021-boot-enabled](../t6021-boot-enabled/README.md) |
+| Boot-enabled load | one contributor-reported login after `shutdown -r`; operator reports a LUKS wait during the 06:40–09:12 gap; see [t6021-boot-enabled](../t6021-boot-enabled/README.md) |
 
-Guard child-error on HEVC is expected: `conformance.py` exits 1 when 3/147 fail, matching r11.
-No wedge, timeout, or new AVD kernel fault.
+All four full-suite guards end `child-error` / exit 1, consistent with their
+non-passing vectors; the other published guards end `ok` / exit 0. Every final
+guard row reports idle, no timeout/wedge and no abort reason. Full journal
+coverage and raw export/lifecycle output are not included; their detailed
+counts and absence of new kernel faults remain contributor reports. The HEVC
+pass set matches while two non-pass categories change to checksum mismatch.
+The AVC comparator remains non-green because software fallback is present.
