@@ -97,7 +97,8 @@ def validate(capture, expected=None):
     if expected is not None:
         need(len(expected) == PICTURES, 'incomplete userspace oracle')
     rows = capture['records']
-    findings, starts, histories, allocations, timestamps = [], {}, {}, {}, {}
+    findings, starts, histories, allocations = [], {}, {}, {}
+    current_writers = {}
     current_allocations = {}
     normalized, group, next_picture = [], [], 1
 
@@ -161,8 +162,6 @@ def validate(capture, expected=None):
         need(0 < start['width'] <= 16384 and 0 < start['height'] <= 16384, 'invalid negotiated dimensions')
         need(start['writer'] == pic and start['completed'] == 0 and done['result'] == 5 and done['completed'] == 1, 'invalid start/completion state')
         need(all(start[k] == done[k] for k in BUFFER if k != 'completed'), 'destination changed before completion')
-        need(start['timestamp'] not in timestamps, 'ambiguous/reused picture timestamp')
-        timestamps[start['timestamp']] = pic
         prior = histories.get((start['buffer'], start['allocation']), 0)
         check_value(start, start['previous_writer'] == prior, 'destination-previous-writer-mismatch')
         check_value(start, start['intra'] == (start['type'] == 2), 'destination-intra-mismatch')
@@ -171,6 +170,7 @@ def validate(capture, expected=None):
             check_value(start, (start['poc'], TYPES[start['type']], start['buffer']) ==
                         (pred['poc'], pred['slice_type'], pred['destination']['buffer']), 'userspace-picture-mismatch')
         starts[pic] = start
+        current_writers[start['buffer']] = start
         current_allocations[start['buffer']] = start['allocation']
         histories[(start['buffer'], start['allocation'])] = pic
         buffer(start, start, True)
@@ -240,16 +240,25 @@ def validate(capture, expected=None):
         group.append(row)
         if row['kind'] == 2:
             check_group(group)
+            # Resolve against latest recorded writers HERE, before later reuse.
+            for record in group:
+                out = record.copy()
+                has_buffer = record['kind'] != 5 or record['lookup']
+                for field in ('timestamp', 'requested_timestamp'):
+                    if field not in out:
+                        continue
+                    stamp = out.pop(field)
+                    candidates = sorted(s['picture'] for s in current_writers.values()
+                                        if has_buffer and s['timestamp'] == stamp)
+                    out[field + '_writer'] = candidates[0] if len(candidates) == 1 else None
+                    out[field + '_writer_candidates'] = candidates
+                    if len(candidates) > 1:
+                        finding(record, field + '-ambiguous-current-writers')
+                normalized.append(out)
             group = []
             next_picture += 1
     need(not group and next_picture == PICTURES + 1, 'missing final completion')
-    for row in rows:
-        out = row.copy()
-        for field in ('timestamp', 'requested_timestamp'):
-            if field in out:
-                out[field + '_writer'] = timestamps.get(out.pop(field))
-        normalized.append(out)
-    return dict(schema='hevc-avd-trace.normalized/2', run=capture['run'], context=capture['context'],
+    return dict(schema='hevc-avd-trace.normalized/3', run=capture['run'], context=capture['context'],
                 structural_validation='passed', userspace_correlated=expected is not None,
                 findings=findings, records=normalized,
                 limitations=['No pixel, firmware, boot or stability conclusion.',

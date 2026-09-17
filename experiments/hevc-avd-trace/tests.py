@@ -227,6 +227,69 @@ class TraceTests(unittest.TestCase):
         self.expected[28]['motion']['word']['known_value']='0x2d008880'
         self.finding('userspace-known-motion-bit-mismatch')
 
+    def remap_timestamps(self, mapping):
+        for row in self.trace['records']:
+            for field in ('timestamp', 'requested_timestamp'):
+                if field in row and row[field] in mapping:
+                    row[field] = mapping[row[field]]
+
+    def test_buffer_timestamp_reuse_preserves_each_writer(self):
+        for vector in ('B', 'E'):
+            for client in ('va', 'gst'):
+                self.trace, self.expected = synthetic(vector, client)
+                mapping = {r['timestamp']: 8000000000 + r['buffer'] * 1000
+                           for r in self.trace['records'] if r['kind'] == 1}
+                self.remap_timestamps(mapping)
+                result = self.result()
+                self.assertEqual(result['findings'], [])
+                for row in result['records']:
+                    if 'timestamp' not in c.FIELDS[row['kind']]:
+                        continue
+                    if row['kind'] == 5 and not row['lookup']:
+                        self.assertIsNone(row['timestamp_writer'])
+                    else:
+                        self.assertEqual(row['timestamp_writer'], row['writer'])
+                        self.assertEqual(row['timestamp_writer_candidates'], [row['writer']])
+                # Latest writer must not rewrite an earlier record's identity.
+                self.assertEqual(result['records'][0]['timestamp_writer'], 1)
+
+    def test_future_timestamp_is_not_a_current_writer(self):
+        self.row(3)['requested_timestamp'] = self.row(1, 300)['timestamp']
+        result = self.result()
+        row = next(r for r in result['records'] if r['kind'] == 3 and r['picture'] == 29)
+        self.assertIsNone(row['requested_timestamp_writer'])
+        self.assertEqual(row['requested_timestamp_writer_candidates'], [])
+        self.finding('lookup-timestamp-mismatch')
+
+    def test_retired_timestamp_is_not_a_current_writer(self):
+        start = self.row(1)
+        previous = self.row(1, start['previous_writer'])
+        self.row(3)['requested_timestamp'] = previous['timestamp']
+        result = self.result()
+        row = next(r for r in result['records'] if r['kind'] == 3 and r['picture'] == 29)
+        self.assertIsNone(row['requested_timestamp_writer'])
+        self.assertEqual(row['requested_timestamp_writer_candidates'], [])
+        self.finding('lookup-timestamp-mismatch')
+
+    def test_simultaneous_timestamp_alias_is_an_explicit_finding(self):
+        self.remap_timestamps({self.row(1, 2)['timestamp']: self.row(1, 1)['timestamp']})
+        result = self.result()
+        row = next(r for r in result['records'] if r['kind'] == 1 and r['picture'] == 2)
+        self.assertIsNone(row['timestamp_writer'])
+        self.assertEqual(row['timestamp_writer_candidates'], [1, 2])
+        self.finding('timestamp-ambiguous-current-writers')
+
+    def test_i_absent_lookup_is_not_a_real_zero_timestamp(self):
+        self.remap_timestamps({self.row(1, 28)['timestamp']: 0})
+        result = self.result()
+        start = next(r for r in result['records'] if r['kind'] == 1 and r['picture'] == 28)
+        motion = next(r for r in result['records'] if r['kind'] == 5 and r['picture'] == 28)
+        self.assertEqual(start['timestamp_writer'], 28)
+        self.assertIsNone(motion['timestamp_writer'])
+        self.assertIsNone(motion['requested_timestamp_writer'])
+        self.assertEqual(motion['timestamp_writer_candidates'], [])
+        self.assertEqual(motion['requested_timestamp_writer_candidates'], [])
+
     def test_full_motion_words_against_upstream_c_macros(self):
         with tempfile.TemporaryDirectory() as tmp:
             binary=str(Path(tmp)/'motion-vectors')
