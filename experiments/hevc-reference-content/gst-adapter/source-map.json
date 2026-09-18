@@ -14,5 +14,9 @@
       "url": "https://raw.githubusercontent.com/GStreamer/gstreamer/070125524a8422e29d3b69a372ed4f62fd343ffa/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c",
       "sha256": "06f1c1151c6cd1617dcb20fc59b8fc25e51744afdb044a71d224d4718e581384"
     }
+  },
+  "archive": {
+    "url": "https://codeload.github.com/GStreamer/gstreamer/tar.gz/070125524a8422e29d3b69a372ed4f62fd343ffa",
+    "sha256": "1def36bd4c68f13cb731740d0cd2697d858c073e674ef54726e97ee245639a44"
   }
 }

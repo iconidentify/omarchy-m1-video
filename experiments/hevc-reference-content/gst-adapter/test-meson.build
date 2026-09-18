@@ -1,0 +1,13 @@
+# Test-only fixture added by the companion runner, never installed.
+observer_sources = []
+foreach source : v4l2codecs_sources
+  if source != 'gstv4l2codech265dec.c'
+    observer_sources += source
+  endif
+endforeach
+observer_test = executable('observer-api', 'observer-api-test.c', observer_sources,
+  c_args: gst_plugins_bad_args + ['-UNDEBUG'],
+  include_directories: [configinc],
+  dependencies: [gstbase_dep, gstcodecs_dep, gstallocators_dep, libgudev_dep, gstpbutils_dep],
+  link_args: ['-Wl,--wrap=open', '-Wl,--wrap=open64', '-Wl,--wrap=close',
+              '-Wl,--wrap=ioctl', '-Wl,--wrap=gst_poll_wait', '-Wl,--wrap=clock_gettime'])

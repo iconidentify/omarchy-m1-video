@@ -1,47 +1,1317 @@
---- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
-+++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
-@@ -24,6 +24,7 @@
+diff --git i/subprojects/gst-plugins-bad/sys/v4l2codecs/gst-observer-private.h w/subprojects/gst-plugins-bad/sys/v4l2codecs/gst-observer-private.h
+new file mode 100644
+index 0000000..6445db4
+--- /dev/null
++++ w/subprojects/gst-plugins-bad/sys/v4l2codecs/gst-observer-private.h
+@@ -0,0 +1,21 @@
++/* SPDX-License-Identifier: LGPL-2.1-or-later */
++#pragma once
++#include "gst-observer.h"
++extern GRecMutex gst_hevc_observer_mutex;
++#define GST_HEVC_OBSERVER_LOCK \
++  g_autoptr(GRecMutexLocker) observer_locker = \
++      g_rec_mutex_locker_new (&gst_hevc_observer_mutex)
++gboolean gst_hevc_observer_busy (GstV4l2Decoder *self);
++gboolean gst_hevc_observer_retained (GstV4l2Decoder *self);
++guint64 gst_hevc_observer_generation (void);
++guint64 gst_hevc_observer_now (void);
++gboolean gst_hevc_observer_buffer_identity (GstBuffer *buffer, GstV4l2Decoder *self,
++    GstHevcObserverReceipt *receipt);
++void gst_hevc_observer_buffer_writer (GstBuffer *buffer, GstV4l2Decoder *self,
++    guint64 writer, gboolean completed);
++void gst_hevc_observer_buffer_publish (GstBuffer *buffer);
++
++gboolean gst_hevc_observer_export_buffer (GstV4l2Decoder *self, GstPadDirection direction,
++    gint index, gint *fds, gsize *sizes, gsize *offsets, guint *num_fds);
++
++gboolean gst_hevc_observer_buffer_owned (GstBuffer *buffer, GstV4l2Decoder *decoder);
+diff --git i/subprojects/gst-plugins-bad/sys/v4l2codecs/gst-observer.h w/subprojects/gst-plugins-bad/sys/v4l2codecs/gst-observer.h
+new file mode 100644
+index 0000000..62d5c8c
+--- /dev/null
++++ w/subprojects/gst-plugins-bad/sys/v4l2codecs/gst-observer.h
+@@ -0,0 +1,31 @@
++/* SPDX-License-Identifier: LGPL-2.1-or-later */
++#pragma once
++#include "gstv4l2decoder.h"
++
++typedef struct {
++  guint64 run[2], context, nonce;
++} GstHevcObserverSession;
++typedef struct {
++  guint64 request, allocation, writer;
++} GstHevcObserverTarget;
++typedef struct {
++  GstHevcObserverSession session;
++  GstHevcObserverTarget target;
++  guint64 lease, submitted, completed;
++  guint32 frame_num, capture_index, planes;
++  guint64 plane_size[GST_VIDEO_MAX_PLANES];
++} GstHevcObserverReceipt;
++
++/* Experimental internal plugin API, metadata only. Inputs must be live owned
++ * decoder/request references. No raw mapping/FD/coherence or copy capability. */
++gboolean gst_hevc_observer_open (GstV4l2Decoder *self, GstHevcObserverSession *session);
++gboolean gst_hevc_observer_select (GstV4l2Decoder *self, const GstHevcObserverSession *session,
++    GstV4l2Request *request, GstHevcObserverTarget *target);
++/* Absolute monotonic nanoseconds, 0 = now + 2 seconds; maximum 2 seconds.
++ * Successful begin defers pthread cancellation until the matching owner end. */
++gboolean gst_hevc_observer_begin (GstV4l2Decoder *self, const GstHevcObserverSession *session,
++    GstV4l2Request *request, const GstHevcObserverTarget *target, guint64 deadline,
++    GstHevcObserverReceipt *receipt);
++gboolean gst_hevc_observer_end (GstV4l2Decoder *self, const GstHevcObserverSession *session,
++    guint64 lease);
++gboolean gst_hevc_observer_close (GstV4l2Decoder *self, const GstHevcObserverSession *session);
+diff --git i/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.c w/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.c
+index 624c852..4ecd977 100644
+--- i/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.c
++++ w/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.c
+@@ -19,6 +19,7 @@
+  */
+ 
+ #include "gstv4l2codecallocator.h"
++#include "gst-observer-private.h"
+ 
+ #include <gst/video/video.h>
+ #include <sys/types.h>
+@@ -29,6 +30,8 @@ GST_DEBUG_CATEGORY_STATIC (allocator_debug);
+ typedef struct _GstV4l2CodecBuffer GstV4l2CodecBuffer;
+ struct _GstV4l2CodecBuffer
+ {
++  guint64 observer_generation, observer_writer, observer_completed;
++  gboolean observer_published;
+   gint index;
+ 
+   GstMemory *mem[GST_VIDEO_MAX_PLANES];
+@@ -44,6 +47,9 @@ struct _GstV4l2CodecAllocator
+   GQueue pool;
+   gint pool_size;
+   gboolean detached;
++  GstMemoryShareFunction observer_share;
++  GstMemoryMapFunction observer_map;
++  GstMemoryMapFullFunction observer_map_full;
+ 
+   GCond buffer_cond;
+   gboolean flushing;
+@@ -58,6 +64,9 @@ G_DEFINE_TYPE_WITH_CODE (GstV4l2CodecAllocator, gst_v4l2_codec_allocator,
+         "V4L2 Codecs Allocator"));
+ 
+ static gboolean gst_v4l2_codec_allocator_release (GstMiniObject * mini_object);
++static GstMemory *observer_memory_share (GstMemory *, gssize, gssize);
++static gpointer observer_memory_map (GstMemory *, gsize, GstMapFlags);
++static gpointer observer_memory_map_full (GstMemory *, GstMapInfo *, gsize);
+ 
+ static GQuark
+ gst_v4l2_codec_buffer_quark (void)
+@@ -82,11 +91,12 @@ gst_v4l2_codec_buffer_new (GstAllocator * allocator, GstV4l2Decoder * decoder,
+   gsize sizes[GST_VIDEO_MAX_PLANES];
+   gsize offsets[GST_VIDEO_MAX_PLANES];
+ 
+-  if (!gst_v4l2_decoder_export_buffer (decoder, direction, index, fds, sizes,
++  if (!gst_hevc_observer_export_buffer (decoder, direction, index, fds, sizes,
+           offsets, &num_mems))
+     return NULL;
+ 
+   buf = g_new0 (GstV4l2CodecBuffer, 1);
++  buf->observer_generation = gst_hevc_observer_generation ();
+   buf->index = index;
+   buf->num_mems = num_mems;
+   for (i = 0; i < buf->num_mems; i++) {
+@@ -144,6 +154,7 @@ gst_v4l2_codec_buffer_release_mem (GstV4l2CodecBuffer * buf)
+ static gboolean
+ gst_v4l2_codec_allocator_release (GstMiniObject * mini_object)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   GstMemory *mem = GST_MEMORY_CAST (mini_object);
+   GstV4l2CodecAllocator *self = GST_V4L2_CODEC_ALLOCATOR (mem->allocator);
+   GstV4l2CodecBuffer *buf;
+@@ -171,6 +182,7 @@ gst_v4l2_codec_allocator_release (GstMiniObject * mini_object)
+ static gboolean
+ gst_v4l2_codec_allocator_prepare (GstV4l2CodecAllocator * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   GstV4l2Decoder *decoder = self->decoder;
+   GstPadDirection direction = self->direction;
+   GstV4l2CodecBuffer *buf;
+@@ -216,12 +228,20 @@ failed:
+ static void
+ gst_v4l2_codec_allocator_init (GstV4l2CodecAllocator * self)
+ {
++  GstAllocator *allocator = GST_ALLOCATOR (self);
++  self->observer_share = allocator->mem_share;
++  allocator->mem_share = observer_memory_share;
++  self->observer_map = allocator->mem_map;
++  self->observer_map_full = allocator->mem_map_full;
++  if (allocator->mem_map) allocator->mem_map = observer_memory_map;
++  if (allocator->mem_map_full) allocator->mem_map_full = observer_memory_map_full;
+   g_cond_init (&self->buffer_cond);
+ }
+ 
+ static void
+ gst_v4l2_codec_allocator_dispose (GObject * object)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   GstV4l2CodecAllocator *self = GST_V4L2_CODEC_ALLOCATOR (object);
+   GstV4l2Decoder *decoder = self->decoder;
+   GstPadDirection direction = self->direction;
+@@ -267,6 +287,7 @@ GstV4l2CodecAllocator *
+ gst_v4l2_codec_allocator_new (GstV4l2Decoder * decoder,
+     GstPadDirection direction, guint num_buffers)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   GstV4l2CodecAllocator *self =
+       g_object_new (GST_TYPE_V4L2_CODEC_ALLOCATOR, NULL);
+ 
+@@ -285,6 +306,9 @@ gst_v4l2_codec_allocator_new (GstV4l2Decoder * decoder,
+ GstMemory *
+ gst_v4l2_codec_allocator_alloc (GstV4l2CodecAllocator * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self->decoder))
++    return NULL;
+   GstV4l2CodecBuffer *buf;
+   GstMemory *mem = NULL;
+ 
+@@ -327,6 +351,9 @@ gboolean
+ gst_v4l2_codec_allocator_prepare_buffer (GstV4l2CodecAllocator * self,
+     GstBuffer * gstbuf)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self->decoder))
++    return FALSE;
+   GstV4l2CodecBuffer *buf;
+   guint i;
+ 
+@@ -366,6 +393,9 @@ gst_v4l2_codec_allocator_get_pool_size (GstV4l2CodecAllocator * self)
+ void
+ gst_v4l2_codec_allocator_detach (GstV4l2CodecAllocator * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_retained (self->decoder))
++    return ;
+   GstV4l2Decoder *decoder = self->decoder;
+ 
+   GST_OBJECT_LOCK (self);
+@@ -408,3 +438,113 @@ gst_v4l2_codec_memory_get_index (GstMemory * mem)
+ 
+   return buf->index;
+ }
++
++/* Read identity from the actual allocator-owned object behind all planes. */
++static GstV4l2CodecBuffer *
++observer_buffer (GstBuffer *buffer, GstV4l2Decoder *decoder)
++{
++  if (!buffer || !gst_buffer_n_memory (buffer)) return NULL;
++  GstMemory *mem = gst_buffer_peek_memory (buffer, 0);
++  if (!GST_V4L2_CODEC_IS_ALLOCATOR (mem->allocator)) return NULL;
++  GstV4l2CodecAllocator *allocator = GST_V4L2_CODEC_ALLOCATOR (mem->allocator);
++  if (allocator->decoder != decoder || allocator->direction != GST_PAD_SRC || allocator->detached)
++    return NULL;
++  GstV4l2CodecBuffer *buf = gst_mini_object_get_qdata (GST_MINI_OBJECT (mem),
++      gst_v4l2_codec_buffer_quark ());
++  if (!buf || buf->num_mems != gst_buffer_n_memory (buffer) ||
++      buf->num_mems > GST_VIDEO_MAX_PLANES || !buf->observer_generation)
++    return NULL;
++  for (guint i = 0; i < buf->num_mems; i++)
++    if (buf->mem[i] != gst_buffer_peek_memory (buffer, i)) return NULL;
++  return buf;
++}
++
++gboolean
++gst_hevc_observer_buffer_identity (GstBuffer *buffer, GstV4l2Decoder *decoder,
++    GstHevcObserverReceipt *receipt)
++{
++  GST_HEVC_OBSERVER_LOCK;
++  GstV4l2CodecBuffer *buf = observer_buffer (buffer, decoder);
++  if (!buf || buf->observer_published || !buf->observer_writer) return FALSE;
++  receipt->target.allocation = buf->observer_generation;
++  receipt->target.writer = buf->observer_writer;
++  receipt->capture_index = buf->index;
++  receipt->planes = buf->num_mems;
++  for (guint i = 0; i < buf->num_mems; i++)
++    receipt->plane_size[i] = buf->mem[i]->maxsize;
++  return TRUE;
++}
++
++void
++gst_hevc_observer_buffer_writer (GstBuffer *buffer, GstV4l2Decoder *decoder,
++    guint64 writer, gboolean completed)
++{
++  GST_HEVC_OBSERVER_LOCK;
++  GstV4l2CodecBuffer *buf = observer_buffer (buffer, decoder);
++  if (!buf) return;
++  if (completed) {
++    if (buf->observer_writer == writer) buf->observer_completed = writer;
++  } else {
++    buf->observer_writer = writer;
++    buf->observer_completed = 0;
++  }
++}
++
++void
++gst_hevc_observer_buffer_publish (GstBuffer *buffer)
++{
++  GST_HEVC_OBSERVER_LOCK;
++  if (!buffer) return;
++  for (guint i = 0; i < gst_buffer_n_memory (buffer); i++) {
++    GstMemory *mem = gst_buffer_peek_memory (buffer, i);
++    GstV4l2CodecBuffer *buf = gst_mini_object_get_qdata (GST_MINI_OBJECT (mem),
++        gst_v4l2_codec_buffer_quark ());
++    if (buf) buf->observer_published = TRUE;
++  }
++}
++
++static gboolean
++observer_map_admit (GstV4l2CodecAllocator *self, GstMemory *mem)
++{
++  if (self->direction != GST_PAD_SRC) return TRUE;
++  if (gst_hevc_observer_busy (self->decoder)) return FALSE;
++  while (mem->parent) mem = mem->parent;
++  GstV4l2CodecBuffer *buf = gst_mini_object_get_qdata (GST_MINI_OBJECT (mem),
++      gst_v4l2_codec_buffer_quark ());
++  if (buf) buf->observer_published = TRUE;
++  return TRUE;
++}
++
++static gpointer
++observer_memory_map (GstMemory *mem, gsize maxsize, GstMapFlags flags)
++{
++  GST_HEVC_OBSERVER_LOCK;
++  GstV4l2CodecAllocator *self = GST_V4L2_CODEC_ALLOCATOR (mem->allocator);
++  if (!observer_map_admit (self, mem)) return NULL;
++  return self->observer_map (mem, maxsize, flags);
++}
++
++static gpointer
++observer_memory_map_full (GstMemory *mem, GstMapInfo *info, gsize maxsize)
++{
++  GST_HEVC_OBSERVER_LOCK;
++  GstV4l2CodecAllocator *self = GST_V4L2_CODEC_ALLOCATOR (mem->allocator);
++  if (!observer_map_admit (self, mem)) return NULL;
++  return self->observer_map_full (mem, info, maxsize);
++}
++
++gboolean
++gst_hevc_observer_buffer_owned (GstBuffer *buffer, GstV4l2Decoder *decoder)
++{
++  GST_HEVC_OBSERVER_LOCK;
++  return observer_buffer (buffer, decoder) != NULL;
++}
++
++static GstMemory *
++observer_memory_share (GstMemory *mem, gssize offset, gssize size)
++{
++  GST_HEVC_OBSERVER_LOCK;
++  GstV4l2CodecAllocator *self = GST_V4L2_CODEC_ALLOCATOR (mem->allocator);
++  if (!observer_map_admit (self, mem)) return NULL;
++  return self->observer_share (mem, offset, size);
++}
+diff --git i/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c w/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c
+index 43cf9bb..68c3155 100644
+--- i/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c
++++ w/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c
+@@ -42,6 +42,7 @@
+ 
+ #include "gstv4l2codecallocator.h"
+ #include "gstv4l2codech265dec.h"
++#include "gst-observer-private.h"
+ #include "gstv4l2codecpool.h"
+ #include "gstv4l2format.h"
+ #include "linux/v4l2-controls.h"
+@@ -319,7 +320,10 @@ gst_v4l2_codec_h265_dec_open (GstVideoDecoder * decoder)
+ static gboolean
+ gst_v4l2_codec_h265_dec_close (GstVideoDecoder * decoder)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);
++  if (gst_hevc_observer_busy (self->decoder))
++    return FALSE;
+   gst_v4l2_decoder_close (self->decoder);
+   return TRUE;
+ }
+@@ -327,6 +331,9 @@ gst_v4l2_codec_h265_dec_close (GstVideoDecoder * decoder)
+ static void
+ gst_v4l2_codec_h265_dec_streamoff (GstV4l2CodecH265Dec * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self->decoder))
++    return ;
+   if (self->streaming) {
+     gst_v4l2_decoder_streamoff (self->decoder, GST_PAD_SINK);
+     gst_v4l2_decoder_streamoff (self->decoder, GST_PAD_SRC);
+@@ -337,6 +344,9 @@ gst_v4l2_codec_h265_dec_streamoff (GstV4l2CodecH265Dec * self)
+ static void
+ gst_v4l2_codec_h265_dec_reset_allocation (GstV4l2CodecH265Dec * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self->decoder))
++    return ;
+   if (self->sink_allocator) {
+     gst_v4l2_codec_allocator_detach (self->sink_allocator);
+     g_clear_object (&self->sink_allocator);
+@@ -352,7 +362,10 @@ gst_v4l2_codec_h265_dec_reset_allocation (GstV4l2CodecH265Dec * self)
+ static gboolean
+ gst_v4l2_codec_h265_dec_stop (GstVideoDecoder * decoder)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);
++  if (gst_hevc_observer_busy (self->decoder))
++    return FALSE;
+ 
+   gst_v4l2_codec_h265_dec_streamoff (self);
+   gst_v4l2_codec_h265_dec_reset_allocation (self);
+@@ -1369,13 +1382,16 @@ gst_v4l2_codec_h265_dec_output_picture (GstH265Decoder * decoder,
+   GST_DEBUG_OBJECT (self, "Output picture %u",
+       codec_picture->system_frame_number);
+ 
++  GST_HEVC_OBSERVER_LOCK;
+   ret = gst_v4l2_request_set_done (request);
+   if (ret == 0) {
++    g_clear_pointer (&observer_locker, g_rec_mutex_locker_free);
+     GST_ELEMENT_ERROR (self, STREAM, DECODE,
+         ("Decoding frame %u took too long", codec_picture->system_frame_number),
+         (NULL));
+     goto error;
+   } else if (ret < 0) {
++    g_clear_pointer (&observer_locker, g_rec_mutex_locker_free);
+     GST_ELEMENT_ERROR (self, STREAM, DECODE,
+         ("Decoding request failed: %s", g_strerror (errno)), (NULL));
+     goto error;
+@@ -1383,12 +1399,18 @@ gst_v4l2_codec_h265_dec_output_picture (GstH265Decoder * decoder,
+   g_return_val_if_fail (frame->output_buffer, GST_FLOW_ERROR);
+ 
+   if (gst_v4l2_request_failed (request)) {
++    g_clear_pointer (&observer_locker, g_rec_mutex_locker_free);
+     GST_ELEMENT_ERROR (self, STREAM, DECODE,
+         ("Failed to decode frame %u", codec_picture->system_frame_number),
+         (NULL));
+     goto error;
+   }
+ 
++  gst_hevc_observer_buffer_publish (frame->output_buffer);
++  /* Publication permanently excludes this storage. Release before framework
++   * allocation/copy, message handlers or downstream delivery can call out. */
++  g_clear_pointer (&observer_locker, g_rec_mutex_locker_free);
++
+   /* Hold on reference buffers for the rest of the picture lifetime */
+   gst_h265_picture_set_user_data (picture,
+       gst_buffer_ref (frame->output_buffer), (GDestroyNotify) gst_buffer_unref);
+@@ -1705,7 +1727,10 @@ gst_v4l2_codec_h265_dec_set_flushing (GstV4l2CodecH265Dec * self,
+ static gboolean
+ gst_v4l2_codec_h265_dec_flush (GstVideoDecoder * decoder)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);
++  if (gst_hevc_observer_busy (self->decoder))
++    return FALSE;
+ 
+   GST_DEBUG_OBJECT (self, "Flushing decoder state.");
+ 
+diff --git i/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c w/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
+index b8b9aec..6eb0ced 100644
+--- i/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
++++ w/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
+@@ -24,6 +24,9 @@
  #include "gstv4l2codecallocator.h"
  #include "gstv4l2codecpool.h"
  #include "gstv4l2decoder.h"
-+#include "gst-observer.h"
++#include "gst-observer-private.h"
++#include <sys/random.h>
++#include <pthread.h>
  #include "gstv4l2format.h"
  #include "linux/drm_fourcc.h"
  #include "linux/media.h"
-@@ -324,6 +325,8 @@
+@@ -57,7 +60,9 @@ enum
+ 
+ struct _GstV4l2Request
  {
+-  /* non-thread safe */
++  guint64 observer_generation, observer_writer, observer_completed;
++  gboolean observer_submitted;
++  /* Serialized by gst_hevc_observer_mutex, including final recycle/free. */
+   gint ref_count;
+ 
+   GstV4l2Decoder *decoder;
+@@ -78,6 +83,18 @@ struct _GstV4l2Request
+ struct _GstV4l2Decoder
+ {
+   GstObject parent;
++  guint64 observer_run[2], observer_generation, observer_session, observer_lease;
++  guint64 observer_deadline, observer_submitted, observer_completed;
++  GThread *observer_owner;
++  GstV4l2Request *observer_request;
++  GstMemory *observer_bitstream;
++  GstBuffer *observer_picture;
++  guint observer_unqueued;
++  gboolean observer_streaming[2];
++  guint32 observer_format;
++  gboolean observer_failed, observer_partial, observer_external, observer_ending, observer_retired;
++  gint observer_cancel_state;
++
+ 
+   gboolean opened;
+   gint media_fd;
+@@ -108,6 +125,7 @@ G_DEFINE_TYPE_WITH_CODE (GstV4l2Decoder, gst_v4l2_decoder, GST_TYPE_OBJECT,
+         "V4L2 stateless decoder helper"));
+ 
+ static void gst_v4l2_request_free (GstV4l2Request * request);
++static void gst_hevc_observer_trace (GstV4l2Request *request);
+ 
+ static guint32
+ direction_to_buffer_type (GstV4l2Decoder * self, GstPadDirection direction)
+@@ -121,10 +139,12 @@ direction_to_buffer_type (GstV4l2Decoder * self, GstPadDirection direction)
+ static void
+ gst_v4l2_decoder_finalize (GObject * obj)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   GstV4l2Decoder *self = GST_V4L2_DECODER (obj);
+ 
+   gst_v4l2_decoder_close (self);
+ 
++  g_clear_pointer (&self->observer_owner, g_thread_unref);
+   g_free (self->media_device);
+   g_free (self->video_device);
+   gst_vec_deque_free (self->request_pool);
+@@ -136,6 +156,10 @@ gst_v4l2_decoder_finalize (GObject * obj)
+ static void
+ gst_v4l2_decoder_init (GstV4l2Decoder * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  self->observer_generation = gst_hevc_observer_generation ();
++  if (getrandom (self->observer_run, sizeof (self->observer_run), GRND_NONBLOCK) != sizeof (self->observer_run))
++    memset (self->observer_run, 0, sizeof (self->observer_run));
+   self->request_pool = gst_vec_deque_new (16);
+   self->pending_requests = gst_vec_deque_new (16);
+ }
+@@ -154,6 +178,7 @@ gst_v4l2_decoder_class_init (GstV4l2DecoderClass * klass)
+ GstV4l2Decoder *
+ gst_v4l2_decoder_new (GstV4l2CodecDevice * device)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   GstV4l2Decoder *decoder;
+ 
+   g_return_val_if_fail (device->function == MEDIA_ENT_F_PROC_VIDEO_DECODER,
+@@ -172,12 +197,16 @@ gst_v4l2_decoder_new (GstV4l2CodecDevice * device)
+ guint
+ gst_v4l2_decoder_get_version (GstV4l2Decoder * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   return self->version;
+ }
+ 
+ gboolean
+ gst_v4l2_decoder_open (GstV4l2Decoder * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self))
++    return FALSE;
+   gint ret;
+   struct v4l2_capability querycap;
+   struct v4l2_create_buffers createbufs = {
+@@ -257,8 +286,14 @@ gst_v4l2_decoder_open (GstV4l2Decoder * self)
+ gboolean
+ gst_v4l2_decoder_close (GstV4l2Decoder * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self))
++    return FALSE;
+   GstV4l2Request *request;
+ 
++  self->observer_retired = TRUE;
++  self->observer_session = 0;
++  g_clear_pointer (&self->observer_owner, g_thread_unref);
+   while ((request = gst_vec_deque_pop_head (self->pending_requests)))
+     gst_v4l2_request_unref (request);
+ 
+@@ -280,6 +315,9 @@ gst_v4l2_decoder_close (GstV4l2Decoder * self)
+ gboolean
+ gst_v4l2_decoder_streamon (GstV4l2Decoder * self, GstPadDirection direction)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self))
++    return FALSE;
+   gint ret;
+   guint32 type = direction_to_buffer_type (self, direction);
+ 
+@@ -289,15 +327,21 @@ gst_v4l2_decoder_streamon (GstV4l2Decoder * self, GstPadDirection direction)
+     return FALSE;
+   }
+ 
++  self->observer_streaming[direction == GST_PAD_SRC] = TRUE;
+   return TRUE;
+ }
+ 
+ gboolean
+ gst_v4l2_decoder_streamoff (GstV4l2Decoder * self, GstPadDirection direction)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self))
++    return FALSE;
+   guint32 type = direction_to_buffer_type (self, direction);
+   gint ret;
+ 
++  self->observer_streaming[direction == GST_PAD_SRC] = FALSE;
++  self->observer_retired = TRUE;
+   if (direction == GST_PAD_SRC) {
+     GstV4l2Request *pending_req;
+ 
+@@ -322,6 +366,9 @@ gst_v4l2_decoder_streamoff (GstV4l2Decoder * self, GstPadDirection direction)
+ gboolean
+ gst_v4l2_decoder_flush (GstV4l2Decoder * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self))
++    return FALSE;
    /* We ignore streamoff failure as it's not relevant, if we manage to
     * streamon again, we are good. */
-+  if (!gst_hevc_observer_admit_flush (self))
-+    return FALSE;
    gst_v4l2_decoder_streamoff (self, GST_PAD_SINK);
-   gst_v4l2_decoder_streamoff (self, GST_PAD_SRC);
- 
-@@ -1385,6 +1388,8 @@
+@@ -335,6 +382,7 @@ gboolean
+ gst_v4l2_decoder_enum_sink_fmt (GstV4l2Decoder * self, gint i,
+     guint32 * out_fmt)
  {
++  GST_HEVC_OBSERVER_LOCK;
+   struct v4l2_fmtdesc fmtdesc = { i, self->sink_buf_type, };
+   gint ret;
+ 
+@@ -371,6 +419,10 @@ gboolean
+ gst_v4l2_decoder_set_sink_fmt (GstV4l2Decoder * self, guint32 pix_fmt,
+     gint width, gint height, gint pixel_bitdepth)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self))
++    return FALSE;
++  if (self->observer_submitted) self->observer_retired = TRUE;
+   struct v4l2_format format = (struct v4l2_format) {
+     .type = self->sink_buf_type,
+     /* Compatible with .fmt.pix for these field */
+@@ -404,6 +456,7 @@ gst_v4l2_decoder_set_sink_fmt (GstV4l2Decoder * self, guint32 pix_fmt,
+     return FALSE;
+   }
+ 
++  self->observer_format = pix_fmt;
+   return TRUE;
+ }
+ 
+@@ -411,6 +464,7 @@ static GstCaps *
+ gst_v4l2_decoder_enum_size_for_format (GstV4l2Decoder * self,
+     guint32 pixelformat, gint index, gint unscaled_width, gint unscaled_height)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   struct v4l2_frmsizeenum size;
+   gint ret;
+ 
+@@ -453,6 +507,7 @@ static GstCaps *
+ gst_v4l2_decoder_probe_caps_for_format (GstV4l2Decoder * self,
+     guint32 pixelformat, gint unscaled_width, gint unscaled_height)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   gint index = 0;
+   GstCaps *caps, *tmp, *size_caps;
+   GstVideoFormat format;
+@@ -546,6 +601,7 @@ static GstCaps *
+ gst_v4l2_decoder_enum_src_formats_full (GstV4l2Decoder * self,
+     GstStaticCaps * static_filter, gboolean enum_all)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   gint ret;
+   struct v4l2_format fmt = {
+     .type = self->src_buf_type,
+@@ -624,6 +680,7 @@ GstCaps *
+ gst_v4l2_decoder_enum_src_formats (GstV4l2Decoder * self,
+     GstStaticCaps * static_filter)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   return gst_v4l2_decoder_enum_src_formats_full (self, static_filter, FALSE);
+ }
+ 
+@@ -631,6 +688,7 @@ GstCaps *
+ gst_v4l2_decoder_enum_all_src_formats (GstV4l2Decoder * self,
+     GstStaticCaps * static_filter)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   return gst_v4l2_decoder_enum_src_formats_full (self, static_filter, TRUE);
+ }
+ 
+@@ -638,6 +696,10 @@ gboolean
+ gst_v4l2_decoder_remove_buffers (GstV4l2Decoder * self,
+     GstPadDirection direction, guint index, guint num_buffers)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_retained (self))
++    return -1;
++  if (self->observer_submitted) self->observer_retired = TRUE;
+   gint ret;
+   struct v4l2_remove_buffers remove_bufs = {
+     .type = direction_to_buffer_type (self, direction),
+@@ -663,6 +725,10 @@ gboolean
+ gst_v4l2_decoder_select_src_format (GstV4l2Decoder * self, GstCaps * caps,
+     GstVideoInfoDmaDrm * vinfo_drm)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self))
++    return FALSE;
++  if (self->observer_submitted) self->observer_retired = TRUE;
+   gint ret;
+   struct v4l2_format fmt = {
+     .type = self->src_buf_type,
+@@ -782,6 +848,10 @@ gint
+ gst_v4l2_decoder_request_buffers (GstV4l2Decoder * self,
+     GstPadDirection direction, guint num_buffers)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_retained (self))
++    return -1;
++  if (self->observer_submitted) self->observer_retired = TRUE;
+   gint ret;
+   struct v4l2_requestbuffers reqbufs = {
+     .count = num_buffers,
+@@ -804,6 +874,9 @@ gint
+ gst_v4l2_decoder_create_buffers (GstV4l2Decoder * self,
+     GstPadDirection direction, guint num_buffers)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self))
++    return -1;
+   gint ret;
+   struct v4l2_create_buffers createbufs = {
+     .count = num_buffers,
+@@ -837,10 +910,13 @@ gst_v4l2_decoder_create_buffers (GstV4l2Decoder * self,
+ }
+ 
+ gboolean
+-gst_v4l2_decoder_export_buffer (GstV4l2Decoder * self,
++gst_hevc_observer_export_buffer (GstV4l2Decoder * self,
+     GstPadDirection direction, gint index, gint * fds, gsize * sizes,
+     gsize * offsets, guint * num_fds)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self))
++    return FALSE;
+   gint i, ret;
+   struct v4l2_plane planes[GST_VIDEO_MAX_PLANES] = { {0} };
+   struct v4l2_buffer v4l2_buf = {
+@@ -911,6 +987,7 @@ static gboolean
+ gst_v4l2_decoder_queue_sink_mem (GstV4l2Decoder * self,
+     GstV4l2Request * request, GstMemory * mem, guint32 frame_num, guint flags)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   gint ret;
+   gsize bytesused = gst_memory_get_sizes (mem, NULL, NULL);
+   struct v4l2_plane plane = {
+@@ -947,6 +1024,7 @@ gst_v4l2_decoder_queue_sink_mem (GstV4l2Decoder * self,
+ static gboolean
+ gst_v4l2_decoder_queue_src_buffer (GstV4l2Decoder * self, GstBuffer * buffer)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   gint i, ret;
+   struct v4l2_plane planes[GST_VIDEO_MAX_PLANES];
+   struct v4l2_buffer buf = {
+@@ -982,8 +1060,9 @@ gst_v4l2_decoder_queue_src_buffer (GstV4l2Decoder * self, GstBuffer * buffer)
+ }
+ 
+ static gboolean
+-gst_v4l2_decoder_dequeue_sink (GstV4l2Decoder * self)
++gst_v4l2_decoder_dequeue_sink (GstV4l2Decoder * self, guint32 expected)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   gint ret;
+   struct v4l2_plane planes[GST_VIDEO_MAX_PLANES] = { {0} };
+   struct v4l2_buffer buf = {
+@@ -1002,14 +1081,16 @@ gst_v4l2_decoder_dequeue_sink (GstV4l2Decoder * self)
+     return FALSE;
+   }
+ 
++  if (buf.index != expected) return FALSE;
+   GST_TRACE_OBJECT (self, "Dequeued bitstream buffer %i", buf.index);
+ 
+   return TRUE;
+ }
+ 
+ static gboolean
+-gst_v4l2_decoder_dequeue_src (GstV4l2Decoder * self, guint32 * out_frame_num)
++gst_v4l2_decoder_dequeue_src (GstV4l2Decoder * self, guint32 * out_frame_num, guint32 *out_index)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   gint ret;
+   struct v4l2_plane planes[GST_VIDEO_MAX_PLANES] = { {0} };
+   struct v4l2_buffer buf = {
+@@ -1028,6 +1109,9 @@ gst_v4l2_decoder_dequeue_src (GstV4l2Decoder * self, guint32 * out_frame_num)
+     return FALSE;
+   }
+ 
++  if (buf.flags & V4L2_BUF_FLAG_ERROR)
++    return FALSE;
++  *out_index = buf.index;
+   *out_frame_num = buf.timestamp.tv_usec + buf.timestamp.tv_sec * 1000000;
+ 
+   GST_TRACE_OBJECT (self, "Dequeued picture buffer %i", buf.index);
+@@ -1039,6 +1123,9 @@ gboolean
+ gst_v4l2_decoder_set_controls (GstV4l2Decoder * self, GstV4l2Request * request,
+     struct v4l2_ext_control *control, guint count)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self))
++    return FALSE;
+   gint ret;
+   struct v4l2_ext_controls controls = {
+     .controls = control,
+@@ -1061,6 +1148,7 @@ gboolean
+ gst_v4l2_decoder_get_controls (GstV4l2Decoder * self,
+     struct v4l2_ext_control *control, guint count)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   gint ret;
+   struct v4l2_ext_controls controls = {
+     .controls = control,
+@@ -1081,6 +1169,7 @@ gboolean
+ gst_v4l2_decoder_query_control_size (GstV4l2Decoder * self,
+     unsigned int control_id, unsigned int *control_size)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   gint ret;
+   struct v4l2_query_ext_ctrl control = {
+     .id = control_id,
+@@ -1131,6 +1220,7 @@ void
+ gst_v4l2_decoder_set_property (GObject * object, guint prop_id,
+     const GValue * value, GParamSpec * pspec)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   GstV4l2Decoder *self = GST_V4L2_DECODER (object);
+ 
+   switch (prop_id) {
+@@ -1152,6 +1242,7 @@ void
+ gst_v4l2_decoder_get_property (GObject * object, guint prop_id,
+     GValue * value, GParamSpec * pspec)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   GstV4l2Decoder *self = GST_V4L2_DECODER (object);
+ 
+   switch (prop_id) {
+@@ -1238,6 +1329,9 @@ GstV4l2Request *
+ gst_v4l2_decoder_alloc_request (GstV4l2Decoder * self, guint32 frame_num,
+     GstMemory * bitstream, GstBuffer * pic_buf)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self))
++    return NULL;
+   GstV4l2Request *request = gst_vec_deque_pop_head (self->request_pool);
+   gint ret;
+ 
+@@ -1264,6 +1358,10 @@ gst_v4l2_decoder_alloc_request (GstV4l2Decoder * self, guint32 frame_num,
+   request->pic_buf = gst_buffer_ref (pic_buf);
+   request->frame_num = frame_num;
+   request->ref_count = 1;
++  request->observer_generation = gst_hevc_observer_generation ();
++  request->observer_writer = request->observer_completed = 0;
++  request->observer_submitted = FALSE;
++  self->observer_unqueued++;
+ 
+   return request;
+ }
+@@ -1285,6 +1383,9 @@ GstV4l2Request *
+ gst_v4l2_decoder_alloc_sub_request (GstV4l2Decoder * self,
+     GstV4l2Request * prev_request, GstMemory * bitstream)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self))
++    return NULL;
+   GstV4l2Request *request = gst_vec_deque_pop_head (self->request_pool);
+   gint ret;
+ 
+@@ -1311,7 +1412,12 @@ gst_v4l2_decoder_alloc_sub_request (GstV4l2Decoder * self,
+   request->pic_buf = gst_buffer_ref (prev_request->pic_buf);
+   request->frame_num = prev_request->frame_num;
+   request->sub_request = TRUE;
++  self->observer_partial = TRUE;
+   request->ref_count = 1;
++  request->observer_generation = gst_hevc_observer_generation ();
++  request->observer_writer = request->observer_completed = 0;
++  request->observer_submitted = FALSE;
++  self->observer_unqueued++;
+ 
+   return request;
+ }
+@@ -1331,6 +1437,7 @@ gst_v4l2_decoder_alloc_sub_request (GstV4l2Decoder * self,
+ void
+ gst_v4l2_decoder_set_render_delay (GstV4l2Decoder * self, guint delay)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   self->render_delay = delay;
+ }
+ 
+@@ -1345,6 +1452,7 @@ gst_v4l2_decoder_set_render_delay (GstV4l2Decoder * self, guint delay)
+ guint
+ gst_v4l2_decoder_get_render_delay (GstV4l2Decoder * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   return self->render_delay;
+ }
+ 
+@@ -1358,6 +1466,7 @@ gst_v4l2_decoder_get_render_delay (GstV4l2Decoder * self)
+ gboolean
+ gst_v4l2_decoder_has_remove_bufs (GstV4l2Decoder * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   return self->supports_remove_buffers;
+ }
+ 
+@@ -1370,12 +1479,14 @@ gst_v4l2_decoder_has_remove_bufs (GstV4l2Decoder * self)
+ gboolean
+ gst_v4l2_decoder_in_doc_mode (GstV4l2Decoder * self)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   return self->doc_mode;
+ }
+ 
+ GstV4l2Request *
+ gst_v4l2_request_ref (GstV4l2Request * request)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   request->ref_count++;
+   return request;
+ }
+@@ -1383,6 +1494,7 @@ gst_v4l2_request_ref (GstV4l2Request * request)
+ static void
+ gst_v4l2_request_free (GstV4l2Request * request)
+ {
++  GST_HEVC_OBSERVER_LOCK;
    GstV4l2Decoder *decoder = request->decoder;
  
-+  if (!gst_hevc_observer_admit_free (request))
-+    return;
    request->decoder = NULL;
-   close (request->fd);
-   gst_poll_free (request->poll);
-@@ -1446,6 +1451,8 @@
+@@ -1397,6 +1509,7 @@ gst_v4l2_request_free (GstV4l2Request * request)
+ void
+ gst_v4l2_request_unref (GstV4l2Request * request)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   GstV4l2Decoder *decoder = request->decoder;
+   gint ret;
+ 
+@@ -1405,6 +1518,8 @@ gst_v4l2_request_unref (GstV4l2Request * request)
+   if (--request->ref_count > 0)
+     return;
+ 
++  if (!request->observer_submitted)
++    decoder->observer_unqueued--;
+   g_clear_pointer (&request->bitstream, gst_memory_unref);
+   g_clear_pointer (&request->pic_buf, gst_buffer_unref);
+   request->frame_num = G_MAXUINT32;
+@@ -1442,10 +1557,25 @@ gst_v4l2_request_unref (GstV4l2Request * request)
+ gboolean
+ gst_v4l2_request_queue (GstV4l2Request * request, guint flags)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (request->decoder))
++    return FALSE;
+   GstV4l2Decoder *decoder = request->decoder;
    gint ret;
    guint max_pending;
  
-+  if (!gst_hevc_observer_admit_queue (request))
++  if (decoder->observer_session && (request->pending || request->observer_submitted || decoder->observer_failed))
 +    return FALSE;
++  if (decoder->observer_session && (request->sub_request ||
++          (flags & V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF)))
++    return FALSE;
++  if (decoder->observer_session &&
++      !gst_hevc_observer_buffer_owned (request->pic_buf, decoder))
++    return FALSE;
++  if (flags & V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF)
++    decoder->observer_partial = TRUE;
++  /* Invalidate the old writer before any queue-side effect. */
++  gst_hevc_observer_buffer_writer (request->pic_buf, decoder, 0, FALSE);
    GST_TRACE_OBJECT (decoder, "Queuing request %i.", request->fd);
  
    /* this would lead to stalls if we tried to use this feature and it wasn't
-@@ -1480,6 +1487,9 @@
+@@ -1460,12 +1590,14 @@ gst_v4l2_request_queue (GstV4l2Request * request, guint flags)
+   if (!gst_v4l2_decoder_queue_sink_mem (decoder, request,
+           request->bitstream, request->frame_num, flags)) {
+     GST_ERROR_OBJECT (decoder, "Driver did not accept the bitstream data.");
++    decoder->observer_failed = TRUE;
+     return FALSE;
+   }
+ 
+   if (!request->sub_request &&
+       !gst_v4l2_decoder_queue_src_buffer (decoder, request->pic_buf)) {
+     GST_ERROR_OBJECT (decoder, "Driver did not accept the picture buffer.");
++    decoder->observer_failed = TRUE;
+     return FALSE;
+   }
+ 
+@@ -1473,9 +1605,17 @@ gst_v4l2_request_queue (GstV4l2Request * request, guint flags)
+   if (ret < 0) {
+     GST_ERROR_OBJECT (decoder, "MEDIA_REQUEST_IOC_QUEUE, failed: %s",
+         g_strerror (errno));
++    decoder->observer_failed = TRUE;
+     return FALSE;
+   }
+ 
++  request->observer_submitted = TRUE;
++  decoder->observer_unqueued--;
++  request->observer_writer = gst_hevc_observer_generation ();
++  decoder->observer_submitted++;
++  gst_hevc_observer_buffer_writer (request->pic_buf, decoder, request->observer_writer, FALSE);
++  gst_hevc_observer_trace (request);
++
+   if (flags & V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF)
      request->hold_pic_buf = TRUE;
  
-   request->pending = TRUE;
-+  if (!gst_hevc_observer_record (request))
-+    return FALSE;
-+
-   gst_vec_deque_push_tail (decoder->pending_requests,
-       gst_v4l2_request_ref (request));
+@@ -1498,6 +1638,9 @@ gst_v4l2_request_queue (GstV4l2Request * request, guint flags)
+ gint
+ gst_v4l2_request_set_done (GstV4l2Request * request)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (request->decoder))
++    return -1;
+   GstV4l2Decoder *decoder = request->decoder;
+   GstV4l2Request *pending_req = NULL;
+   gint ret;
+@@ -1508,7 +1651,15 @@ gst_v4l2_request_set_done (GstV4l2Request * request)
+   GST_DEBUG_OBJECT (decoder, "Waiting for request %i to complete.",
+       request->fd);
  
+-  ret = gst_poll_wait (request->poll, GST_SECOND);
++  do {
++    GstClockTime timeout = GST_SECOND;
++    if (decoder->observer_deadline) {
++      guint64 now = gst_hevc_observer_now ();
++      if (now >= decoder->observer_deadline) { errno = ETIMEDOUT; return 0; }
++      timeout = decoder->observer_deadline - now;
++    }
++    ret = gst_poll_wait (request->poll, timeout);
++  } while (decoder->observer_deadline && ret < 0 && errno == EINTR);
+   if (ret == 0) {
+     GST_WARNING_OBJECT (decoder, "Request %i took too long.", request->fd);
+     return 0;
+@@ -1521,15 +1672,18 @@ gst_v4l2_request_set_done (GstV4l2Request * request)
+   }
+ 
+   while ((pending_req = gst_vec_deque_pop_head (decoder->pending_requests))) {
+-    gst_v4l2_decoder_dequeue_sink (decoder);
++    if (!gst_v4l2_decoder_dequeue_sink (decoder,
++            gst_v4l2_codec_memory_get_index (pending_req->bitstream)))
++      pending_req->failed = TRUE;
+     g_clear_pointer (&pending_req->bitstream, gst_memory_unref);
+ 
+     if (!pending_req->hold_pic_buf) {
+-      guint32 frame_num = G_MAXUINT32;
++      guint32 frame_num = G_MAXUINT32, capture_index = G_MAXUINT32;
+ 
+-      if (!gst_v4l2_decoder_dequeue_src (decoder, &frame_num)) {
++      if (!gst_v4l2_decoder_dequeue_src (decoder, &frame_num, &capture_index)) {
+         pending_req->failed = TRUE;
+-      } else if (frame_num != pending_req->frame_num) {
++      } else if (frame_num != pending_req->frame_num ||
++          capture_index != gst_v4l2_codec_buffer_get_index (pending_req->pic_buf)) {
+         GST_WARNING_OBJECT (decoder,
+             "Requested frame %u, but driver returned frame %u.",
+             pending_req->frame_num, frame_num);
+@@ -1538,6 +1692,14 @@ gst_v4l2_request_set_done (GstV4l2Request * request)
+     }
+ 
+     pending_req->pending = FALSE;
++    decoder->observer_completed++;
++    if (pending_req->failed) {
++      decoder->observer_failed = TRUE;
++    } else if (!pending_req->hold_pic_buf) {
++      pending_req->observer_completed = pending_req->observer_writer;
++      gst_hevc_observer_buffer_writer (pending_req->pic_buf, decoder,
++          pending_req->observer_writer, TRUE);
++    }
+     gst_v4l2_request_unref (pending_req);
+ 
+     if (pending_req == request)
+@@ -1553,17 +1715,295 @@ gst_v4l2_request_set_done (GstV4l2Request * request)
+ gboolean
+ gst_v4l2_request_failed (GstV4l2Request * request)
+ {
++  GST_HEVC_OBSERVER_LOCK;
+   return request->failed;
+ }
+ 
+ GstBuffer *
+ gst_v4l2_request_dup_pic_buf (GstV4l2Request * request)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (request->decoder))
++    return NULL;
++  gst_hevc_observer_buffer_publish (request->pic_buf);
+   return gst_buffer_ref (request->pic_buf);
+ }
+ 
+ gint
+ gst_v4l2_request_get_fd (GstV4l2Request * request)
+ {
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (request->decoder))
++    return -1;
++  request->decoder->observer_external = TRUE;
+   return request->fd;
+ }
++
++/* Experimental metadata observer: keep the actual request/context definitions
++ * and lifecycle in this translation unit. No borrowed-pointer registry. */
++GRecMutex gst_hevc_observer_mutex;
++
++guint64
++gst_hevc_observer_generation (void)
++{
++  GST_HEVC_OBSERVER_LOCK;
++  static guint64 next = 1;
++  guint64 value = next;
++  if (next) next++;
++  return value; /* exhaustion stays zero; never reuse an identity */
++}
++
++guint64
++gst_hevc_observer_now (void)
++{
++  struct timespec ts;
++  clock_gettime (CLOCK_MONOTONIC, &ts);
++  return (guint64) ts.tv_sec * GST_SECOND + ts.tv_nsec;
++}
++
++gboolean
++gst_hevc_observer_busy (GstV4l2Decoder *self)
++{
++  GST_HEVC_OBSERVER_LOCK;
++  return self && (self->observer_lease || self->observer_ending);
++}
++
++gboolean
++gst_hevc_observer_retained (GstV4l2Decoder *self)
++{
++  GST_HEVC_OBSERVER_LOCK;
++  return self && self->observer_lease;
++}
++
++static gboolean
++observer_lock_until (guint64 deadline)
++{
++  while (gst_hevc_observer_now () < deadline) {
++    if (g_rec_mutex_trylock (&gst_hevc_observer_mutex))
++      return TRUE;
++    g_usleep (100);
++  }
++  return FALSE;
++}
++
++static gboolean
++observer_session_valid (GstV4l2Decoder *self, const GstHevcObserverSession *session)
++{
++  return self && session && session->nonce && session->nonce == self->observer_session &&
++      session->context == self->observer_generation &&
++      !memcmp (session->run, self->observer_run, sizeof (session->run)) &&
++      self->observer_owner == g_thread_self ();
++}
++
++static void
++observer_session_record (GstV4l2Decoder *self, GstHevcObserverSession *session)
++{
++  *session = (GstHevcObserverSession) {
++    .run = {self->observer_run[0], self->observer_run[1]},
++    .context = self->observer_generation, .nonce = self->observer_session,
++  };
++}
++
++static gboolean
++observer_selection (GstV4l2Decoder *self, GstV4l2Request *request,
++    GstHevcObserverReceipt *receipt)
++{
++  if (!request || request->decoder != self || !request->observer_generation ||
++      !request->observer_submitted || !request->observer_writer || request->failed ||
++      request->sub_request || request->hold_pic_buf || !request->pic_buf)
++    return FALSE;
++  if (!gst_hevc_observer_buffer_identity (request->pic_buf, self, receipt) ||
++      receipt->target.writer != request->observer_writer)
++    return FALSE;
++  receipt->target.request = request->observer_generation;
++  receipt->frame_num = request->frame_num;
++  return TRUE;
++}
++
++gboolean
++gst_hevc_observer_open (GstV4l2Decoder *self, GstHevcObserverSession *session)
++{
++  if (!self || !session) return FALSE;
++  gint cancel;
++  pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, &cancel);
++  gboolean ok = FALSE;
++  if (observer_lock_until (gst_hevc_observer_now () + 2 * GST_SECOND)) {
++    if (self->opened && !self->doc_mode && !self->observer_retired &&
++        self->observer_format == V4L2_PIX_FMT_HEVC_SLICE &&
++        self->observer_generation && (self->observer_run[0] || self->observer_run[1]) &&
++        !self->observer_session && !gst_hevc_observer_busy (self)) {
++      self->observer_session = gst_hevc_observer_generation ();
++      if (self->observer_session) {
++        self->observer_owner = g_thread_ref (g_thread_self ());
++        observer_session_record (self, session);
++        ok = TRUE;
++      }
++    }
++    g_rec_mutex_unlock (&gst_hevc_observer_mutex);
++  }
++  pthread_setcancelstate (cancel, NULL);
++  return ok;
++}
++
++gboolean
++gst_hevc_observer_select (GstV4l2Decoder *self, const GstHevcObserverSession *session,
++    GstV4l2Request *request, GstHevcObserverTarget *target)
++{
++  if (!self || !target) return FALSE;
++  gint cancel;
++  pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, &cancel);
++  gboolean ok = FALSE;
++  if (observer_lock_until (gst_hevc_observer_now () + 2 * GST_SECOND)) {
++    GstHevcObserverReceipt current = {0};
++    if (observer_session_valid (self, session) && !gst_hevc_observer_busy (self) &&
++        observer_selection (self, request, &current)) {
++      *target = current.target;
++      ok = TRUE;
++    }
++    g_rec_mutex_unlock (&gst_hevc_observer_mutex);
++  }
++  pthread_setcancelstate (cancel, NULL);
++  return ok;
++}
++
++gboolean
++gst_hevc_observer_begin (GstV4l2Decoder *self, const GstHevcObserverSession *session,
++    GstV4l2Request *request, const GstHevcObserverTarget *target, guint64 deadline,
++    GstHevcObserverReceipt *receipt)
++{
++  if (!self || !target || !receipt) return FALSE;
++  guint64 now = gst_hevc_observer_now ();
++  if (!deadline) deadline = now + 2 * GST_SECOND;
++  if (deadline <= now || deadline - now > 2 * GST_SECOND) return FALSE;
++  gint cancel;
++  pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, &cancel);
++  gboolean ok = FALSE;
++  if (!observer_lock_until (deadline)) goto restore;
++  GstHevcObserverReceipt current = {0};
++  if (!observer_session_valid (self, session) || gst_hevc_observer_busy (self) ||
++      !self->opened || !self->observer_streaming[0] || !self->observer_streaming[1] ||
++      self->observer_retired || self->observer_failed ||
++      self->observer_format != V4L2_PIX_FMT_HEVC_SLICE ||
++      self->observer_partial || self->observer_external || self->observer_unqueued ||
++      !observer_selection (self, request, &current) ||
++      current.target.request != target->request || current.target.allocation != target->allocation ||
++      current.target.writer != target->writer)
++    goto unlock;
++  /* Own the actual request, picture buffer, allocator memory and decoder before
++   * completion can retire the pending queue's references. */
++  GstV4l2Request *held = gst_v4l2_request_ref (request);
++  GstBuffer *picture = gst_buffer_ref (request->pic_buf);
++  GstMemory *bits = request->bitstream ? gst_memory_ref (request->bitstream) : NULL;
++  self->observer_deadline = deadline;
++  while (gst_vec_deque_get_length (self->pending_requests)) {
++    GstV4l2Request *pending = gst_v4l2_request_ref (
++        gst_vec_deque_peek_head (self->pending_requests));
++    gboolean done = !pending->hold_pic_buf && !pending->sub_request &&
++        gst_hevc_observer_now () < deadline &&
++        gst_v4l2_request_set_done (pending) > 0 && !pending->pending && !pending->failed;
++    gst_v4l2_request_unref (pending);
++    if (!done) {
++      self->observer_failed = TRUE;
++      break;
++    }
++  }
++  self->observer_deadline = 0;
++  if (self->observer_failed || self->observer_completed != self->observer_submitted ||
++      request->observer_completed != target->writer ||
++      !observer_selection (self, request, &current) || gst_hevc_observer_now () >= deadline)
++    goto release;
++  guint64 lease = gst_hevc_observer_generation ();
++  if (!lease) goto release;
++  self->observer_lease = lease;
++  self->observer_request = held;
++  self->observer_picture = picture;
++  self->observer_bitstream = bits;
++  self->observer_cancel_state = cancel;
++  g_object_ref (self);
++  observer_session_record (self, &current.session);
++  current.lease = lease;
++  current.submitted = self->observer_submitted;
++  current.completed = self->observer_completed;
++  *receipt = current;
++  ok = TRUE;
++  goto unlock;
++release:
++  gst_v4l2_request_unref (held);
++  gst_buffer_unref (picture);
++  if (bits) gst_memory_unref (bits);
++unlock:
++  g_rec_mutex_unlock (&gst_hevc_observer_mutex);
++restore:
++  if (!ok) pthread_setcancelstate (cancel, NULL);
++  return ok;
++}
++
++gboolean
++gst_hevc_observer_end (GstV4l2Decoder *self, const GstHevcObserverSession *session,
++    guint64 lease)
++{
++  if (!self) return FALSE;
++  gint cancel;
++  pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, &cancel);
++  gboolean ok = FALSE;
++  if (observer_lock_until (gst_hevc_observer_now () + 2 * GST_SECOND)) {
++    if (observer_session_valid (self, session) && lease &&
++        self->observer_lease == lease && !self->observer_ending) {
++      self->observer_ending = TRUE;
++      self->observer_lease = 0;
++      g_clear_pointer (&self->observer_request, gst_v4l2_request_unref);
++      g_clear_pointer (&self->observer_picture, gst_buffer_unref);
++      g_clear_pointer (&self->observer_bitstream, gst_memory_unref);
++      self->observer_ending = FALSE;
++      cancel = self->observer_cancel_state;
++      ok = TRUE;
++      g_object_unref (self); /* last: may run real decoder finalization */
++    }
++    g_rec_mutex_unlock (&gst_hevc_observer_mutex);
++  }
++  pthread_setcancelstate (cancel, NULL);
++  return ok;
++}
++
++gboolean
++gst_hevc_observer_close (GstV4l2Decoder *self, const GstHevcObserverSession *session)
++{
++  if (!self) return FALSE;
++  gint cancel;
++  pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, &cancel);
++  gboolean ok = FALSE;
++  if (observer_lock_until (gst_hevc_observer_now () + 2 * GST_SECOND)) {
++    if (observer_session_valid (self, session) && !gst_hevc_observer_busy (self)) {
++      self->observer_session = 0;
++      g_clear_pointer (&self->observer_owner, g_thread_unref);
++      ok = TRUE;
++    }
++    g_rec_mutex_unlock (&gst_hevc_observer_mutex);
++  }
++  pthread_setcancelstate (cancel, NULL);
++  return ok;
++}
++
++static void
++gst_hevc_observer_trace (GstV4l2Request *request)
++{
++  GstV4l2Decoder *self = request->decoder;
++  GstHevcObserverReceipt receipt = {0};
++  if (self->observer_session && observer_selection (self, request, &receipt))
++    GST_TRACE_OBJECT (self, "observer-queue run=%016" G_GINT64_MODIFIER "x%016"
++        G_GINT64_MODIFIER "x context=%" G_GUINT64_FORMAT " allocation=%"
++        G_GUINT64_FORMAT " request=%" G_GUINT64_FORMAT " writer=%"
++        G_GUINT64_FORMAT " frame=%u capture=%u", self->observer_run[0],
++        self->observer_run[1], self->observer_generation, receipt.target.allocation,
++        receipt.target.request, receipt.target.writer, request->frame_num, receipt.capture_index);
++}
++
++gboolean
++gst_v4l2_decoder_export_buffer (GstV4l2Decoder *self, GstPadDirection direction,
++    gint index, gint *fds, gsize *sizes, gsize *offsets, guint *num_fds)
++{
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self)) return FALSE;
++  self->observer_external = TRUE;
++  return gst_hevc_observer_export_buffer (self, direction, index, fds, sizes, offsets, num_fds);
++}
