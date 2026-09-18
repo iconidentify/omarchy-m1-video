@@ -69,9 +69,12 @@ generation and writer-job labels. The removed joiner could accept those fabricat
 fields. Source strings and metadata cannot confer live retention. The real adapter
 still unconditionally rejects; no snapshot path or hardware authorization is added.
 
-Executed `wait_on_capture_locked`, `capture_wait_readers` and vb2 dma-contig
-CPU-access callbacks (extracted, compiled, ASan) show: one capture index is
-waited, listed dmabuf fds are polled, CPU-access returns 0 without changing a
-generation, and no all-producer pause token exists. Mutating the wait loop to
-set `all_producers_paused` is distinguished (exit 11). Copying remains
-unauthorized. Parent #42 stays open.
+A separate stubbed harness compiles those four helper bodies. That is isolated
+helper execution, not a client adapter or producer barrier. The success path
+waits one capture index and must leave a second queued capture; poll uses the
+exact fd/events/deadline; reader poll uses the listed dmabufs and timeout.
+Error paths cover poll/dequeue/reader failures. Mutating the reader-error
+return or clearing every queued bit is distinguished. Invented pause/generation
+fields are not used. Copying remains unauthorized. Parent #42 stays open. The
+next #82 contribution must still implement the real pause/retention/drain/join
+adapter; this PR does not.

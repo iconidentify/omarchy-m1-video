@@ -285,10 +285,10 @@ class SourceAuditTests(unittest.TestCase):
 
 
 class ExecutedBarrierTests(unittest.TestCase):
-    def test_extracted_wait_cannot_pause_all_producers(self):
+    def test_extracted_helpers_preserve_other_queued_capture(self):
         out = prove_no_real_barrier()
-        self.assertIn('no pause token', out)
-        self.assertIn('no generation', out)
+        self.assertIn('selected-index wait', out)
+        self.assertIn('leftover=0x2', out)
 
     def test_real_adapter_still_blocked_after_execution(self):
         with self.assertRaisesRegex(AdapterError, 'wait_on_capture_locked'):

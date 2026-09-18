@@ -34,9 +34,10 @@ that adapter's actual pause/retention/error paths before proposing a hardware ru
 If this requires a client patch or process-context kernel worker, review its complete
 lifetime/locking design first. No IRQ, physical-address or unknown-exporter fallback.
 
-The fake queue is an executable ordering and negative-test design, not proof that
-these APIs exist in FFmpeg, GStreamer, VA-API or this kernel. Original #82 acceptance
-criteria remain open; do not replace them with fixture results or a new research child.
+A stubbed harness can compile four selected helpers. That does not implement
+all-producer pause, retained allocation identity, exporter admission, same-run
+writer joins, or copy/lifetime tests. Original #82 acceptance criteria remain
+open; do not replace them with fixture results or a new research child.
 
 
 ## Static source inspection added after PR83

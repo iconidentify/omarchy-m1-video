@@ -8,8 +8,8 @@
   "capture": "e5b226e843a145eabd846816d51a43ae9a58fee5",
   "ffmpeg_revision": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
   "driver_revision": "3570a2e09d232a5a541c63df7d2cf699fa4b096b",
-  "implementation": "synthetic observer plus static hash-pinned source inspection; no real-client instrumentation or adapter",
-  "limitations": "Function strings are inspected, never executed or instrumented. AVD completion source is the upstream base, not the shipped-patched build. GStreamer direct-V4L2 APIs are not pinned or audited here. Historical labels cannot prove live ownership.",
+  "implementation": "synthetic observer, static source inspection, and isolated stubbed execution of four helper bodies; no real-client adapter",
+  "limitations": "Static audit inspects strings. A separate harness compiles four helpers against stubs; that is not client instrumentation, pause/retention, or copy. AVD completion source is the upstream base. GStreamer direct-V4L2 APIs are not pinned.",
   "client_files": {
     "src/surface.c": {
       "url": "https://raw.githubusercontent.com/iconidentify/libva-v4l2_request/3570a2e09d232a5a541c63df7d2cf699fa4b096b/src/surface.c",
