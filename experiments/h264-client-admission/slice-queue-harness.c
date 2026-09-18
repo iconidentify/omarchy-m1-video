@@ -115,6 +115,12 @@ static int decode_slice_cb(AVCodecContext *avctx, const uint8_t *buf, uint32_t s
 
 #include "decode_nal.inc"
 
+/* Output-frame construction is outside this submission-boundary fixture. */
+static int finalize_frame(H264Context *h, AVFrame *dst, H264Picture *out, int *got_frame)
+{ (void)h; (void)dst; (void)out; (void)got_frame; return AVERROR(ENOSYS); }
+#include "frame_helpers.inc"
+#include "decode_frame.inc"
+
 static const FFHWAccel va = {
     .p = { .pix_fmt = AV_PIX_FMT_VAAPI },
     .start_frame = start_frame,
@@ -161,15 +167,12 @@ static int nal(uint8_t *dst, int avcc, const uint8_t *data, int size)
     memcpy(dst + 4, data, size);
     return 4 + size;
 }
-/* Actual h264_decode_frame AU completion (n9.0.1), after decode_nal_units. */
-static int finish_frame(void)
+static int decode_frame(uint8_t *data, int size)
 {
-    if (!(avctx.flags2 & AV_CODEC_FLAG2_CHUNKS) && (!h.cur_pic_ptr || !h.has_slice))
-        return AVERROR_INVALIDDATA;
-    if (!(avctx.flags2 & AV_CODEC_FLAG2_CHUNKS) ||
-        (h.mb_y >= h.mb_height && h.mb_height))
-        return ff_h264_field_end(&h, &h.slice_ctx[0], 0);
-    return 0;
+    AVPacket packet = { .data = data, .size = size };
+    AVFrame output = {0};
+    int got_frame = 0;
+    return h264_decode_frame(&avctx, &output, &got_frame, &packet);
 }
 
 #include "slice-fixtures.inc"
@@ -180,17 +183,15 @@ static int cases(int avcc, int explode)
     uint8_t buf[512] = {0};
     int failed = 0, n, ret, fin;
     reset(avcc, explode, 0);
-    ret = decode_nal_units(&h, NULL, buf, 0);
-    fin = finish_frame();
-    CHECK(ret >= 0 && fin < 0 && issues == 0 && cancels == 0 && field_starts == 0);
+    ret = decode_frame(buf, 0);
+    CHECK(ret == 0 && issues == 0 && cancels == 0 && field_starts == 0);
 
     reset(avcc, explode, 0); memset(buf, 0, sizeof(buf)); n = 0;
     n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
     n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
     n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
-    ret = decode_nal_units(&h, NULL, buf, n);
-    fin = finish_frame();
-    CHECK(ret == n && fin == 0);
+    ret = decode_frame(buf, n);
+    CHECK(ret == n);
     CHECK(starts == 1 && slices == 1 && field_starts == 1 && slice_inits == 1);
     CHECK(h.slice_ctx[0].slice_type == AV_PICTURE_TYPE_I);
     CHECK(h.slice_ctx[0].first_mb_addr == 0);
@@ -203,9 +204,8 @@ static int cases(int avcc, int explode)
     n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
     n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
     n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
-    ret = decode_nal_units(&h, NULL, buf, n);
-    fin = finish_frame();
-    CHECK(ret == n && fin == 0 && issues == 0 && cancels == 0 && starts == 1);
+    ret = decode_frame(buf, n);
+    CHECK(ret == n && issues == 0 && cancels == 0 && starts == 1);
     fin = ff_h264_field_end(&h, &h.slice_ctx[0], 0);
     CHECK(fin == 0 && issues == 1 && cancels == 0);
 
@@ -214,7 +214,7 @@ static int cases(int avcc, int explode)
     n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
     n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
     n += nal(buf + n, avcc, dpa_nal, sizeof(dpa_nal));
-    ret = decode_nal_units(&h, NULL, buf, n);
+    ret = decode_frame(buf, n);
     CHECK(ret < 0 && starts == 1 && slices == 1 && issues == 0 && cancels == 1);
     CHECK(ctx.h264_admit_sticky == 1 && ff_h264_vaapi_admit_start(&avctx, &h) < 0);
     ff_h264_flush_change(&h);
@@ -225,7 +225,7 @@ static int cases(int avcc, int explode)
     n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
     n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
     n += nal(buf + n, avcc, bad_slice_nal, sizeof(bad_slice_nal));
-    ret = decode_nal_units(&h, NULL, buf, n);
+    ret = decode_frame(buf, n);
     CHECK(ret < 0 && starts == 0 && slices == 0 && issues == 0 && cancels == 0);
     CHECK(ctx.h264_admit_sticky == 1);
 
@@ -234,21 +234,30 @@ static int cases(int avcc, int explode)
     n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
     n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
     n += nal(buf + n, avcc, idr2_nal, sizeof(idr2_nal));
-    ret = decode_nal_units(&h, NULL, buf, n);
-    fin = finish_frame();
-    CHECK(ret == n && fin == 0 && starts == 2 && slices == 2);
+    ret = decode_frame(buf, n);
+    CHECK(ret == n && starts == 2 && slices == 2);
     CHECK(issues == 2 && cancels == 0);
+
+    /* The next IDR completes the previous picture inside the real queue.
+     * A later rejected suffix cannot undo that earlier submission. */
+    reset(avcc, explode, 0); memset(buf, 0, sizeof(buf)); n = 0;
+    n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
+    n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
+    n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
+    n += nal(buf + n, avcc, idr2_nal, sizeof(idr2_nal));
+    n += nal(buf + n, avcc, dpa_nal, sizeof(dpa_nal));
+    CHECK(decode_frame(buf, n) < 0 && starts == 2 && issues == 1 && cancels == 1);
 
     reset(avcc, explode, 0); memset(buf, 0, sizeof(buf)); n = 0;
     n += nal(buf + n, avcc, field_sps_nal, sizeof(field_sps_nal));
     n += nal(buf + n, avcc, field_pps_nal, sizeof(field_pps_nal));
     n += nal(buf + n, avcc, field_idr_nal, sizeof(field_idr_nal));
-    ret = decode_nal_units(&h, NULL, buf, n);
+    ret = decode_frame(buf, n);
     CHECK(h.ps.sps && h.ps.sps->frame_mbs_only_flag == 0);
     CHECK(ret < 0 && issues == 0 && cancels == 1 && ctx.h264_admit_sticky == 1);
 
     reset(avcc, explode, 0); memset(buf, 0, sizeof(buf)); n = nal(buf, avcc, aux_nal, sizeof(aux_nal));
-    ret = decode_nal_units(&h, NULL, buf, n);
+    ret = decode_frame(buf, n);
     CHECK(ret < 0 && starts == 0 && issues == 0 && cancels == 0);
 
     reset(avcc, explode, 0); memset(buf, 0, sizeof(buf)); avctx.hwaccel = NULL;
@@ -258,6 +267,46 @@ static int cases(int avcc, int explode)
     n += nal(buf + n, avcc, dpa_nal, sizeof(dpa_nal));
     ret = decode_nal_units(&h, NULL, buf, n);
     CHECK(ret == n && ctx.h264_admit_sticky == 0 && issues == 0);
+
+    /* A real frame call leaves CHUNKS pending. A subsequent split failure
+     * must cancel it before returning, in either packet format/error mode. */
+    reset(avcc, explode, 1); memset(buf, 0, sizeof(buf)); n = 0;
+    n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
+    n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
+    n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
+    CHECK(decode_frame(buf, n) == n && starts == 1 && issues == 0 && cancels == 0);
+    memset(buf, 0, sizeof(buf));
+    buf[3] = 10; buf[4] = 0x65; /* No Annex-B start code / oversized AVCC NAL. */
+    ret = decode_frame(buf, 5);
+    CHECK(ret < 0 && issues == 0 && cancels == 1);
+    CHECK(ctx.h264_admit_sticky && h.current_slice == 0);
+    CHECK(decode_frame(buf, 5) < 0 && cancels == 1 && issues == 0);
+
+    /* A rejected next chunk, a seek flush, and EOF must all release the
+     * pending picture once. None may submit it or clear sticky rejection. */
+    for (int ending = 0; ending < 4; ending++) {
+        reset(avcc, explode, 1); memset(buf, 0, sizeof(buf)); n = 0;
+        n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
+        n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
+        n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
+        CHECK(decode_frame(buf, n) == n && starts == 1 && issues == 0 && cancels == 0);
+        if (ending < 2) {
+            memset(buf, 0, sizeof(buf));
+            n = nal(buf, avcc, ending ? bad_slice_nal : dpa_nal,
+                    ending ? sizeof(bad_slice_nal) : sizeof(dpa_nal));
+            CHECK(decode_frame(buf, n) < 0 && cancels == 1 && issues == 0);
+            CHECK(decode_frame(buf, n) < 0 && cancels == 1 && issues == 0);
+        } else if (ending == 2) {
+            ff_h264_flush_change(&h);
+            CHECK(cancels == 1 && issues == 0 && h.current_slice == 0);
+            ff_h264_flush_change(&h);
+            CHECK(cancels == 1 && issues == 0);
+        } else {
+            CHECK(decode_frame(buf, 0) == 0 && cancels == 1 && issues == 0);
+            CHECK(decode_frame(buf, 0) == 0 && cancels == 1 && issues == 0);
+        }
+        CHECK(ctx.h264_admit_sticky && h.current_slice == 0);
+    }
 done:
     cleanup();
     return failed;
@@ -268,6 +317,6 @@ int main(void)
         for (int explode = 0; explode < 2; explode++)
             if (cases(avcc, explode))
                 return 1;
-    puts("PASS actual slice-header/queue/field-end/AU/flush: issue once per admitted picture, cancel on reject, sticky survives decoder flush; no config/thread/remap claim");
+    puts("PASS actual slice-header/queue/frame/field-end/flush: complete picture issues once; pending chunk rejects, flush and EOF cancel once; no config/thread/remap claim");
     return 0;
 }

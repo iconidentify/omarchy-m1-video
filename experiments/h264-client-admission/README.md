@@ -48,17 +48,38 @@ builds. Normal and semantic-mutant runs may not pass through a sanitizer error.
 The original `parser-test.py` remains dispatch/parameter-parser coverage: its
 slice queue is still substituted and it does not register an end_frame/issue
 callback. **`slice-queue-test.py` is the parser-to-issue follow-up.** It extracts
-and executes actual `h264_slice_header_parse`, `ff_h264_queue_decode_slice`,
+and executes actual `h264_decode_frame`, `h264_slice_header_parse`, `ff_h264_queue_decode_slice`,
 `ff_h264_execute_decode_slices`, `ff_h264_field_end`, `vaapi_h264_end_frame` and
 `ff_h264_flush_change` against encoder-generated SPS/PPS/IDR NALs. Issue/cancel
 are intercepted; a permitted progressive IDR issues exactly once; a rejected
 suffix (DPA after an accepted IDR) issues zero times and cancels once via the
-patched `decode_nal_units` error path; decoder `ff_h264_flush_change` does not
-clear VA sticky state. Mutating header parse, field-end's hardware callback, or
-the error-path end_frame each fails those assertions.
+patched `decode_nal_units` error path. Consecutive real frame calls also cover
+CHUNKS pending-picture cleanup: malformed Annex-B/AVCC input, a rejected next
+chunk, seek flush and EOF cancel once without issuing; repeated rejection or
+cleanup does not cancel again. Decoder `ff_h264_flush_change` retains sticky
+rejection. Eight semantic mutations remove header parsing, field-end's callback,
+error cancellation, split cancellation, cancellation-state retirement, flush
+cancellation, EOF cancellation or the actual frame's chunk-completion condition.
+Each must fail a semantic assertion without a sanitizer error.
+
+Maintainer review reproduced the original PR97 failure by calling the actual
+frame decoder with an accepted chunk followed by malformed input: the splitter
+returned before cancelling the pending picture. Split/thread-preflight errors
+now reach the common VA error cleanup; seek flush and EOF cancel before parser
+state or picture pointers are discarded. The former hand-copied `finish_frame`
+condition has been removed. The test executes the extracted original frame
+function and delayed-frame helper; output-frame construction is substituted.
+
+The real queue can complete one picture while parsing the next IDR in the same
+packet. A regression explicitly observes **one earlier issue and one later
+cancellation** for two IDRs followed by DPA. Rejection cannot undo a picture
+already submitted. This is a measured admission boundary, not a claim that every
+packet containing a rejected suffix produces zero submissions.
 
 `h264_field_start` and `h264_slice_init` remain substituted (no DPB allocation).
-VA start/slice parameter buffers are not filled (no surface/device). SEI, software
+VA start/slice parameter buffers are not filled (no surface/device). Actual VA
+resource destruction and allocation-failure cleanup remain unqualified by the
+issue/cancel counters. SEI, software
 MB decode, `vaapi_decode_make_config` and frame-thread workers are not executed.
 
 [Local build evidence](build-evidence.json) records source/archive/patch identities,

@@ -17,13 +17,30 @@ Not installed or submitted upstream. See README for remaining parser proof.
  #include "h2645_parse.h"
  #include "h264data.h"
  #include "h264_ps.h"
-@@ -611,13 +614,22 @@
+@@ -452,6 +455,16 @@
+ {
+     int i, j;
+ 
++#if CONFIG_H264_VAAPI_HWACCEL
++    /* A chunked picture can still own VA parameter buffers before field_end.
++     * Cancel before resetting parser state or dropping the picture. */
++    if (h->current_slice && ff_h264_vaapi_admit_is_active(h->avctx)) {
++        ff_h264_vaapi_admit_reject(h->avctx);
++        if (h->cur_pic_ptr && FF_HW_HAS_CB(h->avctx, end_frame))
++            (void)FF_HW_SIMPLE_CALL(h->avctx, end_frame);
++    }
++#endif
++
+     h->next_outputed_poc = INT_MIN;
+     h->prev_interlaced_frame = 1;
+     idr(h);
+@@ -611,13 +624,24 @@
      if (ret < 0) {
          av_log(avctx, AV_LOG_ERROR,
                 "Error splitting the input into NAL units.\n");
 +#if CONFIG_H264_VAAPI_HWACCEL
 +        if (ff_h264_vaapi_admit_is_active(avctx))
-+            ff_h264_vaapi_admit_reject(avctx);
++            goto end;
 +#endif
          return ret;
      }
@@ -33,15 +50,17 @@ Not installed or submitted upstream. See README for remaining parser proof.
 -    if (nals_needed < 0)
 +    if (nals_needed < 0) {
 +#if CONFIG_H264_VAAPI_HWACCEL
-+        if (ff_h264_vaapi_admit_is_active(avctx))
-+            ff_h264_vaapi_admit_reject(avctx);
++        if (ff_h264_vaapi_admit_is_active(avctx)) {
++            ret = nals_needed;
++            goto end;
++        }
 +#endif
          return nals_needed;
 +    }
  
      for (i = 0; i < h->pkt.nb_nals; i++) {
          H2645NAL *nal = &h->pkt.nals[i];
-@@ -631,6 +643,11 @@
+@@ -631,6 +655,11 @@
          h->nal_ref_idc   = nal->ref_idc;
          h->nal_unit_type = nal->type;
  
@@ -53,7 +72,7 @@ Not installed or submitted upstream. See README for remaining parser proof.
          err = 0;
          switch (nal->type) {
          case H264_NAL_IDR_SLICE:
-@@ -652,6 +669,12 @@
+@@ -652,6 +681,12 @@
              if ((err = ff_h264_queue_decode_slice(h, nal))) {
                  H264SliceContext *sl = h->slice_ctx + h->nb_slice_ctx_queued;
                  sl->ref_count[0] = sl->ref_count[1] = 0;
@@ -66,7 +85,7 @@ Not installed or submitted upstream. See README for remaining parser proof.
                  break;
              }
  
-@@ -675,7 +698,11 @@
+@@ -675,7 +710,11 @@
                      h->nb_slice_ctx_queued = 0;
                  } else
                      ret = ff_h264_execute_decode_slices(h);
@@ -79,7 +98,7 @@ Not installed or submitted upstream. See README for remaining parser proof.
                      goto end;
              }
              break;
-@@ -693,7 +720,11 @@
+@@ -693,7 +732,11 @@
              h->has_recovery_point = h->has_recovery_point || h->sei.recovery_point.recovery_frame_cnt != -1;
              if (avctx->debug & FF_DEBUG_GREEN_MD)
                  debug_green_metadata(&h->sei.green_metadata, h->avctx);
@@ -92,7 +111,7 @@ Not installed or submitted upstream. See README for remaining parser proof.
                  goto end;
              break;
          case H264_NAL_SPS: {
-@@ -711,6 +742,12 @@
+@@ -711,6 +754,12 @@
              init_get_bits8(&tmp_gb, nal->raw_data + 1, nal->raw_size - 1);
              if (ff_h264_decode_seq_parameter_set(&tmp_gb, avctx, &h->ps, 0) >= 0)
                  break;
@@ -105,7 +124,7 @@ Not installed or submitted upstream. See README for remaining parser proof.
              ff_h264_decode_seq_parameter_set(&nal->gb, avctx, &h->ps, 1);
              break;
          }
-@@ -723,7 +760,11 @@
+@@ -723,7 +772,11 @@
              }
              ret = ff_h264_decode_picture_parameter_set(&nal->gb, avctx, &h->ps,
                                                         nal->size_bits);
@@ -118,7 +137,7 @@ Not installed or submitted upstream. See README for remaining parser proof.
                  goto end;
              break;
          case H264_NAL_AUD:
-@@ -746,7 +787,11 @@
+@@ -746,7 +799,11 @@
      }
  
      ret = ff_h264_execute_decode_slices(h);
@@ -131,20 +150,37 @@ Not installed or submitted upstream. See README for remaining parser proof.
          goto end;
  
      // set decode_error_flags to allow users to detect concealed decoding errors
-@@ -765,6 +810,13 @@
+@@ -765,6 +822,15 @@
  
      ret = 0;
  end:
 +#if CONFIG_H264_VAAPI_HWACCEL
 +    if (ret < 0 && ff_h264_vaapi_admit_is_active(avctx)) {
 +        ff_h264_vaapi_admit_reject(avctx);
-+        if (h->current_slice && h->cur_pic_ptr && FF_HW_HAS_CB(avctx, end_frame))
++        if (h->current_slice && h->cur_pic_ptr && FF_HW_HAS_CB(avctx, end_frame)) {
 +            (void)FF_HW_SIMPLE_CALL(avctx, end_frame);
++            h->current_slice = 0;
++        }
 +    }
 +#endif
  
  #if CONFIG_ERROR_RESILIENCE
      /*
+@@ -1032,8 +1098,13 @@
+     ff_h264_unref_picture(&h->last_pic_for_ec);
+ 
+     /* end of stream, output what is still in the buffers */
+-    if (buf_size == 0)
++    if (buf_size == 0) {
++#if CONFIG_H264_VAAPI_HWACCEL
++        if (h->current_slice && ff_h264_vaapi_admit_is_active(avctx))
++            ff_h264_flush_change(h);
++#endif
+         return send_next_delayed_frame(h, pict, got_frame, 0);
++    }
+ 
+     if (av_packet_get_side_data(avpkt, AV_PKT_DATA_NEW_EXTRADATA, NULL)) {
+         size_t side_size;
 
 --- libavcodec/Makefile
 +++ libavcodec/Makefile

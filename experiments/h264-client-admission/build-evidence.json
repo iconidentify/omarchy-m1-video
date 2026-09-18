@@ -12,7 +12,7 @@
     "device_used": false
   },
   "parser_test": {
-    "decode_nal_units_sha256": "61e672bb0ec2c002b00ab5817eb00cd1af257b3e5b1b64a5496e022f821edc32",
+    "decode_nal_units_sha256": "6f7e3143431cdf6e936f2114221ca5b1e5648ba8cff7ee5480d1a076feef276d",
     "h2645_parse_sha256": "6a4cade0f22e2320db8f958df87d4af24f6e2f9b84d0fc70802e1012d27f6fac",
     "h264_ps_sha256": "bdc4866c3f3b9aea1759c8bf2655a8706bd9e297600ed1982a31d6e9f608d3a9",
     "harness_sha256": "2d8ba27e5e9af362ff8bf31dce5ec918518a9f23786e71c639280d08152d15c1",
@@ -67,6 +67,84 @@
       "linked FFmpeg libraries not fully sanitizer-instrumented"
     ]
   },
+  "slice_queue_test": {
+    "decode_nal_units_sha256": "6f7e3143431cdf6e936f2114221ca5b1e5648ba8cff7ee5480d1a076feef276d",
+    "h264_decode_frame_sha256": "13889d4d1a48b2600c3fd352c87ee9c8000331105baa4ee0b442e2f099d0cc91",
+    "ff_h264_flush_change_sha256": "f4ccd8826d96de51505a0f7a0c303214efda48ac19b3633b6ed0e4b977d92782",
+    "frame_helpers_sha256": "2adba1556ff0d3b31c870542df76319a95b9959056dfa926dd95162dd62475f3",
+    "h264_parse_sha256": "6da29f6f210cb787b5aa2fd4550a17580669db5a458f315b6c428b7cec8a34c3",
+    "slice_fixtures_sha256": "e2042775435a2ae7451ac40bd48be1e083f8cf1aeae7ff595fbfb560b56ded51",
+    "queue_sha256": "3080e410bf55662e68cb9d5164c762781c6a610ff709ab89ffd112c069e013c4",
+    "header_parse_sha256": "b35bcabdd26d06d6c463ad6fbe57676e54a56663b4845a74518eb3eb26ad3574",
+    "field_end_sha256": "d9f8683ef272c80c4729ed737f61dfa581649a7fc4cc0bdd59d130ca51ed2f6c",
+    "harness_sha256": "739150009d9ea7f389450a2c20759ca078dd836a938169edddd782a1fd6305eb",
+    "results": {
+      "actual": {
+        "returncode": 0,
+        "stdout_sha256": "29b87105e08cd05742647dada2a68e202ae56fe410656ac76cbf29405dde1566",
+        "expected_failure": false,
+        "assertion": null
+      },
+      "header-parse": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "assertion": "ret == n"
+      },
+      "field-end": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "assertion": "issues == 1 && cancels == 0"
+      },
+      "error-end": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "assertion": "ret < 0 && starts == 1 && slices == 1 && issues == 0 && cancels == 1"
+      },
+      "split-cancel": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "assertion": "ret < 0 && issues == 0 && cancels == 1"
+      },
+      "cancel-once": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "assertion": "ctx.h264_admit_sticky && h.current_slice == 0"
+      },
+      "flush-cancel": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "assertion": "cancels == 1 && issues == 0 && h.current_slice == 0"
+      },
+      "eof-cancel": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "assertion": "decode_frame(buf, 0) == 0 && cancels == 1 && issues == 0"
+      },
+      "chunk-completion": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "assertion": "ret == n && issues == 0 && cancels == 0 && starts == 1"
+      }
+    },
+    "device_used": false,
+    "remap": "disabled",
+    "limitations": [
+      "h264_field_start/h264_slice_init substituted (no DPB allocation)",
+      "software MB decode not executed",
+      "output-frame construction substituted; delayed output not qualified",
+      "VA start/slice parameter buffers not filled (no surface/device)",
+      "vaapi_decode_make_config and frame threading untested",
+      "linked FFmpeg libraries not fully sanitizer-instrumented"
+    ]
+  },
   "compiler": "cc (GCC) 16.1.1 20260430",
   "libva_version": "1.24.0",
   "configure_off": [
@@ -91,15 +169,15 @@
   "schema": "omarchy-m1-video.h264-client-admission-build/1",
   "ffmpeg_commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
   "source_archive_sha256": "fb1931fd4eb29297ee1c1017a24f800c4d8fbea35b4f2aaeb28308a48a9149b4",
-  "patch_sha256": "dfd45a65cb3a4e94b7c46493ca555600a8614e20c851a2d0d8d1b5effb8754af",
-  "vaapi_off_ffmpeg_sha256": "2ccdfbd173e10bd7040329677f6886458160a0ee70a941c0e83863c88287f205",
-  "vaapi_on_ffmpeg_sha256": "947f586ca93458f144f21e70ce3a84941eb3c4579bfe4414af17b877810fb934",
+  "patch_sha256": "288005510c1c9d9e94580faa25a540f44b075cba9ca5f8e42323d5e49bb120e5",
+  "vaapi_off_ffmpeg_sha256": "6439c5366a45beb989f2a30cc1acae2fd4e55c7c6755c83a6882c109d65f1c97",
+  "vaapi_on_ffmpeg_sha256": "50ae02b14aadee5a05865b9a961a9498134811f1d2135f726999dab553c05fb0",
   "remap": "disabled",
   "hardware": "none",
   "installed_changes": "none",
   "logs": {
-    "build-off.log": "5fc7d118a72025430b9394ad2c6022e31b9bd3ecf948c42fd07bde67cc2307b0",
-    "build-on.log": "f35034ca9e48052a11217ab0c9ecd8f8b15772bc9f492765ddbca039f78a9fb2",
+    "build-off.log": "1b8b5291496fe714ad4645826df3407282ab461c44187c4ce4385caf7013f254",
+    "build-on.log": "39c9e95dc6b5b8e0ac58acf4c58f5f6a4c81bf375cf9c26a9b16f8b7747c5877",
     "configure-off.log": "fc019cb1be569adca2683a05cb02e6b0db58ce42602aca2aebb9523cf47e6b3b",
     "configure-on.log": "8d47c57c44d913a868454c5bcf3ce1f9358eabe36835b058e5799172a1428117",
     "patch-off.log": "da252151989093a9a1ec109d9497c3ec8b42cf2743fff023853fd1377b49bf58",
