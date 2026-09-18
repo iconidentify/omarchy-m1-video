@@ -13,27 +13,28 @@ No live decoder mapping.
 
 | Entrypoint | Role while observer is enabled |
 | --- | --- |
-| `v4l2r_observer_begin` | Sets `observer_paused`/`observer_retain` under `ctx->mutex`, then `wait_completed_locked(ctx, ctx->submitted)` so **every issued frame** (not one capture index) is drained |
-| `queue_decode` | New producers fail with `VA_STATUS_ERROR_OPERATION_FAILED` while paused |
+| `v4l2r_observer_enable` | Default-off gate. Assigns `observer_run_generation` and `observer_context_id` once from process-wide create counters |
+| `v4l2r_observer_begin` | Pause/retain under `ctx->mutex`, then `wait_completed_locked(ctx, ctx->submitted, deadline_ns)` so **every issued frame** drains. Expired `deadline_ns` fails. `!streaming && submitted > completed` fails |
+| `v4l2r_decode` | Returns fail **before** `v4l2r_context_bind_surface` when paused or retained |
+| `v4l2r_context_bind_surface` | Counts the call, then fails if paused/retained so reuse cannot proceed |
+| `queue_decode` | Defense in depth: paused/retain still fail under `ctx->mutex` |
 | `v4l2r_observer_end` | Clears pause/retain; repeated end fails |
-| `v4l2r_wait_completed` | Existing completion wait; begin uses its locked helper |
-| `api.c` LOCKED wrappers | Unchanged; observer is not a public VA entry yet |
+| `v4l2r_observer_teardown` | Fails while retain is held; otherwise clears enable |
 
 `wait_on_capture_locked` remains one-index and is **not** the observer barrier.
 
 ## Locking
 
-1. `ctx->mutex` is held for pause flag, retain flag, generation, receipt snapshot and the drain.
-2. `api_mutex` is not taken by this experimental API. Callers that already hold `api_mutex` (LOCKED VA entrypoints) must not call begin/end until a public wrapper exists.
-3. Fake V4L2 `ioctl`/`poll` in the self-test run without a device fd.
+1. `ctx->mutex` is held for pause/retain, receipt snapshot and the drain. Deadline is checked before and after taking the mutex.
+2. `api_mutex` is not taken by this experimental API. A public LOCKED VA wrapper is still future work.
+3. Fake V4L2 `ioctl`/`poll` in the self-test run without a device fd. The self-test compiles actual `decode.c` and `context.c`.
 
 ## Lifetime
 
-- Default-off: `observer_enabled==0` → begin/end return `VA_STATUS_ERROR_UNIMPLEMENTED`.
-- Receipt fields `submitted`/`completed`/`queued_capture`/`last_ref_seq` are copied from the live context after drain. They are not test-assigned labels.
-- `observer_retain` is a pin flag only. Surface teardown/bind-reuse while retained is **not** yet patched in `context.c`; that is the next artifact.
-- `deadline_ns` is currently unused; drain uses `V4L2R_POLL_TIMEOUT_MS` inside `wait_completed_locked`.
-- Convert/VPP/import/client-mode rejection is not implemented.
+- Default-off: `observer_enabled==0` → begin/end/teardown return `VA_STATUS_ERROR_UNIMPLEMENTED`.
+- Receipt `run_generation` / `context_generation` come from enable/create, not per-begin increments or test-assigned fields.
+- Receipt `capture_index` / `last_ref_seq` come from `ctx->pic.target`'s capture buffer after drain.
+- Bind/decode/teardown consult `observer_retain`. Convert/VPP/import rejection and a handle-table VAContextID wrapper remain later work.
 
 ## Sibling #96
 

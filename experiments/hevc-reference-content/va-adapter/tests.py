@@ -66,10 +66,11 @@ def fetch_tree(root: Path) -> Path:
     return tree
 
 
-def compile_and_run(tree: Path, decode_text: str, env=None):
+def compile_and_run(tree: Path, decode_text: str, context_text: str, env=None):
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         (root / 'decode.c').write_text(decode_text)
+        (root / 'context.c').write_text(context_text)
         binary = root / 'observer-test'
         va_cflags = subprocess.check_output(['pkg-config', '--cflags', 'libva'], text=True).split()
         cmd = [
@@ -78,7 +79,7 @@ def compile_and_run(tree: Path, decode_text: str, env=None):
             '-Wno-unused-parameter',
             '-I', str(tree), '-I', str(tree / 'src'), *va_cflags,
             '-Wl,--wrap=ioctl', '-Wl,--wrap=poll',
-            str(HERE / 'observer-test.c'), str(root / 'decode.c'),
+            str(HERE / 'observer-test.c'), str(root / 'decode.c'), str(root / 'context.c'),
             '-lpthread', '-o', str(binary),
         ]
         compiled = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -95,24 +96,36 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         tree = fetch_tree(Path(tmp) / 'src')
         decode = (tree / 'src/decode.c').read_text()
-        pause = '	if (ctx->observer_paused) {\n		pthread_mutex_unlock(&ctx->mutex);\n		return VA_STATUS_ERROR_OPERATION_FAILED;\n	}\n'
+        context = (tree / 'src/context.c').read_text()
+        pause = '	if (ctx->observer_paused || ctx->observer_retain)\n		return VA_STATUS_ERROR_OPERATION_FAILED;\n'
         enabled = '	if (!ctx || !ctx->observer_enabled)\n		return VA_STATUS_ERROR_UNIMPLEMENTED;\n	if (!out)\n'
-        wait = '	if (ctx->streaming && ctx->completed < ctx->submitted)\n		ret = wait_completed_locked(ctx, ctx->submitted);\n'
+        wait = '	if (ctx->streaming && ctx->completed < ctx->submitted)\n		ret = wait_completed_locked(ctx, ctx->submitted, deadline_ns);\n'
+        deadline = (
+            '	if (deadline_ns && v4l2r_now_ns() >= deadline_ns)\n'
+            '		return VA_STATUS_ERROR_OPERATION_FAILED;\n'
+            '\n'
+            '	pthread_mutex_lock(&ctx->mutex);\n'
+            '	if (deadline_ns && v4l2r_now_ns() >= deadline_ns) {\n'
+            '		pthread_mutex_unlock(&ctx->mutex);\n'
+            '		return VA_STATUS_ERROR_OPERATION_FAILED;\n'
+            '	}\n'
+        )
         variants = {
-            'actual': decode,
-            'pause-gate': replace_once(decode, pause, ''),
-            'default-off': replace_once(decode, enabled, '	if (!ctx)\n		return VA_STATUS_ERROR_UNIMPLEMENTED;\n	if (!out)\n'),
-            'drain': replace_once(decode, wait, '	(void)ret;\n'),
+            'actual': (decode, context),
+            'pause-before-bind': (replace_once(decode, pause, ''), context),
+            'default-off': (replace_once(decode, enabled, '	if (!ctx)\n		return VA_STATUS_ERROR_UNIMPLEMENTED;\n	if (!out)\n'), context),
+            'drain': (replace_once(decode, wait, '	(void)ret;\n'), context),
+            'deadline': (replace_once(decode, deadline, '	pthread_mutex_lock(&ctx->mutex);\n'), context),
         }
-        for name, text in variants.items():
-            result = compile_and_run(tree, text)
+        for name, (decode_text, context_text) in variants.items():
+            result = compile_and_run(tree, decode_text, context_text)
             diagnostic = result.stdout + result.stderr
             if name == 'actual':
-                if result.returncode or 'PASS actual decode.c observer' not in result.stdout:
+                if result.returncode or 'PASS actual decode.c/context.c observer' not in result.stdout:
                     raise RuntimeError(diagnostic)
             elif result.returncode != 1 or 'failed line ' not in result.stderr:
                 raise RuntimeError('mutation not distinguished: ' + name + '\n' + diagnostic)
-        print('PASS: actual patched decode.c observer with fake V4L2; three semantic mutations fail')
+        print('PASS: actual patched decode.c/context.c observer with fake V4L2; four semantic mutations fail')
         print('driver', PIN, 'patch', sha((HERE / 'driver-observer.patch').read_bytes()))
 
 

@@ -13,8 +13,10 @@ python3 experiments/hevc-reference-content/va-adapter/tests.py
 
 Needs Linux C compiler, patch, pkg-config libva, and network to fetch the pinned
 driver archive. The test applies `driver-observer.patch` to
-`c77e7b566f7baf9c7a2aad797e62c9aa578d9687`, compiles **actual** `src/decode.c`,
-and links a **named fake V4L2** `ioctl`/`poll` backend. It is not a toy queue and
-not an extracted-predicate-only harness.
+`c77e7b566f7baf9c7a2aad797e62c9aa578d9687`, compiles **actual** `src/decode.c`
+and `src/context.c`, and links a **named fake V4L2** `ioctl`/`poll` backend. It
+is not a toy queue and not an extracted-predicate-only harness. Pause is taken
+before bind. Expired deadlines and stopped/partial contexts fail. Retain blocks
+bind and teardown.
 
 See [CONTRACT.md](CONTRACT.md).
