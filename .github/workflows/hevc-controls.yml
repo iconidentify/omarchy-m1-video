@@ -1,6 +1,7 @@
 name: HEVC control adapter
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/hevc-controls.yml'
       - 'experiments/hevc-controls/**'

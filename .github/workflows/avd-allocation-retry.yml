@@ -1,6 +1,7 @@
 name: AVD allocation retry
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/avd-allocation-retry.yml'
       - 'experiments/avd-allocation-retry/**'

@@ -1,6 +1,7 @@
 name: Checks
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/checks.yml'
       - 'install.sh'

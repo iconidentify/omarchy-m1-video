@@ -1,6 +1,7 @@
 name: HEVC paired capture supervisor
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/hevc-avd-command-capture.yml'
       - 'experiments/hevc-avd-command-capture/**'

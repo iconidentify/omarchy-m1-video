@@ -1,6 +1,7 @@
 name: H.264 client selection
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/h264-client-selection.yml'
       - 'experiments/h264-client-selection/**'

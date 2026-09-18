@@ -1,6 +1,7 @@
 name: H.264 client admission
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/h264-client-admission.yml'
       - 'experiments/h264-client-admission/**'

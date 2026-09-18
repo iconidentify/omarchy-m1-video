@@ -1,6 +1,7 @@
 name: HEVC full control evidence
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/hevc-full-controls.yml'
       - 'experiments/hevc-full-controls/**'

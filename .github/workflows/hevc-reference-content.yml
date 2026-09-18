@@ -1,6 +1,7 @@
 name: HEVC reference content
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/hevc-reference-content.yml'
       - 'experiments/hevc-reference-content/**'

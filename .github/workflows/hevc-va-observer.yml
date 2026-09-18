@@ -1,6 +1,7 @@
 name: HEVC VA observer
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/hevc-va-observer.yml'
       - 'experiments/hevc-reference-content/**'

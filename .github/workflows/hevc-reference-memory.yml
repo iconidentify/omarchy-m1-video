@@ -1,6 +1,7 @@
 name: HEVC reference memory
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/hevc-reference-memory.yml'
       - 'experiments/hevc-reference-memory/**'

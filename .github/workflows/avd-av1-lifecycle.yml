@@ -1,6 +1,7 @@
 name: AVD AV1 lifecycle
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/avd-av1-lifecycle.yml'
       - 'experiments/avd-av1-lifecycle/**'

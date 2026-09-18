@@ -1,6 +1,7 @@
 name: AVD allocation qualification controller
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/avd-allocation-qualification.yml'
       - 'experiments/avd-allocation-qualification/**'
