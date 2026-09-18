@@ -92,6 +92,9 @@ independent reviewer for security and shared lifetime/reference changes; identif
 self-review honestly. A green check does not demonstrate independent review or missing
 hardware evidence. See [maintenance and handoff](docs/MAINTENANCE.md) for the release decision.
 
+Use the [local adversarial review protocol](sashiko.md) and its linked record
+template to trace findings, dismissals, fixes and final-head verification.
+
 ## Hardware and system boundaries
 
 Use the driver repository's `tests/hwguard.py` for hardware commands, with a finite deadline,

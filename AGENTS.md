@@ -34,6 +34,11 @@ This repository sets up hardware video decoding on Apple Silicon Macs running Om
 
 ## Reviewing pull requests
 
+Use [sashiko.md](sashiko.md) for the local adversarial review stages, evidence
+record, false-positive checks and final-head merge/handoff procedure. It adapts
+Sashiko and Chris Mason's review prompts without changing the system/hardware
+authorization boundaries above.
+
 A pull request from a fork may arrive with red checks that executed **nothing**:
 some contributor accounts cannot start GitHub Actions, and the run then completes
 as a failure with zero jobs and no billable time. That is an absence of evidence,

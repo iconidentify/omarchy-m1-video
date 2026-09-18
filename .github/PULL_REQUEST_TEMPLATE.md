@@ -34,7 +34,9 @@ List tests not run and why. Do not paste private media, URLs, credentials or unr
 ## Review and handoff
 
 <!-- Reviewer and whether review was independent; remaining blockers and next exact step.
-Record lease renewal/release and active hardware processes, or none. -->
+Record lease renewal/release and active hardware processes, or none.
+Link the sashiko.md review record: stages, verified findings/dismissals, fixes,
+unresolved evidence and exact tested head. -->
 
 - [ ] I followed CONTRIBUTING.md and the shared agent workflow.
 - [ ] I retained imported authorship, licence notices and source revisions where applicable.
