@@ -16,8 +16,9 @@ real link and ownership failures. Do not enable that archived patch.
 ```sh
 python3 experiments/h264-client-admission/tests.py
 python3 experiments/h264-client-admission/build.py /tmp/h264-admission-build
-# Optional repeat of the actual glue tests against that configured, patched tree:
+# Optional repeat of the actual glue and dispatch tests against that tree:
 python3 experiments/h264-client-admission/end-gate-test.py --source /tmp/h264-admission-build/vaapi-on/FFmpeg-bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa
+python3 experiments/h264-client-admission/parser-test.py --source /tmp/h264-admission-build/vaapi-on/FFmpeg-bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa
 ```
 
 Needs Linux C/build tools, Python, patch, pkg-config and libva development headers.
@@ -26,21 +27,44 @@ The archive is hash checked. The same patch builds and links a real pinned n9.0.
 hashes use `ffmpeg`. Nothing is installed or opened on a decoder. The off build
 verifies the guards compile out; it is not a software playback qualification.
 
-After linking, `end-gate-test.py` compiles the actual patched helper and extracts
-the actual `vaapi_h264_end_frame` callback using real FFmpeg types. Only issue,
-cancel and drawing calls are intercepted. Synthetic states cover empty/end-only,
-start-without-slice, nested start, repeated end, I/P/B, sticky rejection after an
-accepted slice, partition/extension/unknown NALs, FMO, redundant slices, field/MBAFF,
-SP/SI, count overflow and non-VA private-data canaries. Four real-source mutations
-remove backend, slice-count, sticky-start and unsupported-NAL guards; each fails.
-This is stronger than a rewritten end-state model, but **does not execute the NAL
-parser, VA configuration negotiation or a real backend**. Main/High/High10 fixture
-states do not prove negotiated profiles or real playback.
+After linking, `end-gate-test.py` still executes the actual patched helper and
+extracted `vaapi_h264_end_frame` callback with real FFmpeg types and intercepted
+issue/cancel/draw calls; four real-source guard mutations fail.
+
+The additional `parser-test.py` executes actual patched `decode_nal_units`,
+`ff_h2645_packet_split` and **real SPS/PPS decoders**. Hand-encoded progressive SPS0
+and PPS0 feed Annex-B and four-byte-length AVCC packets in both normal and
+`AV_EF_EXPLODE` modes. Thirty-four dispatch calls cover empty input, a permitted
+parameter-set/dispatch prefix, unsupported DPA/aux or malformed SPS/PPS suffixes,
+aux-only input, truncated AVCC lengths and a non-VA path. Successful dispatch
+requires exact consumed length and start/slice/execute counts; invalid cases require
+specific negative outcomes and sticky state. Four actual-dispatch mutations remove
+NAL, SPS, PPS or split-error guards; each fails a semantic assertion. Removing actual
+packet cleanup fails LeakSanitizer. ASan/UBSan instrument the harness, extracted
+dispatch/helper, splitter and parameter parsers; linked FFmpeg libraries are ordinary
+builds. Normal and semantic-mutant runs may not pass through a sanitizer error.
+
+**This is dispatch/parameter-parser coverage, not parser-to-issue proof.** Slice
+header/queue and picture ownership remain substituted; IDR bytes are a dispatch
+token, not validated picture syntax. Start/slice mocks call the real stop helpers.
+The execute-slices stub returns without calling end_frame, matching the real
+hardware branch's early return. The previous harness incorrectly invented that
+end-frame call and accepted arbitrary SPS/PPS bytes through stubs. SEI, IDR/thread
+and error-concealment services remain stubs. No actual end_frame/issue callback is
+registered in this dispatch harness. VA configuration, actual slice queue/frame
+boundaries, frame threading, flush/reinit and hardware remain untested here.
 
 [Local build evidence](build-evidence.json) records source/archive/patch identities,
 compiler, libva, configure options, binaries, actual function hashes and log hashes.
 Hosted CI repeats the build and tests. A locally recorded binary hash need not match
 a different compiler or build directory.
+
+The original PR92 dispatch harness passed its ordinary run but leaked 1,394,351
+bytes in 18 allocations under the local ASan reproduction: reset discarded the
+packet splitter's allocated state. Cleanup now runs between cases and on assertion
+failure. Its old AVCC test accepted either success or failure; valid and truncated
+AVCC cases now require distinct exact outcomes. Original contributor commits and
+the separate PR80 guard tests remain preserved.
 
 ## Implemented boundary and remaining gaps
 
@@ -55,8 +79,10 @@ Remap stays disabled. Baseline/Extended are not added to `vaapi_profile_map`, an
 and slice NALs. These guards cannot establish that a complete access unit was
 validated before configuration or submission. In particular #79 still requires:
 
-- Actual parser-to-issue tests with Annex-B/AVCC bytes, packet/chunk boundaries,
-  accepted prefixes followed by malformed/unsupported suffixes, and both error modes.
+- Actual parser-to-issue proof through `ff_h264_queue_decode_slice` and field/frame
+  completion, packet/chunk boundaries, threading, flush/reinit and configuration.
+  The new dispatch harness covers both error-recognition modes only within its
+  explicitly substituted service boundary.
 - Proof for NALs encountered before VAAPI selection, access-unit/frame boundaries,
   frame threading, configuration changes, flush/reinitialization and sticky lifetime.
 - Complete SPS/PPS/slice feature and profile/configuration binding; unchanged
