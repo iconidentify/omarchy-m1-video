@@ -43,7 +43,7 @@ def test(tree):
     split_start=decode.index('    ret = ff_h2645_packet_split(')
     split_end=decode.index('    if (avctx->active_thread_type',split_start)
     split=decode[split_start:split_end]
-    weak_split=replace_once(split,'            ff_h264_vaapi_admit_reject(avctx);','            (void)avctx;')
+    weak_split=replace_once(split,'            goto end;','            (void)avctx;')
     variants={
         'actual':(decode,harness),
         'admit-nal':(replace_once(decode,nal,''),harness),

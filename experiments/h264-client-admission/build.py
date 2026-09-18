@@ -99,9 +99,13 @@ def main():
     spec=importlib.util.spec_from_file_location('parser_test',HERE/'parser-test.py')
     parser_test=importlib.util.module_from_spec(spec);spec.loader.exec_module(parser_test)
     parser_report=parser_test.test(on)
+    spec=importlib.util.spec_from_file_location('slice_queue_test',HERE/'slice-queue-test.py')
+    slice_queue_test=importlib.util.module_from_spec(spec);spec.loader.exec_module(slice_queue_test)
+    slice_queue_report=slice_queue_test.test(on)
     report = {
         'glue_test':glue_report,
         'parser_test':parser_report,
+        'slice_queue_test':slice_queue_report,
         'compiler':subprocess.check_output(['cc','--version'],text=True).splitlines()[0],
         'libva_version':subprocess.check_output(['pkg-config','--modversion','libva'],text=True).strip(),
         'configure_off':OFF,'configure_on':ON,

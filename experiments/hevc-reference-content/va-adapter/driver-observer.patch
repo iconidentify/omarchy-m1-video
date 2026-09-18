@@ -1,0 +1,591 @@
+Subject: [PATCH] Experimental VA session, allocation and writer observer
+
+Replaces the initial observer experiment by z23; original contributions remain
+in companion PR100 history. Maintainer implementation and adversarial tests are
+AI-assisted. GPL-3.0-or-later, like the pinned driver. Metadata only; no mapping
+or coherence admission. See CONTRACT.md for the supported ownership boundary.
+
+diff --git i/src/api.c w/src/api.c
+index 63e344a..1cc17c8 100644
+--- i/src/api.c
++++ w/src/api.c
+@@ -22,7 +22,8 @@ static VAStatus locked_##name params \
+ 	pthread_mutex_lock(&drv->api_mutex); \
+ 	if (overlap) \
+ 		v4l2r_overlap_locked_enter(); \
+-	result = v4l2r_##name args; \
++	result = drv->observer_active ? VA_STATUS_ERROR_OPERATION_FAILED : \
++		v4l2r_##name args; \
+ 	if (overlap) \
+ 		v4l2r_overlap_locked_exit(); \
+ 	pthread_mutex_unlock(&drv->api_mutex); \
+diff --git i/src/context.c w/src/context.c
+index 8ecec98..5788a50 100644
+--- i/src/context.c
++++ w/src/context.c
+@@ -576,6 +576,7 @@ static int capture_buffer_new(struct v4l2r_context *ctx)
+ 
+ 	capture = &ctx->captures[buffer.index];
+ 	memset(capture, 0, sizeof(*capture));
++	capture->observer_generation = v4l2r_observer_generation();
+ 
+ 	if (V4L2_TYPE_IS_MULTIPLANAR(buffer.type)) {
+ 		capture->nb_planes = ctx->capture_format.fmt.pix_mp.num_planes;
+@@ -1105,6 +1106,8 @@ VAStatus v4l2r_CreateContext(VADriverContextP va_ctx, VAConfigID config_id,
+ 	ctx->drv = drv;
+ 	ctx->id = id;
+ 	ctx->diag_serial = v4l2r_diag_context_serial();
++	ctx->observer_generation = v4l2r_observer_generation();
++	v4l2r_observer_init_run(drv);
+ 	ctx->config_id = config_id;
+ 	ctx->profile = config->profile;
+ 	ctx->codec = config->codec;
+diff --git i/src/decode.c w/src/decode.c
+index 85f8866..cd6084d 100644
+--- i/src/decode.c
++++ w/src/decode.c
+@@ -195,7 +195,11 @@ static int queue_buffer(struct v4l2r_context *ctx, struct v4l2_buffer *buffer)
+ 		 * and completed only when the decode (and thus its reference
+ 		 * reads) actually finishes, unlike the OUTPUT bitstream buffer
+ 		 * which is released as soon as it is consumed. */
++		if (ctx->submitted == UINT64_MAX)
++			ctx->observer_sequence_exhausted = true;
+ 		ctx->submitted++;
++		ctx->captures[buffer->index].observer_writer = 0;
++		ctx->captures[buffer->index].observer_completed_writer = 0;
+ 		v4l2r_trace("QBUF CAPTURE #%u (surface 0x%08x), submit #%llu, "
+ 			  "%u in flight\n", buffer->index,
+ 			  capture_surface_id(ctx, buffer->index),
+@@ -285,6 +289,9 @@ static int dequeue_buffer(struct v4l2r_context *ctx, enum v4l2_buf_type type)
+ 					   "0x%08x (CAPTURE buffer %u)", surface->id,
+ 					   buffer.index);
+ 			}
++			if (surface->decode_status == VA_STATUS_SUCCESS)
++				ctx->captures[buffer.index].observer_completed_writer =
++					ctx->captures[buffer.index].observer_writer;
+ 			ctx->captures[buffer.index].surface->status =
+ 				VASurfaceReady;
+ 			/* Start the format conversion right away so it
+@@ -297,6 +304,25 @@ static int dequeue_buffer(struct v4l2r_context *ctx, enum v4l2_buf_type type)
+ 	return 0;
+ }
+ 
++/* Observer holds api_mutex then ctx->mutex. All issued CAPTURE readers
++ * must finish; output consumption alone cannot establish reference quiescence.
++ * Use the same absolute deadline for every dequeue/retry/poll. */
++int v4l2r_observer_drain_locked(struct v4l2r_context *ctx, uint64_t deadline)
++{
++	while (ctx->queued_capture) {
++		if (v4l2r_now_ns() >= deadline)
++			return -ETIMEDOUT;
++		int ret = dequeue_buffer(ctx, ctx->capture_format.type);
++		if (ret == -EINTR)
++			continue;
++		if (ret == -EAGAIN)
++			ret = v4l2r_poll_until(ctx->video_fd, POLLIN, deadline);
++		if (ret < 0)
++			return ret;
++	}
++	return ctx->completed == ctx->submitted ? 0 : -EIO;
++}
++
+ static int dequeue_completed_buffers(struct v4l2r_context *ctx,
+ 				      enum v4l2_buf_type type)
+ {
+@@ -681,6 +707,8 @@ static VAStatus queue_decode(struct v4l2r_context *ctx,
+ 	}
+ 
+ 	ctx->queued_request |= 1u << output->index;
++	if (last_slice)
++		ctx->captures[target->capture_index].observer_writer = ctx->submitted;
+ 	target->status = VASurfaceRendering;
+ 
+ 	pthread_mutex_unlock(&ctx->mutex);
+diff --git i/src/driver.c w/src/driver.c
+index a26ee70..a73850b 100644
+--- i/src/driver.c
++++ w/src/driver.c
+@@ -970,6 +970,14 @@ VAStatus v4l2r_Terminate(VADriverContextP va_ctx)
+ 	unsigned int iter;
+ 	uint32_t id;
+ 
++	/* As with libva termination generally, the caller must own the display.
++	 * A live observer lease is an explicit outstanding use. */
++	pthread_mutex_lock(&drv->api_mutex);
++	bool observing = drv->observer_active != NULL;
++	pthread_mutex_unlock(&drv->api_mutex);
++	if (observing)
++		return VA_STATUS_ERROR_OPERATION_FAILED;
++
+ 	/* Tear down leftover objects, contexts first so surfaces unbind. */
+ 	iter = 0;
+ 	while (v4l2r_handles_next(&drv->contexts, &iter, &id))
+diff --git i/src/hevc_trace.c w/src/hevc_trace.c
+index a58ba06..977011a 100644
+--- i/src/hevc_trace.c
++++ w/src/hevc_trace.c
+@@ -235,6 +235,19 @@ void v4l2r_hevc_trace_request(const struct v4l2r_context *ctx,
+ 	append(&l, ",\"pic\":%u,\"req\":%u,\"first\":%u,\"last\":%u,\"target\":%d",
+ 	       req->picture, req->request, req->first_slice ? 1u : 0u,
+ 	       req->last_slice ? 1u : 0u, req->target_index);
++	/* Same-run join for the opt-in observer; emitted after actual queue
++	 * success, alongside the unchanged HEVC command/control identity. */
++	if (ctx->observer_session && req->target_index >= 0 &&
++	    (unsigned)req->target_index < ctx->nb_captures) {
++		const struct v4l2r_capture_buffer *cap = &ctx->captures[req->target_index];
++		append(&l, ",\"observer\":{\"run\":\"%016" PRIx64 "%016" PRIx64
++		       "\",\"context\":%" PRIu64 ",\"allocation\":%" PRIu64
++		       ",\"surface\":%" PRIu64 ",\"writer\":%" PRIu64 "}",
++		       ctx->drv->observer_run[0], ctx->drv->observer_run[1],
++		       ctx->observer_generation, cap->observer_generation,
++		       cap->surface ? cap->surface->observer_generation : 0,
++		       cap->observer_writer);
++	}
+ 	append(&l, ",\"poc\":%" PRId32 ",\"irap\":%u,\"idr\":%u",
+ 	       dp->pic_order_cnt_val,
+ 	       dp->flags & V4L2_HEVC_DECODE_PARAM_FLAG_IRAP_PIC ? 1u : 0u,
+diff --git i/src/image.c w/src/image.c
+index 493ada6..cf91b57 100644
+--- i/src/image.c
++++ w/src/image.c
+@@ -244,6 +244,9 @@ VAStatus v4l2r_DeriveImage(VADriverContextP va_ctx, VASurfaceID surface_id,
+ 	pthread_mutex_lock(&drv->mutex);
+ 	image_object->source = surface;
+ 	surface->image_refs++;
++	surface->observer_aliased = true;
++	if (surface->ctx && surface->capture_index >= 0)
++		surface->ctx->captures[surface->capture_index].observer_aliased = true;
+ 	pthread_mutex_unlock(&drv->mutex);
+ 
+ 	return VA_STATUS_SUCCESS;
+@@ -444,6 +447,14 @@ VAStatus v4l2r_PutImage(VADriverContextP va_ctx, VASurfaceID surface_id,
+ 	if (!buffer)
+ 		return VA_STATUS_ERROR_INVALID_BUFFER;
+ 
++	/* An upload replaces the decode writer even when only part of the
++	 * surface is copied. A subsequent successful decode can establish a
++	 * fresh writer; never attribute uploaded bytes to the previous one. */
++	if (surface->ctx && surface->capture_index >= 0) {
++		struct v4l2r_capture_buffer *cap =
++			&surface->ctx->captures[surface->capture_index];
++		cap->observer_writer = cap->observer_completed_writer = 0;
++	}
+ 	return image_copy(&view, image, buffer, width, height, true);
+ }
+ 
+diff --git i/src/meson.build w/src/meson.build
+index 380fabc..aa64f77 100644
+--- i/src/meson.build
++++ w/src/meson.build
+@@ -2,6 +2,7 @@ driver_sources = files(
+   'driver.c',
+   'diag.c',
+   'api.c',
++  'observer.c',
+   'handles.c',
+   'context.c',
+   'convert.c',
+diff --git i/src/observer.c w/src/observer.c
+new file mode 100644
+index 0000000..c6ebe8a
+--- /dev/null
++++ w/src/observer.c
+@@ -0,0 +1,264 @@
++/* SPDX-License-Identifier: GPL-3.0-or-later */
++#include <errno.h>
++#include <string.h>
++#include <sys/random.h>
++#include <time.h>
++#include "v4l2_request.h"
++
++#define WINDOW_NS UINT64_C(2000000000)
++#define REFUSED VA_STATUS_ERROR_OPERATION_FAILED
++static _Thread_local uint64_t owner_generation;
++
++/* Saturate instead of permitting generation/nonce ABA on integer wrap. */
++uint64_t v4l2r_observer_generation(void)
++{
++	static _Atomic uint64_t next = 1;
++	uint64_t value = atomic_load(&next);
++	while (value && !atomic_compare_exchange_weak(&next, &value,
++		value == UINT64_MAX ? 0 : value + 1)) {}
++	return value;
++}
++
++/* Called at actual context creation under api_mutex; randomness is a run
++ * identifier, not an authorization secret. Failure disables observation. */
++void v4l2r_observer_init_run(struct v4l2r_driver *drv)
++{
++	if (drv->observer_run[0] || drv->observer_run[1])
++		return;
++	uint64_t run[2];
++	if (getrandom(run, sizeof(run), GRND_NONBLOCK) == sizeof(run))
++		memcpy(drv->observer_run, run, sizeof(run));
++}
++
++static int lock_until(pthread_mutex_t *mutex, uint64_t deadline)
++{
++	for (;;) {
++		if (v4l2r_now_ns() >= deadline)
++			return -ETIMEDOUT;
++		int ret = pthread_mutex_trylock(mutex);
++		if (!ret)
++			return 0;
++		if (ret != EBUSY)
++			return -ret;
++		struct timespec delay = {.tv_nsec = 100000};
++		nanosleep(&delay, NULL);
++	}
++}
++
++static struct v4l2r_context *session_context(struct v4l2r_driver *drv,
++	const struct v4l2r_observer_session *session)
++{
++	if (!session || !session->nonce ||
++	    memcmp(session->run, drv->observer_run, sizeof(session->run)))
++		return NULL;
++	struct v4l2r_context *ctx = V4L2R_CONTEXT_GET(drv, session->context);
++	if (!ctx || ctx->observer_generation != session->context_generation ||
++	    ctx->observer_session != session->nonce ||
++	    !owner_generation || ctx->observer_owner_generation != owner_generation ||
++	    !pthread_equal(ctx->observer_owner, pthread_self()))
++		return NULL;
++	return ctx;
++}
++
++static void session_record(struct v4l2r_context *ctx,
++	struct v4l2r_observer_session *session)
++{
++	*session = (struct v4l2r_observer_session) {
++		.run = {ctx->drv->observer_run[0], ctx->drv->observer_run[1]},
++		.context = ctx->id, .context_generation = ctx->observer_generation,
++		.nonce = ctx->observer_session,
++	};
++}
++
++/* No ioctl, hidden flush, conversion or allocation here. Sticky alias state
++ * covers exported FDs and derived maps even after the VA object is destroyed. */
++static struct v4l2r_capture_buffer *selected(struct v4l2r_context *ctx,
++	VASurfaceID id, struct v4l2r_observer_target *target)
++{
++	struct v4l2r_surface *s = V4L2R_SURFACE_GET(ctx->drv, id);
++	if (!s || s->ctx != ctx || !s->observer_generation || s->observer_aliased ||
++	    s->backing || s->convert_pending || s->image_refs ||
++	    s->decode_status != VA_STATUS_SUCCESS || s->capture_index < 0 ||
++	    (unsigned)s->capture_index >= ctx->nb_captures)
++		return NULL;
++	struct v4l2r_capture_buffer *cap = &ctx->captures[s->capture_index];
++	if (cap->surface != s || !cap->observer_generation || !cap->observer_writer ||
++	    cap->observer_aliased || !cap->nb_planes || cap->nb_planes > VIDEO_MAX_PLANES)
++		return NULL;
++	*target = (struct v4l2r_observer_target) {
++		.surface = id, .surface_generation = s->observer_generation,
++		.allocation_generation = cap->observer_generation, .writer = cap->observer_writer,
++	};
++	return cap;
++}
++
++VAStatus v4l2r_observer_open(VADriverContextP va, VAContextID id,
++	struct v4l2r_observer_session *session)
++{
++	if (!va || !va->pDriverData || !session)
++		return VA_STATUS_ERROR_INVALID_PARAMETER;
++	struct v4l2r_driver *drv = v4l2r_driver(va);
++	int cancel;
++	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cancel);
++	VAStatus ret = REFUSED;
++	if (!lock_until(&drv->api_mutex, v4l2r_now_ns() + WINDOW_NS)) {
++		struct v4l2r_context *ctx = V4L2R_CONTEXT_GET(drv, id);
++		if (!drv->observer_active && ctx && ctx->observer_generation &&
++		    !ctx->observer_session && (drv->observer_run[0] || drv->observer_run[1])) {
++			if (!owner_generation)
++				owner_generation = v4l2r_observer_generation();
++			ctx->observer_owner_generation = owner_generation;
++			ctx->observer_session = owner_generation ? v4l2r_observer_generation() : 0;
++			ctx->observer_owner = pthread_self();
++			if (ctx->observer_session) {
++				session_record(ctx, session);
++				ret = VA_STATUS_SUCCESS;
++			}
++		}
++		pthread_mutex_unlock(&drv->api_mutex);
++	}
++	pthread_setcancelstate(cancel, NULL);
++	return ret;
++}
++
++VAStatus v4l2r_observer_select(VADriverContextP va,
++	const struct v4l2r_observer_session *session, VASurfaceID id,
++	struct v4l2r_observer_target *target)
++{
++	if (!va || !va->pDriverData || !target)
++		return VA_STATUS_ERROR_INVALID_PARAMETER;
++	struct v4l2r_driver *drv = v4l2r_driver(va);
++	int cancel;
++	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cancel);
++	VAStatus ret = REFUSED;
++	if (!lock_until(&drv->api_mutex, v4l2r_now_ns() + WINDOW_NS)) {
++		struct v4l2r_context *ctx = session_context(drv, session);
++		if (ctx && !drv->observer_active && selected(ctx, id, target))
++			ret = VA_STATUS_SUCCESS;
++		pthread_mutex_unlock(&drv->api_mutex);
++	}
++	pthread_setcancelstate(cancel, NULL);
++	return ret;
++}
++
++VAStatus v4l2r_observer_begin(VADriverContextP va,
++	const struct v4l2r_observer_session *session,
++	const struct v4l2r_observer_target *target, uint64_t deadline,
++	struct v4l2r_observer_receipt *receipt)
++{
++	if (!va || !va->pDriverData || !target || !receipt)
++		return VA_STATUS_ERROR_INVALID_PARAMETER;
++	uint64_t now = v4l2r_now_ns();
++	if (!deadline)
++		deadline = now + WINDOW_NS;
++	if (deadline <= now || deadline - now > WINDOW_NS)
++		return REFUSED;
++	struct v4l2r_driver *drv = v4l2r_driver(va);
++	int cancel;
++	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cancel);
++	VAStatus ret = REFUSED;
++	if (lock_until(&drv->api_mutex, deadline))
++		goto restore;
++	struct v4l2r_context *ctx = session_context(drv, session);
++	if (!ctx || drv->observer_active)
++		goto unlock;
++	/* This first adapter supports a sole decoder on the display. Reject
++	 * cross-context, VPP, imported and conversion producers explicitly. */
++	unsigned iter = 0, count = 0;
++	uint32_t id;
++	while (v4l2r_handles_next(&drv->contexts, &iter, &id))
++		count++;
++	if (count != 1 || ctx->in_picture || ctx->failed || ctx->conv || ctx->vpp ||
++	    ctx->observer_sequence_exhausted ||
++	    !ctx->streaming || ctx->capture_memory != V4L2_MEMORY_MMAP)
++		goto unlock;
++	if (lock_until(&ctx->mutex, deadline))
++		goto unlock;
++	struct v4l2r_observer_target actual;
++	struct v4l2r_capture_buffer *cap = selected(ctx, target->surface, &actual);
++	if (!cap || actual.surface_generation != target->surface_generation ||
++	    actual.allocation_generation != target->allocation_generation ||
++	    actual.writer != target->writer)
++		goto unlock_context;
++	/* api_mutex already stops every supported producer/destructor. Only
++	 * after all issued CAPTURE readers drain does the pin escape the lock. */
++	if (v4l2r_observer_drain_locked(ctx, deadline) < 0) {
++		v4l2r_context_fail(ctx);
++		goto unlock_context;
++	}
++	for (unsigned i = 0; i < ctx->nb_captures; i++)
++		if (ctx->captures[i].surface &&
++		    ctx->captures[i].surface->decode_status != VA_STATUS_SUCCESS)
++			goto unlock_context;
++	if (!selected(ctx, target->surface, &actual) ||
++	    cap->observer_completed_writer != target->writer ||
++	    cap->last_ref_seq > ctx->completed || v4l2r_now_ns() >= deadline)
++		goto unlock_context;
++	uint64_t lease = v4l2r_observer_generation();
++	if (!lease)
++		goto unlock_context;
++	ctx->observer_lease = lease;
++	ctx->observer_cancel_state = cancel;
++	drv->observer_active = ctx;
++	memset(receipt, 0, sizeof(*receipt));
++	session_record(ctx, &receipt->session);
++	receipt->target = actual;
++	receipt->lease = lease;
++	receipt->submitted = ctx->submitted;
++	receipt->completed = ctx->completed;
++	receipt->last_reference = cap->last_ref_seq;
++	receipt->capture_index = (uint32_t)(cap - ctx->captures);
++	receipt->planes = cap->nb_planes;
++	for (unsigned i = 0; i < cap->nb_planes; i++)
++		receipt->plane_size[i] = cap->plane_size[i];
++	ret = VA_STATUS_SUCCESS;
++unlock_context:
++	pthread_mutex_unlock(&ctx->mutex);
++unlock:
++	pthread_mutex_unlock(&drv->api_mutex);
++restore:
++	/* A pending deferred cancellation can only run after all pins/locks
++	 * are released. Success leaves cancellation disabled until end. */
++	if (ret != VA_STATUS_SUCCESS)
++		pthread_setcancelstate(cancel, NULL);
++	return ret;
++}
++
++static VAStatus finish(VADriverContextP va,
++	const struct v4l2r_observer_session *session, uint64_t lease, bool close)
++{
++	if (!va || !va->pDriverData)
++		return VA_STATUS_ERROR_INVALID_PARAMETER;
++	struct v4l2r_driver *drv = v4l2r_driver(va);
++	int cancel;
++	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cancel);
++	VAStatus ret = REFUSED;
++	if (!lock_until(&drv->api_mutex, v4l2r_now_ns() + WINDOW_NS)) {
++		struct v4l2r_context *ctx = session_context(drv, session);
++		if (ctx && close && !drv->observer_active) {
++			ctx->observer_session = 0;
++			ret = VA_STATUS_SUCCESS;
++		} else if (ctx && !close && lease && drv->observer_active == ctx &&
++			   ctx->observer_lease == lease) {
++			drv->observer_active = NULL;
++			ctx->observer_lease = 0;
++			cancel = ctx->observer_cancel_state;
++			ret = VA_STATUS_SUCCESS;
++		}
++		pthread_mutex_unlock(&drv->api_mutex);
++	}
++	pthread_setcancelstate(cancel, NULL);
++	return ret;
++}
++
++VAStatus v4l2r_observer_end(VADriverContextP va,
++	const struct v4l2r_observer_session *session, uint64_t lease)
++{
++	return finish(va, session, lease, false);
++}
++
++VAStatus v4l2r_observer_close(VADriverContextP va,
++	const struct v4l2r_observer_session *session)
++{
++	return finish(va, session, 0, true);
++}
+diff --git i/src/observer.h w/src/observer.h
+new file mode 100644
+index 0000000..195c524
+--- /dev/null
++++ w/src/observer.h
+@@ -0,0 +1,48 @@
++/* SPDX-License-Identifier: GPL-3.0-or-later */
++/* Experimental, opt-in metadata-only observer. See companion CONTRACT.md.
++ * Public functions take the actual driver's VADriverContextP (not VADisplay).
++ * These are not libva ABI extensions and are not a CPU-coherence/copy API. */
++#ifndef V4L2R_OBSERVER_H
++#define V4L2R_OBSERVER_H
++#include <stdint.h>
++#include <linux/videodev2.h>
++#include <va/va_backend.h>
++struct v4l2r_driver;
++struct v4l2r_context;
++struct v4l2r_observer_session {
++	uint64_t run[2], context_generation, nonce;
++	VAContextID context;
++};
++struct v4l2r_observer_target {
++	VASurfaceID surface;
++	uint64_t surface_generation, allocation_generation, writer;
++};
++struct v4l2r_observer_receipt {
++	struct v4l2r_observer_session session;
++	struct v4l2r_observer_target target;
++	uint64_t lease, submitted, completed, last_reference;
++	uint32_t capture_index, planes;
++	uint64_t plane_size[VIDEO_MAX_PLANES];
++};
++#define V4L2R_OBSERVER_API __attribute__((visibility("default")))
++V4L2R_OBSERVER_API VAStatus v4l2r_observer_open(VADriverContextP va, VAContextID id,
++	struct v4l2r_observer_session *session);
++V4L2R_OBSERVER_API VAStatus v4l2r_observer_select(VADriverContextP va,
++	const struct v4l2r_observer_session *session, VASurfaceID id,
++	struct v4l2r_observer_target *target);
++/* Zero deadline means now + 2s; nonzero is absolute CLOCK_MONOTONIC ns and
++ * may not exceed now + 2s. Success disables cancellation on the owner until
++ * matching end. No raw pointers, FDs, mapping or coherence claim is returned. */
++V4L2R_OBSERVER_API VAStatus v4l2r_observer_begin(VADriverContextP va,
++	const struct v4l2r_observer_session *session,
++	const struct v4l2r_observer_target *target, uint64_t deadline,
++	struct v4l2r_observer_receipt *receipt);
++V4L2R_OBSERVER_API VAStatus v4l2r_observer_end(VADriverContextP va,
++	const struct v4l2r_observer_session *session, uint64_t lease);
++V4L2R_OBSERVER_API VAStatus v4l2r_observer_close(VADriverContextP va,
++	const struct v4l2r_observer_session *session);
++/* Internal: real creation/queue transitions, independent of observer enable. */
++uint64_t v4l2r_observer_generation(void);
++void v4l2r_observer_init_run(struct v4l2r_driver *drv);
++int v4l2r_observer_drain_locked(struct v4l2r_context *ctx, uint64_t deadline);
++#endif
+diff --git i/src/surface.c w/src/surface.c
+index 92b3058..d73120e 100644
+--- i/src/surface.c
++++ w/src/surface.c
+@@ -63,6 +63,7 @@ VAStatus v4l2r_CreateSurfaces2(VADriverContextP va_ctx, unsigned int format,
+ 			goto fail;
+ 
+ 		surface->id = id;
++		surface->observer_generation = v4l2r_observer_generation();
+ 		surface->width = width;
+ 		surface->height = height;
+ 		surface->rt_format = format;
+@@ -1027,7 +1028,14 @@ VAStatus v4l2r_ExportSurfaceHandle(VADriverContextP va_ctx, VASurfaceID surface_
+ 	if (status != VA_STATUS_SUCCESS)
+ 		return status;
+ 
+-	return fill_prime_descriptor(&view, flags, descriptor);
++	status = fill_prime_descriptor(&view, flags, descriptor);
++	if (status == VA_STATUS_SUCCESS)
++		{
++		surface->observer_aliased = true;
++		if (surface->ctx && surface->capture_index >= 0)
++			surface->ctx->captures[surface->capture_index].observer_aliased = true;
++	}
++	return status;
+ }
+ 
+ /* --- unsupported display path --- */
+diff --git i/src/v4l2_request.h w/src/v4l2_request.h
+index d84d746..e2b76a8 100644
+--- i/src/v4l2_request.h
++++ w/src/v4l2_request.h
+@@ -275,6 +275,8 @@ struct v4l2r_surface_backing {
+ };
+ 
+ struct v4l2r_surface {
++	uint64_t observer_generation;
++	bool observer_aliased; /* sticky: external access cannot be revoked */
+ 	struct v4l2r_context *ctx;	/* context the surface is bound to */
+ 	VASurfaceID id;			/* own VA id, for logging/tracing */
+ 	unsigned int width;
+@@ -327,6 +329,9 @@ void v4l2r_surface_free_backing(struct v4l2r_surface *surface);
+  * buffer holds the current decoded content of ->surface, or is free when
+  * ->surface is NULL (its index then sits in the context free list). */
+ struct v4l2r_capture_buffer {
++	uint64_t observer_generation;
++	uint64_t observer_writer, observer_completed_writer;
++	bool observer_aliased;
+ 	struct v4l2r_surface *surface;
+ 	unsigned int nb_planes;
+ 	uint32_t plane_mem_offset[VIDEO_MAX_PLANES];
+@@ -387,6 +392,11 @@ static inline size_t v4l2r_buffer_bytes(const struct v4l2r_buffer *buf)
+ }
+ 
+ struct v4l2r_context {
++	uint64_t observer_generation, observer_session, observer_lease;
++	pthread_t observer_owner;
++	uint64_t observer_owner_generation;
++	bool observer_sequence_exhausted;
++	int observer_cancel_state;
+ 	struct v4l2r_driver *drv;
+ 	VAContextID id;
+ 	/* Process-unique diagnostic identifier; VAContextIDs are reused by
+@@ -597,6 +607,8 @@ VAStatus v4l2r_config_dimensions(struct v4l2r_driver *drv,
+ 				struct v4l2r_dimensions *bounds);
+ 
+ struct v4l2r_driver {
++	uint64_t observer_run[2];
++	struct v4l2r_context *observer_active; /* api_mutex protects this pin */
+ 	struct v4l2r_handles configs;
+ 	struct v4l2r_handles contexts;
+ 	struct v4l2r_handles surfaces;
+@@ -618,6 +630,7 @@ struct v4l2r_driver {
+ };
+ 
+ void v4l2r_lock_surface_api(struct VADriverVTable *vtable);
++#include "observer.h"
+ 
+ static inline struct v4l2r_driver *v4l2r_driver(VADriverContextP va_ctx)
+ {

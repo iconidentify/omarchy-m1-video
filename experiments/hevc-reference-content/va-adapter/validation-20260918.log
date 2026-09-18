@@ -1,0 +1,66 @@
+driver c77e7b566f7baf9c7a2aad797e62c9aa578d9687 archive_sha256 a82f316c0468d3a5490bcfc33c8a876eab0e2b55ec1416b88f7f920535fc5bf4
+full_driver_sha256 64429d2a04590f9a31f162fa32376e6cc1156a86fe6c4fa81dcb5a6292d1d16c
+PASS existing driver Meson regressions
+address-undefined binary_sha256 22364625ad226e92c814e8e1cd6078aff0c3cbf4b02e86dc160678cf3627a98c
+PASS actual driver observer lifecycle (fake V4L2, no device) address,undefined
+PASS actual driver observer readers (fake V4L2, no device) address,undefined
+PASS actual driver observer export (fake V4L2, no device) address,undefined
+PASS actual driver observer derive (fake V4L2, no device) address,undefined
+PASS actual driver observer upload (fake V4L2, no device) address,undefined
+PASS actual driver observer trace-join (fake V4L2, no device) address,undefined
+PASS actual driver observer contention (fake V4L2, no device) address,undefined
+PASS actual driver observer cancellation (fake V4L2, no device) address,undefined
+PASS actual driver observer partial (fake V4L2, no device) address,undefined
+PASS actual driver observer contexts (fake V4L2, no device) address,undefined
+PASS actual driver observer failed-queue (fake V4L2, no device) address,undefined
+PASS actual driver observer failed-decode (fake V4L2, no device) address,undefined
+PASS actual driver observer timeout (fake V4L2, no device) address,undefined
+PASS actual driver observer eintr (fake V4L2, no device) address,undefined
+PASS actual driver observer expired (fake V4L2, no device) address,undefined
+PASS actual driver observer conversion (fake V4L2, no device) address,undefined
+PASS actual driver observer import (fake V4L2, no device) address,undefined
+PASS actual driver observer vpp (fake V4L2, no device) address,undefined
+PASS actual driver observer partial-queue (fake V4L2, no device) address,undefined
+PASS actual driver observer foreign-display (fake V4L2, no device) address,undefined
+PASS actual driver observer owner-reuse (fake V4L2, no device) address,undefined
+thread binary_sha256 accccedfe86d9df620ec4dfea09aa857b9a48b93293248ba5e3638d93e33d75c
+PASS actual driver observer lifecycle (fake V4L2, no device) thread
+PASS actual driver observer readers (fake V4L2, no device) thread
+PASS actual driver observer export (fake V4L2, no device) thread
+PASS actual driver observer derive (fake V4L2, no device) thread
+PASS actual driver observer upload (fake V4L2, no device) thread
+PASS actual driver observer trace-join (fake V4L2, no device) thread
+PASS actual driver observer contention (fake V4L2, no device) thread
+PASS actual driver observer cancellation (fake V4L2, no device) thread
+PASS actual driver observer partial (fake V4L2, no device) thread
+PASS actual driver observer contexts (fake V4L2, no device) thread
+PASS actual driver observer failed-queue (fake V4L2, no device) thread
+PASS actual driver observer failed-decode (fake V4L2, no device) thread
+PASS actual driver observer timeout (fake V4L2, no device) thread
+PASS actual driver observer eintr (fake V4L2, no device) thread
+PASS actual driver observer expired (fake V4L2, no device) thread
+PASS actual driver observer conversion (fake V4L2, no device) thread
+PASS actual driver observer import (fake V4L2, no device) thread
+PASS actual driver observer vpp (fake V4L2, no device) thread
+PASS actual driver observer partial-queue (fake V4L2, no device) thread
+PASS actual driver observer foreign-display (fake V4L2, no device) thread
+PASS actual driver observer owner-reuse (fake V4L2, no device) thread
+mutation-public-gate binary_sha256 b68ece6100c02bfa431d9b7690e27326a80899f6331653b32109b3731088d386
+PASS semantic mutation public-gate
+mutation-retain binary_sha256 dc619feb470ad1a499be721853435adf3d61f3492d1190b14fb90ccf10354ee2
+PASS semantic mutation retain
+mutation-release binary_sha256 2df3673f017e2762c106dd6bc32fbee359af618d5f79d4590f98c77b82573f66
+PASS semantic mutation release
+mutation-writer binary_sha256 78d8e98ab978483d48d85235ac123495f0564537153e818d7a6373ddab146ac3
+PASS semantic mutation writer
+mutation-drain binary_sha256 d391925f819778afb13b6aca3a3588daa0b98ee974b0ac7210b69b67999a4f48
+PASS semantic mutation drain
+mutation-deadline binary_sha256 d7ef7d8bfc09c5f877746c956f615dd38f8b516be8ac043d607693d55491cb8d
+PASS semantic mutation deadline
+mutation-allocation-alias binary_sha256 ac097e0c74bc0cb252e729140000343af86d4d8e0056b36c0d65ea9102c32d17
+PASS semantic mutation allocation-alias
+mutation-upload-writer binary_sha256 d46ca52126cf6035735dd11f334c94e2ea56314075c8f77446f749b8449e0a77
+PASS semantic mutation upload-writer
+mutation-owner binary_sha256 1e7e641d31e21a9276553c960f7bf0eeb611332e4cac5a22cf6df3604d22d1ac
+PASS semantic mutation owner
+patch_sha256 64d5f77f80ccac6cb0664c368a3be8179dffe2b248b659337bbffce79caa2fa0

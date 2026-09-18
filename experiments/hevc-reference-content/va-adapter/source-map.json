@@ -1,0 +1,14 @@
+{
+  "schema": "omarchy-m1-video.hevc-va-observer-sources/2",
+  "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/95",
+  "parent": "https://github.com/iconidentify/omarchy-m1-video/issues/82",
+  "driver": {
+    "commit": "c77e7b566f7baf9c7a2aad797e62c9aa578d9687",
+    "archive_sha256": "a82f316c0468d3a5490bcfc33c8a876eab0e2b55ec1416b88f7f920535fc5bf4",
+    "note": "Experimental patch against the exact archived source; production driver is not changed.",
+    "model_sha256": "3da4be0f678e05024ee2c96da7fac8a5bde8a222c8622b98e108f15d0c941543",
+    "production_checked": "62e7dc512cdb03485d37dcfd0d91861ff9730bef",
+    "production_comparison": "GitHub compare c77e7b5...62e7dc5: no src/ or tests/failure-cleanup.c changes; only documentation/evidence and tests/meson.build changed. Pin intentionally retained."
+  },
+  "fake_backend": "Unmodified pinned tests/failure-cleanup.c syscall/allocator model included by public-api-test.c; model codec payload, actual driver creation, queue/dequeue, public VA APIs. No device."
+}
