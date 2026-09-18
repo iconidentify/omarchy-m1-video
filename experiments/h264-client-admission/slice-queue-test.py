@@ -38,6 +38,7 @@ def test(tree):
     vaapi_c = (tree / 'libavcodec/vaapi_h264.c').read_text()
     decode = extract(h264dec, 'decode_nal_units', 'static int ')
     frame = extract(h264dec, 'h264_decode_frame', 'static int ')
+    last_nal = extract(h264dec, 'get_last_needed_nal', 'static int ')
     frame_helpers = '\n'.join(extract(h264dec, name, 'static int ') for name in
                               ('is_avcc_extradata', 'send_next_delayed_frame'))
     refs_c = (tree / 'libavcodec/h264_refs.c').read_text()
@@ -52,6 +53,8 @@ def test(tree):
     harness = (HERE / 'slice-queue-harness.c').read_text()
     if 'header_parse.inc' not in harness or '(void)nal; /* Deliberately' in harness:
         raise ValueError('slice-queue harness still stubs the NAL')
+    if 'last_nal.inc' not in harness or 'static int get_last_needed_nal(H264Context *h) { (void)h; return 0; }' in harness:
+        raise ValueError('slice-queue harness still stubs get_last_needed_nal')
     error_end = (
         '        if (h->current_slice && h->cur_pic_ptr && FF_HW_HAS_CB(avctx, end_frame)) {\n'
         '            (void)FF_HW_SIMPLE_CALL(avctx, end_frame);\n'
@@ -108,6 +111,12 @@ def test(tree):
                 '    if (!(avctx->flags2 & AV_CODEC_FLAG2_CHUNKS) ||\n',
                 '    if (1 ||\n'),
         ),
+        'thread-premature': dict(
+            decode=decode, queue=queue, field_end=field_end,
+            last_nal=replace_once(last_nal,
+                '        case H264_NAL_SPS:\n        case H264_NAL_PPS:\n            nals_needed = i;\n            break;\n',
+                ''),
+        ),
     }
     results = {}
     expected_assertions = {
@@ -119,6 +128,7 @@ def test(tree):
         'flush-cancel': 'cancels == 1 && issues == 0 && h.current_slice == 0',
         'eof-cancel': 'decode_frame(buf, 0) == 0 && cancels == 1 && issues == 0',
         'chunk-completion': 'ret == n && issues == 0 && cancels == 0 && starts == 1',
+        'thread-premature': 'ret == n && thread_setups == 0',
     }
     env = os.environ.copy()
     env.update(ASAN_OPTIONS='detect_leaks=1:halt_on_error=1', UBSAN_OPTIONS='halt_on_error=1')
@@ -136,6 +146,7 @@ def test(tree):
             (root / 'decode_nal.inc').write_text(parts['decode'])
             (root / 'queue.inc').write_text(parts['queue'])
             (root / 'field_end.inc').write_text(parts['field_end'])
+            (root / 'last_nal.inc').write_text(parts.get('last_nal', last_nal))
             (root / 'harness.c').write_text(harness)
             binary = root / name
             va_libs = subprocess.check_output(
@@ -177,10 +188,11 @@ def test(tree):
                 expected_failure=name != 'actual',
                 assertion=assertion,
             )
-    print('PASS: actual frame/dispatch/slice-header/queue/field-end/flush with issue/cancel stubs; eight semantic mutations fail')
+    print('PASS: actual frame/dispatch/slice-header/queue/field-end/flush/frame-thread-gate with issue/cancel stubs; nine semantic mutations fail')
     return dict(
         decode_nal_units_sha256=hashlib.sha256(decode.encode()).hexdigest(),
         h264_decode_frame_sha256=hashlib.sha256(frame.encode()).hexdigest(),
+        get_last_needed_nal_sha256=hashlib.sha256(last_nal.encode()).hexdigest(),
         ff_h264_flush_change_sha256=hashlib.sha256(flush.encode()).hexdigest(),
         frame_helpers_sha256=hashlib.sha256(frame_helpers.encode()).hexdigest(),
         h264_parse_sha256=hashlib.sha256((tree / 'libavcodec/h264_parse.c').read_bytes()).hexdigest(),
@@ -193,11 +205,19 @@ def test(tree):
         device_used=False,
         remap='disabled',
         limitations=[
-            'h264_field_start/h264_slice_init substituted (no DPB allocation)',
+            'h264_field_start/h264_slice_init substituted: real h264_frame_start allocates '
+            'the DPB picture via ff_get_buffer, which for AV_PIX_FMT_VAAPI requires a '
+            'device-backed hw_frames_ctx; confirmed unreachable offline, not just unattempted',
             'software MB decode not executed',
             'output-frame construction substituted; delayed output not qualified',
             'VA start/slice parameter buffers not filled (no surface/device)',
-            'vaapi_decode_make_config and frame threading untested',
+            'vaapi_decode_make_config untested: it calls real libva vaQueryConfigProfiles/'
+            'vaCreateConfig against hwctx->display; faking that display would fabricate a '
+            'profile advertisement, which is out of scope',
+            'get_last_needed_nal is now the real function and ff_thread_finish_setup is '
+            'called at its real gating point (current_slice==1, i>=nals_needed, '
+            '!setup_finished); ff_thread_finish_setup\'s own pthread synchronization body '
+            '(real frame-thread worker handoff) remains stubbed as a no-op',
             'linked FFmpeg libraries not fully sanitizer-instrumented',
         ],
     )

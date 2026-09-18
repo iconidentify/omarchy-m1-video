@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
- * Actual patched NAL dispatch plus real slice-header/queue, execute, field-end
- * and VA end_frame. Picture allocation and software MB decode are substituted.
- * Config/thread are not claimed. */
+ * Actual patched NAL dispatch plus real slice-header/queue, execute, field-end,
+ * VA end_frame and the real get_last_needed_nal frame-thread gating computation.
+ * Picture allocation and software MB decode are substituted. ff_thread_finish_setup's
+ * real pthread synchronization body remains stubbed (call-site gating only).
+ * VA config/device advertisement is not claimed. */
 #include <stdio.h>
 #include <string.h>
 #include "config_components.h"
@@ -14,7 +16,7 @@
 #include "mpegutils.h"
 #include "glue.inc"
 
-static int starts, slices, executes, issues, cancels, field_starts, slice_inits;
+static int starts, slices, executes, issues, cancels, field_starts, slice_inits, thread_setups;
 static H264Picture *owned_pic;
 static VAAPIDecodePicture va_pic;
 static AVFrame owned_frame;
@@ -35,8 +37,8 @@ static void idr(H264Context *h)
     h->poc.prev_poc_msb = 1 << 16;
     h->poc.prev_poc_lsb = -1;
 }
-static int get_last_needed_nal(H264Context *h) { (void)h; return 0; }
-void ff_thread_finish_setup(AVCodecContext *avctx) { (void)avctx; }
+#include "last_nal.inc"
+void ff_thread_finish_setup(AVCodecContext *avctx) { (void)avctx; ++thread_setups; }
 void ff_thread_report_progress(ThreadFrame *f, int n, int field) { (void)f; (void)n; (void)field; }
 void debug_green_metadata(const H264SEIGreenMetaData *m, void *logctx) { (void)m; (void)logctx; }
 void ff_h264_set_erpic(ERPicture *dst, const H264Picture *src) { (void)dst; (void)src; }
@@ -158,7 +160,7 @@ static void reset(int avcc, int explode, int chunks)
     owned_pic = &picture;
     picture.f = &owned_frame;
     picture.hwaccel_picture_private = &va_pic;
-    starts = slices = executes = issues = cancels = field_starts = slice_inits = 0;
+    starts = slices = executes = issues = cancels = field_starts = slice_inits = thread_setups = 0;
 }
 static int nal(uint8_t *dst, int avcc, const uint8_t *data, int size)
 {
@@ -307,6 +309,46 @@ static int cases(int avcc, int explode)
         }
         CHECK(ctx.h264_admit_sticky && h.current_slice == 0);
     }
+
+    /* Real get_last_needed_nal/ff_thread_finish_setup gating. Frame threading
+     * off: never called. Simple picture: fires once at the slice. Two IDRs
+     * in one packet: current_slice resets via the real field_end, but the
+     * real setup_finished latch still allows only one call per decode_frame.
+     * Trailing duplicate SPS/PPS after the slice: the real function must
+     * withhold the signal because more parameter NALs still follow. */
+    reset(avcc, explode, 0); memset(buf, 0, sizeof(buf)); n = 0;
+    n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
+    n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
+    n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
+    ret = decode_frame(buf, n);
+    CHECK(ret == n && thread_setups == 0);
+
+    reset(avcc, explode, 0); avctx.active_thread_type = FF_THREAD_FRAME;
+    memset(buf, 0, sizeof(buf)); n = 0;
+    n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
+    n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
+    n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
+    ret = decode_frame(buf, n);
+    CHECK(ret == n && thread_setups == 1 && h.setup_finished == 1);
+
+    reset(avcc, explode, 0); avctx.active_thread_type = FF_THREAD_FRAME;
+    memset(buf, 0, sizeof(buf)); n = 0;
+    n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
+    n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
+    n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
+    n += nal(buf + n, avcc, idr2_nal, sizeof(idr2_nal));
+    ret = decode_frame(buf, n);
+    CHECK(ret == n && starts == 2 && issues == 2 && thread_setups == 1);
+
+    reset(avcc, explode, 0); avctx.active_thread_type = FF_THREAD_FRAME;
+    memset(buf, 0, sizeof(buf)); n = 0;
+    n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
+    n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
+    n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
+    n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
+    n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
+    ret = decode_frame(buf, n);
+    CHECK(ret == n && thread_setups == 0);
 done:
     cleanup();
     return failed;
@@ -317,6 +359,6 @@ int main(void)
         for (int explode = 0; explode < 2; explode++)
             if (cases(avcc, explode))
                 return 1;
-    puts("PASS actual slice-header/queue/frame/field-end/flush: complete picture issues once; pending chunk rejects, flush and EOF cancel once; no config/thread/remap claim");
+    puts("PASS actual slice-header/queue/frame/field-end/flush/frame-thread-gate: complete picture issues once; pending chunk rejects, flush and EOF cancel once; real get_last_needed_nal withholds thread setup while trailing param NALs remain; no config/remap claim");
     return 0;
 }

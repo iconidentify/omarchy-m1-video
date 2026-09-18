@@ -57,10 +57,28 @@ patched `decode_nal_units` error path. Consecutive real frame calls also cover
 CHUNKS pending-picture cleanup: malformed Annex-B/AVCC input, a rejected next
 chunk, seek flush and EOF cancel once without issuing; repeated rejection or
 cleanup does not cancel again. Decoder `ff_h264_flush_change` retains sticky
-rejection. Eight semantic mutations remove header parsing, field-end's callback,
+rejection. Nine semantic mutations remove header parsing, field-end's callback,
 error cancellation, split cancellation, cancellation-state retirement, flush
-cancellation, EOF cancellation or the actual frame's chunk-completion condition.
+cancellation, EOF cancellation, the actual frame's chunk-completion condition,
+or the real frame-thread gate's SPS/PPS branch (below).
 Each must fail a semantic assertion without a sanitizer error.
+
+The harness also extracts and executes the real `get_last_needed_nal` and calls
+the real `decode_nal_units` gate for `ff_thread_finish_setup`
+(`h->current_slice == 1 && i >= nals_needed && !h->setup_finished && h->cur_pic_ptr`).
+A plain SPS/PPS/IDR packet with `FF_THREAD_FRAME` set fires the setup signal
+exactly once, at the slice. Two IDRs in one packet still fire it only once,
+because the real `!h->setup_finished` latch is per `h264_decode_frame` call even
+though the real `ff_h264_field_end` resets `h->current_slice` between them. A
+packet with a duplicate SPS/PPS pair *after* the slice must **not** fire the
+signal at all: the real `get_last_needed_nal` extends `nals_needed` past the
+trailing parameter NALs, so the gate at the slice's own index is correctly
+withheld. The ninth mutation removes `get_last_needed_nal`'s SPS/PPS branch and
+that withheld case fires prematurely instead, exactly the hazard the upstream
+comment on that function describes for packets carrying repeated parameter
+sets. `ff_thread_finish_setup` itself stays a no-op stub: only the real
+call-site gating computation is exercised, not its pthread synchronization body
+or real per-thread `AVCodecContext` copies.
 
 Maintainer review reproduced the original PR97 failure by calling the actual
 frame decoder with an accepted chunk followed by malformed input: the splitter
@@ -76,11 +94,28 @@ cancellation** for two IDRs followed by DPA. Rejection cannot undo a picture
 already submitted. This is a measured admission boundary, not a claim that every
 packet containing a rejected suffix produces zero submissions.
 
-`h264_field_start` and `h264_slice_init` remain substituted (no DPB allocation).
-VA start/slice parameter buffers are not filled (no surface/device). Actual VA
-resource destruction and allocation-failure cleanup remain unqualified by the
-issue/cancel counters. SEI, software
-MB decode, `vaapi_decode_make_config` and frame-thread workers are not executed.
+`h264_field_start` and `h264_slice_init` remain substituted. This was checked
+against the pinned source rather than assumed: `h264_field_start` calls the
+real `h264_init_ps`, which on first use calls `h264_slice_header_init`, which
+calls the real `h264_frame_start`, which allocates the DPB picture through
+`alloc_picture` → `ff_get_buffer`. For `AV_PIX_FMT_VAAPI` that resolves to
+`av_hwframe_get_buffer` against a device-backed `hw_frames_ctx`, which this
+experiment does not create. The boundary is a confirmed device dependency, not
+an unattempted extraction. VA start/slice parameter buffers are not filled (no
+surface/device). Actual VA resource destruction and allocation-failure cleanup
+remain unqualified by the issue/cancel counters. SEI and software MB decode are
+not executed.
+
+`vaapi_decode_make_config` is also unexecuted, for the same reason stated
+precisely: it calls real libva `vaQueryConfigProfiles`/`vaCreateConfig` against
+`hwctx->display`, which normally comes from an opened VA device. Supplying a
+synthetic `VADisplay`/driver vtable to make it return offline would itself be
+fabricating a profile advertisement — the one thing #79 explicitly forbids —
+so it is left named rather than faked. Frame-thread workers are partially
+executed: `get_last_needed_nal` is now the real function and
+`ff_thread_finish_setup`'s real call-site gating is exercised (see above);
+`ff_thread_finish_setup`'s own pthread body and real per-thread
+`AVCodecContext` setup are not.
 
 [Local build evidence](build-evidence.json) records source/archive/patch identities,
 compiler, libva, configure options, binaries, actual function hashes and log hashes.
@@ -105,14 +140,24 @@ instead of issuing on rejection. A successful end clears its picture/count state
 Remap stays disabled. Baseline/Extended are not added to `vaapi_profile_map`, and
 `vaapi_decode_make_config` is unchanged. Its profile selection precedes later PPS
 and slice NALs. Slice-queue/field-end/AU/flush evidence still cannot bind a VA
-configuration or a frame-thread worker. config/thread remain named gaps.
+configuration. Frame-thread evidence is now partial: the real gating computation
+(`get_last_needed_nal`, and the real call site that decides whether
+`ff_thread_finish_setup` may run) is exercised offline; the real worker
+synchronization behind `ff_thread_finish_setup` is not. config/thread remain
+named gaps: config entirely, thread only for its synchronization body.
 In particular #79 still requires:
 
 - Actual configuration/device advertisement binding through `vaapi_decode_make_config`
-  before issue; this experiment never opens a VA display or builds a config.
-- Frame-thread workers (`FF_THREAD_FRAME` `get_last_needed_nal` / `ff_thread_finish_setup`
-  with real thread contexts). The slice-queue harness stubs those services.
-- DPB allocation/`h264_frame_start` ownership and software MB decode.
+  before issue; this experiment never opens a VA display or builds a config, and will
+  not synthesize a fake VA driver/display to get one, since that would itself
+  fabricate a profile advertisement.
+- Frame-thread workers: `get_last_needed_nal`'s real gating is exercised (nine
+  mutations, including a premature-signal case), but `ff_thread_finish_setup`'s
+  real pthread synchronization body and real per-thread `AVCodecContext` copies
+  remain stubbed/untested.
+- DPB allocation/`h264_frame_start` ownership and software MB decode — confirmed
+  device-bound via `alloc_picture` → `ff_get_buffer` → `av_hwframe_get_buffer`
+  for `AV_PIX_FMT_VAAPI`, not merely unattempted.
 - Complete SPS/PPS/slice feature and profile/configuration binding; unchanged
   supported Main/High/High10 negotiation and software/other-backend behavior.
 - A reviewed stop/remap decision from that evidence, then separate guarded hardware
