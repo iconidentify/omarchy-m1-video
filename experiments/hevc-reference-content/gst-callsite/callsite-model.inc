@@ -128,6 +128,34 @@ static void schedule_tests(void)
     assert(gst_hevc_callsite_finish(GST_H265_DECODER(client)));
     assert(!content_maps && !manifest_reads);teardown();return;
   }
+  if(!strcmp(mode,"schedule-reader-reorder")) {
+    GstV4l2Request *requests[3];GstBuffer *pictures[3];GstMemory *bits[3];
+    const guint order[]={1,0,2};
+    for(guint i=0;i<3;i++) {
+      requests[i]=new_request(frames[i],&pictures[i],&bits[i]);
+      assert(gst_v4l2_request_queue(requests[i],0));
+    }
+    assert(queued_count==3 && !completed_count);
+    for(guint i=0;i<3;i++) {
+      guint k=order[i];request=requests[k];picture=pictures[k];bitstream=bits[k];
+      selected_capture=gst_v4l2_codec_memory_get_index(gst_buffer_peek_memory(picture,0));
+      scheduled_maps++;assert(output(frames[k])==GST_FLOW_OK);
+      assert(completed_count==3);
+      check_slot(&client->content_callsite->pool,i,TRUE,selected_capture);
+      const struct hevc_content_identity *id=&client->content_callsite->pool.slot[i].identity;
+      assert(id->detail.gst.frame==frames[k] && id->submitted==3 && id->completed==3);
+      if(i<2) assert(!gst_hevc_callsite_result(GST_H265_DECODER(client)));
+      pthread_t thread;assert(!pthread_create(&thread,NULL,foreign_callsite,NULL));
+      assert(!pthread_join(thread,NULL));
+    }
+    assert(gst_hevc_callsite_result(GST_H265_DECODER(client))->used==3);
+    assert(gst_hevc_callsite_finish(GST_H265_DECODER(client)));
+    request=NULL;picture=NULL;bitstream=NULL;
+    for(guint i=0;i<3;i++) {
+      gst_v4l2_request_unref(requests[i]);gst_buffer_unref(pictures[i]);gst_memory_unref(bits[i]);
+    }
+    check_cancel_state(PTHREAD_CANCEL_ENABLE);teardown();return;
+  }
   if(!strcmp(mode,"schedule-reuse")) {
     /* Four real pool allocations have been published. Reuse cannot clear the
      * observer's sticky alias exclusion just because the plan wants it. */

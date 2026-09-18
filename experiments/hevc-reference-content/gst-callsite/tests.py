@@ -17,7 +17,7 @@ wrong-frame missing-manifest mmap-failure munmap-failure decode-error timeout
 published flush changed-proof slow-copy lifecycle schedule-copy schedule-control
 schedule-incomplete schedule-duplicate schedule-invalid schedule-frame-mismatch
 schedule-munmap schedule-mid-failure schedule-budget schedule-reuse
-schedule-mutable-plan schedule-cancel'''.split()
+schedule-mutable-plan schedule-cancel schedule-reader-reorder'''.split()
 
 
 def module(name, path):
