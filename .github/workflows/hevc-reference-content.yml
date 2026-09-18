@@ -62,3 +62,20 @@ jobs:
           echo "$RUNNER_TEMP/content-build-tools/bin" >> "$GITHUB_PATH"
       - name: Complete pinned client, retained copies and semantic mutations (no device)
         run: python3 experiments/hevc-reference-content/integration/tests.py --client ${{ matrix.client }} --keep "$RUNNER_TEMP/content-${{ matrix.client }}"
+
+  gst-callsite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ninja-build pkg-config libglib2.0-dev libglib2.0-dev-bin libgudev-1.0-dev flex bison python3-venv
+          python3 -m venv "$RUNNER_TEMP/callsite-build-tools"
+          "$RUNNER_TEMP/callsite-build-tools/bin/pip" install 'meson==1.12.0'
+          echo "$RUNNER_TEMP/callsite-build-tools/bin" >> "$GITHUB_PATH"
+      - name: Pinned production output callback and cleanup (no device)
+        run: python3 experiments/hevc-reference-content/gst-callsite/tests.py --keep "$RUNNER_TEMP/gst-callsite"

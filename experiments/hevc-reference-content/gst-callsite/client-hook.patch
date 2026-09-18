@@ -1,0 +1,103 @@
+--- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c
++++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c
+@@ -43,6 +43,7 @@
+ #include "gstv4l2codecallocator.h"
+ #include "gstv4l2codech265dec.h"
+ #include "gst-observer-private.h"
++#include "gst-callsite.h"
+ #include "gstv4l2codecpool.h"
+ #include "gstv4l2format.h"
+ #include "linux/v4l2-controls.h"
+@@ -95,6 +96,7 @@
+ {
+   GstH265Decoder parent;
+   GstV4l2Decoder *decoder;
++  struct _GstHevcCallsite *content_callsite;
+   GstVideoCodecState *output_state;
+   GstVideoInfoDmaDrm vinfo_drm;
+   gint display_width;
+@@ -142,6 +144,8 @@
+ 
+ static GstElementClass *parent_class = NULL;
+ 
++#include "gst-callsite.inc"
++
+ static gboolean
+ is_frame_based (GstV4l2CodecH265Dec * self)
+ {
+@@ -322,7 +326,7 @@
+ {
+   GST_HEVC_OBSERVER_LOCK;
+   GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);
+-  if (gst_hevc_observer_busy (self->decoder))
++  if (self->content_callsite || gst_hevc_observer_busy (self->decoder))
+     return FALSE;
+   gst_v4l2_decoder_close (self->decoder);
+   return TRUE;
+@@ -332,7 +336,7 @@
+ gst_v4l2_codec_h265_dec_streamoff (GstV4l2CodecH265Dec * self)
+ {
+   GST_HEVC_OBSERVER_LOCK;
+-  if (gst_hevc_observer_busy (self->decoder))
++  if (self->content_callsite || gst_hevc_observer_busy (self->decoder))
+     return ;
+   if (self->streaming) {
+     gst_v4l2_decoder_streamoff (self->decoder, GST_PAD_SINK);
+@@ -345,7 +349,7 @@
+ gst_v4l2_codec_h265_dec_reset_allocation (GstV4l2CodecH265Dec * self)
+ {
+   GST_HEVC_OBSERVER_LOCK;
+-  if (gst_hevc_observer_busy (self->decoder))
++  if (self->content_callsite || gst_hevc_observer_busy (self->decoder))
+     return ;
+   if (self->sink_allocator) {
+     gst_v4l2_codec_allocator_detach (self->sink_allocator);
+@@ -364,7 +368,7 @@
+ {
+   GST_HEVC_OBSERVER_LOCK;
+   GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);
+-  if (gst_hevc_observer_busy (self->decoder))
++  if (self->content_callsite || gst_hevc_observer_busy (self->decoder))
+     return FALSE;
+ 
+   gst_v4l2_codec_h265_dec_streamoff (self);
+@@ -1368,6 +1372,8 @@
+   GstVideoDecoder *vdec = GST_VIDEO_DECODER (decoder);
+   GstV4l2Request *request = gst_h265_picture_get_user_data (picture);
+   GstCodecPicture *codec_picture = GST_CODEC_PICTURE (picture);
++  GstHevcCallsite *content_active
++      __attribute__((cleanup (content_callback_leave))) = NULL;
+   gint ret;
+ 
+   g_return_val_if_fail (request, GST_FLOW_ERROR);
+@@ -1383,6 +1389,12 @@
+       codec_picture->system_frame_number);
+ 
+   GST_HEVC_OBSERVER_LOCK;
++  if (!content_before_output (self, request, frame, picture, &content_active)) {
++    g_clear_pointer (&observer_locker, g_rec_mutex_locker_free);
++    if (content_active && content_active->held_frame == frame)
++      return GST_FLOW_ERROR;
++    goto error;
++  }
+   ret = gst_v4l2_request_set_done (request);
+   if (ret == 0) {
+     g_clear_pointer (&observer_locker, g_rec_mutex_locker_free);
+@@ -1729,7 +1741,7 @@
+ {
+   GST_HEVC_OBSERVER_LOCK;
+   GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);
+-  if (gst_hevc_observer_busy (self->decoder))
++  if (self->content_callsite || gst_hevc_observer_busy (self->decoder))
+     return FALSE;
+ 
+   GST_DEBUG_OBJECT (self, "Flushing decoder state.");
+--- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
++++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
+@@ -2031,3 +2031,6 @@
+ }
+ 
+ #include "gst-content.inc"
++
++#include "gst-callsite.h"
++#include "gst-callsite-native.inc"

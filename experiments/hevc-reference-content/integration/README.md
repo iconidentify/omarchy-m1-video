@@ -55,8 +55,11 @@ missing module note cannot prove built-in status.
 The private build-ID cache identifies the object containing each native snapshot
 function before the lease. ELF note ranges must fit entirely within a readable
 loaded segment before they are read. It **does not attest the entire FFmpeg/Gst dependency
-stack or corpus**. No production FFmpeg call site or Gst pre-publication hook is
-wired, and no kernel command/reference collector is joined here. Existing native
+stack or corpus**. This base experiment wires no production call site; the
+additive [Gst call-site experiment](../gst-callsite/README.md) wires one output
+vfunc before publication, with explicit internal arming and offline tests.
+Production FFmpeg wiring and the kernel command/reference collector remain
+absent. Existing native
 writer/completion receipts are normalized faithfully; they do not retroactively
 authenticate old capture files. Those are concrete remaining integration gates,
 along with a reviewed live manifest, not evidence that lifetime APIs are absent.
