@@ -13,3 +13,19 @@ jobs:
           persist-credentials: false
       - name: Fake queue pause/drain/retention and adapter admissions
         run: python3 experiments/hevc-reference-content/tests.py
+  gst-observer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ninja-build pkg-config libglib2.0-dev libglib2.0-dev-bin libgudev-1.0-dev flex bison python3-venv
+          python3 -m venv "$RUNNER_TEMP/gst-build-tools"
+          "$RUNNER_TEMP/gst-build-tools/bin/pip" install 'meson==1.12.0'
+          echo "$RUNNER_TEMP/gst-build-tools/bin" >> "$GITHUB_PATH"
+      - name: Complete pinned Gst plugin and observer APIs (no device)
+        run: python3 experiments/hevc-reference-content/gst-adapter/tests.py

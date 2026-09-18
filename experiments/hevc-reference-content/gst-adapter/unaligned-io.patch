@@ -1,0 +1,76 @@
+--- a/subprojects/gstreamer/gst/gstutils.h
++++ b/subprojects/gstreamer/gst/gstutils.h
+@@ -171,43 +171,61 @@
+ #ifndef __GTK_DOC_IGNORE__
+ #if GST_HAVE_UNALIGNED_ACCESS
+ static inline guint16 __gst_fast_read16(const guint8 *v) {
+-  return *(const guint16*)(const void*)(v);
++  guint16 value;
++  memcpy (&value, v, sizeof (value));
++  return value;
+ }
+ static inline guint32 __gst_fast_read32(const guint8 *v) {
+-  return *(const guint32*)(const void*)(v);
++  guint32 value;
++  memcpy (&value, v, sizeof (value));
++  return value;
+ }
+ static inline guint64 __gst_fast_read64(const guint8 *v) {
+-  return *(const guint64*)(const void*)(v);
++  guint64 value;
++  memcpy (&value, v, sizeof (value));
++  return value;
+ }
+ static inline guint16 __gst_fast_read_swap16(const guint8 *v) {
+-  return GUINT16_SWAP_LE_BE(*(const guint16*)(const void*)(v));
++  guint16 value;
++  memcpy (&value, v, sizeof (value));
++  return GUINT16_SWAP_LE_BE (value);
+ }
+ static inline guint32 __gst_fast_read_swap32(const guint8 *v) {
+-  return GUINT32_SWAP_LE_BE(*(const guint32*)(const void*)(v));
++  guint32 value;
++  memcpy (&value, v, sizeof (value));
++  return GUINT32_SWAP_LE_BE (value);
+ }
+ static inline guint64 __gst_fast_read_swap64(const guint8 *v) {
+-  return GUINT64_SWAP_LE_BE(*(const guint64*)(const void*)(v));
++  guint64 value;
++  memcpy (&value, v, sizeof (value));
++  return GUINT64_SWAP_LE_BE (value);
+ }
+ # define _GST_FAST_READ(s, d) __gst_fast_read##s((const guint8 *)(d))
+ # define _GST_FAST_READ_SWAP(s, d) __gst_fast_read_swap##s((const guint8 *)(d))
+ 
+ static inline void __gst_fast_write16 (guint8 *p, guint16 v) {
+-  *(guint16*)(void*)(p) = v;
++  guint16 value = v;
++  memcpy (p, &value, sizeof (value));
+ }
+ static inline void __gst_fast_write32 (guint8 *p, guint32 v) {
+-  *(guint32*)(void*)(p) = v;
++  guint32 value = v;
++  memcpy (p, &value, sizeof (value));
+ }
+ static inline void __gst_fast_write64 (guint8 *p, guint64 v) {
+-  *(guint64*)(void*)(p) = v;
++  guint64 value = v;
++  memcpy (p, &value, sizeof (value));
+ }
+ static inline void __gst_fast_write_swap16 (guint8 *p, guint16 v) {
+-  *(guint16*)(void*)(p) = GUINT16_SWAP_LE_BE (v);
++  guint16 value = GUINT16_SWAP_LE_BE (v);
++  memcpy (p, &value, sizeof (value));
+ }
+ static inline void __gst_fast_write_swap32 (guint8 *p, guint32 v) {
+-  *(guint32*)(void*)(p) = GUINT32_SWAP_LE_BE (v);
++  guint32 value = GUINT32_SWAP_LE_BE (v);
++  memcpy (p, &value, sizeof (value));
+ }
+ static inline void __gst_fast_write_swap64 (guint8 *p, guint64 v) {
+-  *(guint64*)(void*)(p) = GUINT64_SWAP_LE_BE (v);
++  guint64 value = GUINT64_SWAP_LE_BE (v);
++  memcpy (p, &value, sizeof (value));
+ }
+ # define _GST_FAST_WRITE(s, d, v) __gst_fast_write##s((guint8 *)(d), (v))
+ # define _GST_FAST_WRITE_SWAP(s, d, v) __gst_fast_write_swap##s((guint8 *)(d), (v))
