@@ -90,4 +90,5 @@ also run the preceding 25 copy and 29 observer modes; software parser/bitwriter
 regressions run separately. Semantic mutations must compile and fail at a named
 assertion, never count a timeout/compiler/sanitizer error as detection.
 
-See [REVIEW.md](REVIEW.md) for the review record and remaining evidence.
+See [REVIEW.md](REVIEW.md) for the review record and remaining evidence, and
+[VALIDATION.md](VALIDATION.md) for the successful offline run and artifact hashes.

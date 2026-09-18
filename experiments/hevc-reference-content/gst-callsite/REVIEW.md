@@ -2,6 +2,9 @@
 
 - Ticket/session: #82, `codex-82-production-callsite-20260918T191638Z`.
 - Base: `a3a6dbedf12830c13d6e23605a538553f125a507`.
+- PR: [106](https://github.com/iconidentify/omarchy-m1-video/pull/106).
+- Final tested implementation: `d171123ff6fb2f0ffde163d3702964757e4c505d`;
+  only documentation/logs are added by the evidence commit.
 - External source: GStreamer `070125524a8422e29d3b69a372ed4f62fd343ffa`,
   with the accepted unaligned, observer and copy-integration patches.
 - Reviewer: implementation agent, AI self-review. No separate specialist or
@@ -20,7 +23,7 @@
 | 7 Hardware | Synthetic syscalls and CPU bytes only; DMA coherence and noninterference unknown. No hardware run. |
 | 8 Consolidation | Findings and dismissals recorded below as testing proceeds. |
 | 9 Conflict resolution | Compare actual complete source, not the earlier handoff's readiness labels. |
-| 10 Verification | Pending final sanitizer, original regression and mutation results. |
+| 10 Verification | Fresh final implementation: 19 callback + 25 copy + 29 observer modes per sanitizer, eight named mutations, 48 original HEVC checks; see VALIDATION.md and raw log. |
 | 11 Decision | Draft for review; parent #82 and driver #42 remain open. |
 
 ## Concerns and dispositions
@@ -62,4 +65,9 @@
 - U1, unresolved external gate: live kernel command/reference join, approved
   full deployment identity, DMA visibility and hardware campaign remain absent.
 
-Validation and exact artifact identities will be recorded after final execution.
+Validation commands, identities, full denominators, initial failures and the
+successful raw log are in [VALIDATION.md](VALIDATION.md). All three introduced
+concerns above are resolved within this offline scope. Decision: draft is ready
+for separate review, not a merge or hardware-support decision. The implementation
+agent performed these checks; no independent reviewer is invented. The live PR
+records hosted final-head results and claim release.

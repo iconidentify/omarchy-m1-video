@@ -1,0 +1,187 @@
+PASS pinned archive and original client source hashes
+PASS pinned linkage callsite-api
+PASS pinned linkage libgstv4l2codecs.so
+address,undefined PASS actual Gst callsite copy (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite control (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite padded (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite disabled (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite cancel-arm (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite late-arm (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite readers (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite wrong-buffer (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite wrong-frame (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite missing-manifest (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite mmap-failure (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite munmap-failure (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite decode-error (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite timeout (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite published (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite flush (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite changed-proof (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite slow-copy (synthetic V4L2/runtime; no device)
+address,undefined PASS actual Gst callsite lifecycle (synthetic V4L2/runtime; no device)
+address,undefined model device-link calls=16 fortified=0
+PASS actual Gst content copy
+address,undefined PASS actual Gst content padded
+address,undefined PASS actual Gst content disabled
+address,undefined PASS actual Gst content missing-manifest
+address,undefined PASS actual Gst content bad-kernel
+address,undefined PASS actual Gst content bad-vb2
+address,undefined PASS actual Gst content bad-avd
+address,undefined PASS actual Gst content bad-client
+address,undefined PASS actual Gst content builtin
+address,undefined PASS actual Gst content untrusted-owner
+address,undefined PASS actual Gst content untrusted-directory
+address,undefined PASS actual Gst content writable-manifest
+address,undefined PASS actual Gst content wrong-device
+address,undefined PASS actual Gst content changed-proof
+address,undefined PASS actual Gst content stale
+address,undefined PASS actual Gst content foreign-run
+address,undefined PASS actual Gst content foreign-lease
+address,undefined PASS actual Gst content overflow
+address,undefined PASS actual Gst content bad-planes
+address,undefined PASS actual Gst content bad-extent
+address,undefined PASS actual Gst content no-retention
+address,undefined PASS actual Gst content mmap-failure
+address,undefined PASS actual Gst content munmap-failure
+address,undefined PASS actual Gst content slow-copy
+address,undefined PASS actual Gst content expired
+address,undefined: PASS actual Gst observer lifecycle (fake V4L2, no device)
+address,undefined: PASS actual Gst observer readers (fake V4L2, no device)
+address,undefined: PASS actual Gst observer contention (fake V4L2, no device)
+address,undefined: PASS actual Gst observer cancellation (fake V4L2, no device)
+address,undefined: PASS actual Gst observer timeout (fake V4L2, no device)
+address,undefined: PASS actual Gst observer eintr (fake V4L2, no device)
+address,undefined: PASS actual Gst observer decode-error (fake V4L2, no device)
+address,undefined: PASS actual Gst observer published (fake V4L2, no device)
+address,undefined: PASS actual Gst observer mapped (fake V4L2, no device)
+address,undefined: PASS actual Gst observer raw-fd (fake V4L2, no device)
+address,undefined: PASS actual Gst observer expired (fake V4L2, no device)
+address,undefined: PASS actual Gst observer retention (fake V4L2, no device)
+address,undefined: PASS actual Gst observer recycling (fake V4L2, no device)
+address,undefined: PASS actual Gst observer unqueued (fake V4L2, no device)
+address,undefined: PASS actual Gst observer default-off (fake V4L2, no device)
+address,undefined: PASS actual Gst observer queue-error (fake V4L2, no device)
+address,undefined: PASS actual Gst observer partial (fake V4L2, no device)
+address,undefined: PASS actual Gst observer trace-join (fake V4L2, no device)
+address,undefined: PASS actual Gst observer deadline-poll (fake V4L2, no device)
+address,undefined: PASS actual Gst observer late-timeout (fake V4L2, no device)
+address,undefined: PASS actual Gst observer gates (fake V4L2, no device)
+address,undefined: PASS actual Gst observer wrong-index (fake V4L2, no device)
+address,undefined: PASS actual Gst observer export (fake V4L2, no device)
+address,undefined: PASS actual Gst observer output-publication (fake V4L2, no device)
+address,undefined: PASS actual Gst observer identities (fake V4L2, no device)
+address,undefined: PASS actual Gst observer unsupported (fake V4L2, no device)
+address,undefined: PASS actual Gst observer sticky-publication (fake V4L2, no device)
+address,undefined: PASS actual Gst observer retirement (fake V4L2, no device)
+address,undefined: PASS actual Gst observer shared-memory (fake V4L2, no device)
+PASS pinned linkage libgstvideoparsersbad.so
+PASS pinned linkage libgstcoreelements.so
+PASS pinned linkage libgstapp.so
+PASS pinned linkage libs_h265parser
+PASS original libs_h265parser
+Running suite(s): H265 Parser library
+100%: Checks: 17, Failures: 0, Errors: 0
+Check suite h265parser ran in 0.593s (tests failed: 0)
+PASS pinned linkage libs_h265bitwriter
+PASS original libs_h265bitwriter
+Running suite(s): H265 bitwriter library
+100%: Checks: 1, Failures: 0, Errors: 0
+Check suite h265bitwriter ran in 0.039s (tests failed: 0)
+PASS pinned linkage elements_h265parse
+PASS original elements_h265parse
+Running suite(s): h265parse_to_bs_au
+100%: Checks: 5, Failures: 0, Errors: 0
+Check suite h265parse_to_bs_au ran in 0.185s (tests failed: 0)
+Running suite(s): h265parse
+100%: Checks: 25, Failures: 0, Errors: 0
+Check suite h265parse_harnessed ran in 0.942s (tests failed: 0)
+PASS named callsite mutation wired-hook
+PASS named callsite mutation release-before-publish
+PASS named callsite mutation retain-callback-ownership
+PASS named callsite mutation pristine-session
+PASS named callsite mutation actual-output-buffer
+PASS named callsite mutation frame-identity
+PASS named callsite mutation later-output-reentry
+PASS named callsite mutation armed-lifecycle
+asan-ubsan libgstv4l2codecs.so sha256 9b805837e6dbccf7bd2de0c91def735b65aae12ab176e1b3a9cec5c909984e3c
+asan-ubsan callsite-api sha256 656de071b03f28bc26196bd622913b79fca79895023c07360dcd3a1cdd2f2dda
+PASS pinned linkage callsite-api
+PASS pinned linkage libgstv4l2codecs.so
+thread PASS actual Gst callsite copy (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite control (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite padded (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite disabled (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite cancel-arm (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite late-arm (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite readers (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite wrong-buffer (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite wrong-frame (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite missing-manifest (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite mmap-failure (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite munmap-failure (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite decode-error (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite timeout (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite published (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite flush (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite changed-proof (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite slow-copy (synthetic V4L2/runtime; no device)
+thread PASS actual Gst callsite lifecycle (synthetic V4L2/runtime; no device)
+thread model device-link calls=16 fortified=0
+PASS actual Gst content copy
+thread PASS actual Gst content padded
+thread PASS actual Gst content disabled
+thread PASS actual Gst content missing-manifest
+thread PASS actual Gst content bad-kernel
+thread PASS actual Gst content bad-vb2
+thread PASS actual Gst content bad-avd
+thread PASS actual Gst content bad-client
+thread PASS actual Gst content builtin
+thread PASS actual Gst content untrusted-owner
+thread PASS actual Gst content untrusted-directory
+thread PASS actual Gst content writable-manifest
+thread PASS actual Gst content wrong-device
+thread PASS actual Gst content changed-proof
+thread PASS actual Gst content stale
+thread PASS actual Gst content foreign-run
+thread PASS actual Gst content foreign-lease
+thread PASS actual Gst content overflow
+thread PASS actual Gst content bad-planes
+thread PASS actual Gst content bad-extent
+thread PASS actual Gst content no-retention
+thread PASS actual Gst content mmap-failure
+thread PASS actual Gst content munmap-failure
+thread PASS actual Gst content slow-copy
+thread PASS actual Gst content expired
+thread: PASS actual Gst observer lifecycle (fake V4L2, no device)
+thread: PASS actual Gst observer readers (fake V4L2, no device)
+thread: PASS actual Gst observer contention (fake V4L2, no device)
+thread: PASS actual Gst observer cancellation (fake V4L2, no device)
+thread: PASS actual Gst observer timeout (fake V4L2, no device)
+thread: PASS actual Gst observer eintr (fake V4L2, no device)
+thread: PASS actual Gst observer decode-error (fake V4L2, no device)
+thread: PASS actual Gst observer published (fake V4L2, no device)
+thread: PASS actual Gst observer mapped (fake V4L2, no device)
+thread: PASS actual Gst observer raw-fd (fake V4L2, no device)
+thread: PASS actual Gst observer expired (fake V4L2, no device)
+thread: PASS actual Gst observer retention (fake V4L2, no device)
+thread: PASS actual Gst observer recycling (fake V4L2, no device)
+thread: PASS actual Gst observer unqueued (fake V4L2, no device)
+thread: PASS actual Gst observer default-off (fake V4L2, no device)
+thread: PASS actual Gst observer queue-error (fake V4L2, no device)
+thread: PASS actual Gst observer partial (fake V4L2, no device)
+thread: PASS actual Gst observer trace-join (fake V4L2, no device)
+thread: PASS actual Gst observer deadline-poll (fake V4L2, no device)
+thread: PASS actual Gst observer late-timeout (fake V4L2, no device)
+thread: PASS actual Gst observer gates (fake V4L2, no device)
+thread: PASS actual Gst observer wrong-index (fake V4L2, no device)
+thread: PASS actual Gst observer export (fake V4L2, no device)
+thread: PASS actual Gst observer output-publication (fake V4L2, no device)
+thread: PASS actual Gst observer identities (fake V4L2, no device)
+thread: PASS actual Gst observer unsupported (fake V4L2, no device)
+thread: PASS actual Gst observer sticky-publication (fake V4L2, no device)
+thread: PASS actual Gst observer retirement (fake V4L2, no device)
+thread: PASS actual Gst observer shared-memory (fake V4L2, no device)
+tsan libgstv4l2codecs.so sha256 935ccd0b9a0172a5c6e43b6f4569cf2fad55e933446d520cae441dc1078cccde
+tsan callsite-api sha256 f883d51c72af0da014e90c56dc57548b73536223fecbaa5f16f572f0cc434716
+PASS production output callback; synthetic syscalls only
