@@ -131,13 +131,16 @@ Not installed or submitted upstream. See README for remaining parser proof.
          goto end;
  
      // set decode_error_flags to allow users to detect concealed decoding errors
-@@ -765,6 +810,10 @@
+@@ -765,6 +810,13 @@
  
      ret = 0;
  end:
 +#if CONFIG_H264_VAAPI_HWACCEL
-+    if (ret < 0 && ff_h264_vaapi_admit_is_active(avctx))
++    if (ret < 0 && ff_h264_vaapi_admit_is_active(avctx)) {
 +        ff_h264_vaapi_admit_reject(avctx);
++        if (h->current_slice && h->cur_pic_ptr && FF_HW_HAS_CB(avctx, end_frame))
++            (void)FF_HW_SIMPLE_CALL(avctx, end_frame);
++    }
 +#endif
  
  #if CONFIG_ERROR_RESILIENCE

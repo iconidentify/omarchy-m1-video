@@ -38,6 +38,20 @@ class Patch(unittest.TestCase):
         self.assertIn('ff_h264_vaapi_admit_nal', patch)
         self.assertIn('#include "config_components.h"', harness)
 
+    def test_slice_queue_harness_executes_real_queue(self):
+        harness = (HERE / 'slice-queue-harness.c').read_text()
+        self.assertIn('queue.inc', harness)
+        self.assertIn('header_parse.inc', harness)
+        self.assertIn('field_end.inc', harness)
+        self.assertIn('end_frame.inc', harness)
+        self.assertIn('flush.inc', harness)
+        self.assertNotIn('(void)nal; /* Deliberately does not parse', harness)
+        patch = (HERE / 'ffmpeg-n9.0.1-h264-vaapi-admission.patch').read_text()
+        self.assertIn('FF_HW_SIMPLE_CALL(avctx, end_frame)', patch)
+        readme = (HERE / 'README.md').read_text().lower()
+        self.assertIn('config/thread', readme)
+        self.assertIn('remap stays disabled', readme)
+
     def test_rejected_pr74_reproductions_still_block(self):
         for script in ('tests.py', 'actual-gate-test.py'):
             result = subprocess.run([sys.executable, str(SELECTION / script)],

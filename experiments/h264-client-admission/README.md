@@ -19,6 +19,7 @@ python3 experiments/h264-client-admission/build.py /tmp/h264-admission-build
 # Optional repeat of the actual glue and dispatch tests against that tree:
 python3 experiments/h264-client-admission/end-gate-test.py --source /tmp/h264-admission-build/vaapi-on/FFmpeg-bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa
 python3 experiments/h264-client-admission/parser-test.py --source /tmp/h264-admission-build/vaapi-on/FFmpeg-bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa
+python3 experiments/h264-client-admission/slice-queue-test.py --source /tmp/h264-admission-build/vaapi-on/FFmpeg-bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa
 ```
 
 Needs Linux C/build tools, Python, patch, pkg-config and libva development headers.
@@ -44,15 +45,21 @@ packet cleanup fails LeakSanitizer. ASan/UBSan instrument the harness, extracted
 dispatch/helper, splitter and parameter parsers; linked FFmpeg libraries are ordinary
 builds. Normal and semantic-mutant runs may not pass through a sanitizer error.
 
-**This is dispatch/parameter-parser coverage, not parser-to-issue proof.** Slice
-header/queue and picture ownership remain substituted; IDR bytes are a dispatch
-token, not validated picture syntax. Start/slice mocks call the real stop helpers.
-The execute-slices stub returns without calling end_frame, matching the real
-hardware branch's early return. The previous harness incorrectly invented that
-end-frame call and accepted arbitrary SPS/PPS bytes through stubs. SEI, IDR/thread
-and error-concealment services remain stubs. No actual end_frame/issue callback is
-registered in this dispatch harness. VA configuration, actual slice queue/frame
-boundaries, frame threading, flush/reinit and hardware remain untested here.
+The original `parser-test.py` remains dispatch/parameter-parser coverage: its
+slice queue is still substituted and it does not register an end_frame/issue
+callback. **`slice-queue-test.py` is the parser-to-issue follow-up.** It extracts
+and executes actual `h264_slice_header_parse`, `ff_h264_queue_decode_slice`,
+`ff_h264_execute_decode_slices`, `ff_h264_field_end`, `vaapi_h264_end_frame` and
+`ff_h264_flush_change` against encoder-generated SPS/PPS/IDR NALs. Issue/cancel
+are intercepted; a permitted progressive IDR issues exactly once; a rejected
+suffix (DPA after an accepted IDR) issues zero times and cancels once via the
+patched `decode_nal_units` error path; decoder `ff_h264_flush_change` does not
+clear VA sticky state. Mutating header parse, field-end's hardware callback, or
+the error-path end_frame each fails those assertions.
+
+`h264_field_start` and `h264_slice_init` remain substituted (no DPB allocation).
+VA start/slice parameter buffers are not filled (no surface/device). SEI, software
+MB decode, `vaapi_decode_make_config` and frame-thread workers are not executed.
 
 [Local build evidence](build-evidence.json) records source/archive/patch identities,
 compiler, libva, configure options, binaries, actual function hashes and log hashes.
@@ -76,15 +83,15 @@ instead of issuing on rejection. A successful end clears its picture/count state
 
 Remap stays disabled. Baseline/Extended are not added to `vaapi_profile_map`, and
 `vaapi_decode_make_config` is unchanged. Its profile selection precedes later PPS
-and slice NALs. These guards cannot establish that a complete access unit was
-validated before configuration or submission. In particular #79 still requires:
+and slice NALs. Slice-queue/field-end/AU/flush evidence still cannot bind a VA
+configuration or a frame-thread worker. config/thread remain named gaps.
+In particular #79 still requires:
 
-- Actual parser-to-issue proof through `ff_h264_queue_decode_slice` and field/frame
-  completion, packet/chunk boundaries, threading, flush/reinit and configuration.
-  The new dispatch harness covers both error-recognition modes only within its
-  explicitly substituted service boundary.
-- Proof for NALs encountered before VAAPI selection, access-unit/frame boundaries,
-  frame threading, configuration changes, flush/reinitialization and sticky lifetime.
+- Actual configuration/device advertisement binding through `vaapi_decode_make_config`
+  before issue; this experiment never opens a VA display or builds a config.
+- Frame-thread workers (`FF_THREAD_FRAME` `get_last_needed_nal` / `ff_thread_finish_setup`
+  with real thread contexts). The slice-queue harness stubs those services.
+- DPB allocation/`h264_frame_start` ownership and software MB decode.
 - Complete SPS/PPS/slice feature and profile/configuration binding; unchanged
   supported Main/High/High10 negotiation and software/other-backend behavior.
 - A reviewed stop/remap decision from that evidence, then separate guarded hardware
