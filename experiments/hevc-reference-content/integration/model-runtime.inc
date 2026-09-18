@@ -11,6 +11,8 @@ static bool fail_unmap;
 static uint64_t clock_jump;
 static char model_self_id[129], model_peer_id[129];
 static unsigned model_stats, model_directories, model_links;
+static int last_stat_fd;
+static unsigned last_stat_mode;
 static char last_evidence[256];
 int __real_fstat(int, struct stat *);
 int __real_close(int);
@@ -49,10 +51,11 @@ static int evidence_open(const char *name) {
     assert(evidence_count<128);evidence_fds[evidence_count++]=fd;return fd;
 }
 __attribute__((visibility("default"))) int __wrap_fstat(int fd,struct stat *st) {
-    model_stats++;
-    if(fd==model_video) {memset(st,0,sizeof(*st));st->st_mode=S_IFCHR|0600;st->st_rdev=makedev(81,0);return 0;}
+    model_stats++;last_stat_fd=fd;last_stat_mode=0;
+    if(fd==model_video) {memset(st,0,sizeof(*st));st->st_mode=S_IFCHR|0600;st->st_rdev=makedev(81,0);last_stat_mode=st->st_mode;return 0;}
     int result=__real_fstat(fd,st);
     if(!result && evidence_fd(fd)) {st->st_uid=!strcmp(mode,"untrusted-owner")?1000:0;st->st_mode=S_IFREG|(!strcmp(mode,"writable-manifest")?0666:0600);}
+    if(!result)last_stat_mode=st->st_mode;
     return result;
 }
 __attribute__((visibility("default"))) int __wrap_lstat(const char *name,struct stat *st) {
@@ -104,7 +107,12 @@ static void model_peer(const void *address) {
     struct hevc_content_self self;hevc_content_identify(&self,address);strcpy(model_peer_id,self.id);
 }
 static void diagnose_refusal(const struct hevc_content_pool *p) {
-    fprintf(stderr,"unexpected copy refusal: stopped=%u used=%u maps=%u unmaps=%u manifests=%u stats=%u dirs=%u links=%u last=%s self=%s peer=%s\n",
+    fprintf(stderr,"unexpected copy refusal: stopped=%u used=%u maps=%u unmaps=%u manifests=%u stats=%u dirs=%u links=%u last=%s self=%s peer=%s errno=%d stat_fd=%d video_fd=%d stat_mode=%o\n",
         p->stopped,p->used,content_maps,content_unmaps,manifest_reads,model_stats,model_directories,model_links,
-        last_evidence[0]?last_evidence:"none",model_self_id,model_peer_id);
+        last_evidence[0]?last_evidence:"none",model_self_id,model_peer_id,errno,last_stat_fd,model_video,last_stat_mode);
+}
+
+/* Fortified glibc can route a known-size buffer through this entry point. */
+__attribute__((visibility("default"))) ssize_t __wrap___readlink_chk(const char *name,char *data,size_t length,size_t capacity) {
+    assert(length<=capacity);return __wrap_readlink(name,data,length);
 }

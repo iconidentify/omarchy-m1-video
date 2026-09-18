@@ -22,7 +22,7 @@ ENV = os.environ | {'ASAN_OPTIONS': 'detect_leaks=1:halt_on_error=1',
                     'UBSAN_OPTIONS': 'halt_on_error=1', 'TSAN_OPTIONS': 'halt_on_error=1',
                     'GST_PLUGIN_SYSTEM_PATH_1_0': '', 'GST_PLUGIN_PATH_1_0': ''}
 WRAPS = ('open', 'open64', '__open_2', '__open64_2', 'close', 'ioctl', 'mmap', 'mmap64', 'munmap', 'clock_gettime')
-EXTRA = ('fstat', 'fstat64', 'lstat', 'lstat64', 'readlink')
+EXTRA = ('fstat', 'fstat64', 'lstat', 'lstat64', 'readlink', '__readlink_chk')
 
 
 def run(command, **kwargs):
@@ -105,7 +105,13 @@ def build_gst(build):
 def positive(binary, client, sanitizer):
     modes = MODES + (['wrong-codec', 'noncoherent'] if client == 'va' else [])
     for mode in modes:
-        output = run([binary, mode])
+        try:
+            output = run([binary, mode])
+        except RuntimeError:
+            symbols = run(['nm', '-u', binary])
+            print('unresolved syscall symbols: ' + '\n'.join(line for line in symbols.splitlines()
+                  if 'stat' in line or 'readlink' in line), flush=True)
+            raise
         assert 'PASS actual ' in output, output
         print(sanitizer, output.strip(), flush=True)
 
