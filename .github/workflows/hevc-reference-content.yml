@@ -13,5 +13,7 @@ jobs:
           persist-credentials: false
       - name: Fake queue pause/drain/retention and adapter admissions
         run: python3 experiments/hevc-reference-content/tests.py
+      - name: Install GStreamer headers
+        run: sudo apt-get update && sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev pkg-config
       - name: Gst v4l2slh265dec observer (patched request_queue, no device)
         run: python3 experiments/hevc-reference-content/gst-adapter/tests.py
