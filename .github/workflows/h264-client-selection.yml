@@ -1,9 +1,21 @@
 name: H.264 client selection
 on:
   push:
+    branches: [main]
+    paths:
+      - '.github/workflows/h264-client-selection.yml'
+      - 'experiments/h264-client-selection/**'
+      - 'experiments/h264-profile-selection/**'
   pull_request:
+    paths:
+      - '.github/workflows/h264-client-selection.yml'
+      - 'experiments/h264-client-selection/**'
+      - 'experiments/h264-profile-selection/**'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   client-selection:
     runs-on: ubuntu-latest

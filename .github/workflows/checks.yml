@@ -1,7 +1,43 @@
 name: Checks
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/checks.yml'
+      - 'install.sh'
+      - 'uninstall.sh'
+      - 'bin/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'libva/**'
+      - 'docs/**'
+      - 'hooks/**'
+      - 'systemd/**'
+      - 'experiments/vp9-state/**'
+      - 'experiments/h264-profile-selection/**'
+      - 'experiments/hevc-avd-controls-map/**'
+      - 'experiments/hevc-parameter-sets/**'
+  pull_request:
+    paths:
+      - '.github/workflows/checks.yml'
+      - 'install.sh'
+      - 'uninstall.sh'
+      - 'bin/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'libva/**'
+      - 'docs/**'
+      - 'hooks/**'
+      - 'systemd/**'
+      - 'experiments/vp9-state/**'
+      - 'experiments/h264-profile-selection/**'
+      - 'experiments/hevc-avd-controls-map/**'
+      - 'experiments/hevc-parameter-sets/**'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   offline:
     runs-on: ubuntu-latest

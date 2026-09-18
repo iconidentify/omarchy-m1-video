@@ -1,9 +1,23 @@
 name: HEVC AVD command trace
 on:
   push:
+    branches: [main]
+    paths:
+      - '.github/workflows/hevc-avd-command-trace.yml'
+      - 'experiments/hevc-avd-command-trace/**'
+      - 'experiments/hevc-avd-trace/**'
+      - 'experiments/hevc-avd-controls-map/**'
   pull_request:
+    paths:
+      - '.github/workflows/hevc-avd-command-trace.yml'
+      - 'experiments/hevc-avd-command-trace/**'
+      - 'experiments/hevc-avd-trace/**'
+      - 'experiments/hevc-avd-controls-map/**'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   command-trace:
     runs-on: ubuntu-latest

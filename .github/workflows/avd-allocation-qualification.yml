@@ -1,7 +1,21 @@
 name: AVD allocation qualification controller
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/avd-allocation-qualification.yml'
+      - 'experiments/avd-allocation-qualification/**'
+      - 'experiments/hevc-avd-trace/**'
+  pull_request:
+    paths:
+      - '.github/workflows/avd-allocation-qualification.yml'
+      - 'experiments/avd-allocation-qualification/**'
+      - 'experiments/hevc-avd-trace/**'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   qualification-controller:
     runs-on: ubuntu-latest
