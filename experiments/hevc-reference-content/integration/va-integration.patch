@@ -1,0 +1,86 @@
+--- a/src/v4l2_request.h
++++ b/src/v4l2_request.h
+@@ -329,6 +329,7 @@
+  * buffer holds the current decoded content of ->surface, or is free when
+  * ->surface is NULL (its index then sits in the context free list). */
+ struct v4l2r_capture_buffer {
++	uint32_t observer_memory, observer_flags, observer_type, observer_count, observer_index;
+ 	uint64_t observer_generation;
+ 	uint64_t observer_writer, observer_completed_writer;
+ 	bool observer_aliased;
+@@ -393,6 +394,10 @@
+ 
+ struct v4l2r_context {
+ 	uint64_t observer_generation, observer_session, observer_lease;
++	uint64_t observer_content_deadline;
++	unsigned observer_content_count;
++	void *observer_content_map;
++	size_t observer_content_map_length;
+ 	pthread_t observer_owner;
+ 	uint64_t observer_owner_generation;
+ 	bool observer_sequence_exhausted;
+--- a/src/context.c
++++ b/src/context.c
+@@ -522,6 +522,9 @@
+ 	struct v4l2_buffer buffer = {0};
+ 	struct v4l2r_capture_buffer *capture;
+ 	size_t bufsize = capture_format_bytes(&ctx->capture_format);
++	const uint32_t content_flags = buffers.flags;
++	const uint32_t content_memory = buffers.memory;
++	const uint32_t content_type = buffers.format.type;
+ 
+ 	if (ctx->nb_captures >= V4L2R_MAX_CAPTURE_BUFFERS) {
+ 		v4l2r_diag(ctx, V4L2R_DIAG_LEVEL_ERROR, V4L2R_DIAG_ALLOCATION,
+@@ -577,6 +580,11 @@
+ 	capture = &ctx->captures[buffer.index];
+ 	memset(capture, 0, sizeof(*capture));
+ 	capture->observer_generation = v4l2r_observer_generation();
++	capture->observer_flags = content_flags;
++	capture->observer_memory = content_memory;
++	capture->observer_type = content_type;
++	capture->observer_index = buffers.index;
++	capture->observer_count = buffers.count;
+ 
+ 	if (V4L2_TYPE_IS_MULTIPLANAR(buffer.type)) {
+ 		capture->nb_planes = ctx->capture_format.fmt.pix_mp.num_planes;
+--- a/src/observer.c
++++ b/src/observer.c
+@@ -1,3 +1,7 @@
++#ifndef _GNU_SOURCE
++#define _GNU_SOURCE
++#endif
++#include <sys/mman.h>
+ /* SPDX-License-Identifier: GPL-3.0-or-later */
+ #include <errno.h>
+ #include <string.h>
+@@ -198,6 +202,7 @@
+ 	if (!lease)
+ 		goto unlock_context;
+ 	ctx->observer_lease = lease;
++	ctx->observer_content_deadline = deadline;
+ 	ctx->observer_cancel_state = cancel;
+ 	drv->observer_active = ctx;
+ 	memset(receipt, 0, sizeof(*receipt));
+@@ -240,11 +245,16 @@
+ 			ret = VA_STATUS_SUCCESS;
+ 		} else if (ctx && !close && lease && drv->observer_active == ctx &&
+ 			   ctx->observer_lease == lease) {
++			if (ctx->observer_content_map && munmap(ctx->observer_content_map, ctx->observer_content_map_length))
++				goto content_finish_unlock;
++			ctx->observer_content_map = NULL;
++			ctx->observer_content_map_length = 0;
+ 			drv->observer_active = NULL;
+ 			ctx->observer_lease = 0;
+ 			cancel = ctx->observer_cancel_state;
+ 			ret = VA_STATUS_SUCCESS;
+ 		}
++content_finish_unlock:
+ 		pthread_mutex_unlock(&drv->api_mutex);
+ 	}
+ 	pthread_setcancelstate(cancel, NULL);
+@@ -262,3 +272,5 @@
+ {
+ 	return finish(va, session, 0, true);
+ }
++
++#include "va-content.inc"

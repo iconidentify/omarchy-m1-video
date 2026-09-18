@@ -1,0 +1,120 @@
+--- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
++++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
+@@ -1,3 +1,7 @@
++#ifndef _GNU_SOURCE
++#define _GNU_SOURCE
++#endif
++#include <sys/mman.h>
+ /* GStreamer
+  * Copyright (C) 2020 Nicolas Dufresne <nicolas.dufresne@collabora.com>
+  *
+@@ -84,6 +88,12 @@
+ {
+   GstObject parent;
+   guint64 observer_run[2], observer_generation, observer_session, observer_lease;
++  guint64 observer_content_deadline;
++  guint observer_content_count;
++  void *observer_content_map;
++  size_t observer_content_map_length;
++  gboolean observer_allocation_valid;
++  struct v4l2_create_buffers observer_allocation;
+   guint64 observer_deadline, observer_submitted, observer_completed;
+   GThread *observer_owner;
+   GstV4l2Request *observer_request;
+@@ -892,6 +902,8 @@
+     return ret;
+   }
+ 
++  self->observer_allocation_valid = FALSE;
++  struct v4l2_create_buffers content_input = createbufs;
+   ret = ioctl (self->video_fd, VIDIOC_CREATE_BUFS, &createbufs);
+   if (ret < 0) {
+     GST_ERROR_OBJECT (self, "VIDIOC_CREATE_BUFS failed: %s",
+@@ -906,6 +918,10 @@
+       self->supports_holding_capture = FALSE;
+   }
+ 
++  content_input.index = createbufs.index;
++  content_input.count = createbufs.count;
++  self->observer_allocation = content_input;
++  self->observer_allocation_valid = TRUE;
+   return createbufs.index;
+ }
+ 
+@@ -1915,6 +1931,7 @@
+   guint64 lease = gst_hevc_observer_generation ();
+   if (!lease) goto release;
+   self->observer_lease = lease;
++  self->observer_content_deadline = deadline;
+   self->observer_request = held;
+   self->observer_picture = picture;
+   self->observer_bitstream = bits;
+@@ -1949,6 +1966,10 @@
+   if (observer_lock_until (gst_hevc_observer_now () + 2 * GST_SECOND)) {
+     if (observer_session_valid (self, session) && lease &&
+         self->observer_lease == lease && !self->observer_ending) {
++      if (self->observer_content_map && munmap(self->observer_content_map, self->observer_content_map_length))
++        goto content_end_unlock;
++      self->observer_content_map = NULL;
++      self->observer_content_map_length = 0;
+       self->observer_ending = TRUE;
+       self->observer_lease = 0;
+       g_clear_pointer (&self->observer_request, gst_v4l2_request_unref);
+@@ -1959,6 +1980,7 @@
+       ok = TRUE;
+       g_object_unref (self); /* last: may run real decoder finalization */
+     }
++content_end_unlock:
+     g_rec_mutex_unlock (&gst_hevc_observer_mutex);
+   }
+   pthread_setcancelstate (cancel, NULL);
+@@ -2007,3 +2029,5 @@
+   self->observer_external = TRUE;
+   return gst_hevc_observer_export_buffer (self, direction, index, fds, sizes, offsets, num_fds);
+ }
++
++#include "gst-content.inc"
+--- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.c
++++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.c
+@@ -1,3 +1,6 @@
++#ifndef _GNU_SOURCE
++#define _GNU_SOURCE
++#endif
+ /* GStreamer
+  * Copyright (C) 2020 Collabora Ltd.
+  *   Author: Nicolas Dufresne <nicolas.dufresne@collabora.com>
+@@ -31,6 +34,8 @@
+ struct _GstV4l2CodecBuffer
+ {
+   guint64 observer_generation, observer_writer, observer_completed;
++  gboolean observer_policy_valid;
++  struct v4l2_create_buffers observer_policy;
+   gboolean observer_published;
+   gint index;
+ 
+@@ -98,6 +103,7 @@
+   buf = g_new0 (GstV4l2CodecBuffer, 1);
+   buf->observer_generation = gst_hevc_observer_generation ();
+   buf->index = index;
++  buf->observer_policy_valid = gst_hevc_content_allocation(decoder, direction, index, &buf->observer_policy);
+   buf->num_mems = num_mems;
+   for (i = 0; i < buf->num_mems; i++) {
+     GstMemory *mem = gst_fd_allocator_alloc (allocator, fds[i], sizes[i],
+@@ -548,3 +554,5 @@
+   if (!observer_map_admit (self, mem)) return NULL;
+   return self->observer_share (mem, offset, size);
+ }
++
++#include "gst-allocation-content.inc"
+--- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gst-observer-private.h
++++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gst-observer-private.h
+@@ -19,3 +19,9 @@
+     gint index, gint *fds, gsize *sizes, gsize *offsets, guint *num_fds);
+ 
+ gboolean gst_hevc_observer_buffer_owned (GstBuffer *buffer, GstV4l2Decoder *decoder);
++
++struct hevc_content_pool;
++struct hevc_content_identity;
++struct v4l2_create_buffers;
++gboolean gst_hevc_content_allocation(GstV4l2Decoder *, GstPadDirection, gint, struct v4l2_create_buffers *);
++gboolean gst_hevc_content_buffer_copy(GstBuffer *, GstV4l2Decoder *, const GstHevcObserverReceipt *, struct hevc_content_pool *, const struct hevc_content_identity *, gboolean, guint64, void **, size_t *);
