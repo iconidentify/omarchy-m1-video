@@ -1,0 +1,11 @@
+{
+  "schema": "omarchy-m1-video.hevc-va-observer-sources/1",
+  "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/95",
+  "parent": "https://github.com/iconidentify/omarchy-m1-video/issues/82",
+  "driver": {
+    "commit": "c77e7b566f7baf9c7a2aad797e62c9aa578d9687",
+    "archive_sha256": "a82f316c0468d3a5490bcfc33c8a876eab0e2b55ec1416b88f7f920535fc5bf4",
+    "note": "PR96 merge. decode.c/api.c/v4l2_request.h/context.c match origin/avd-fixes 50d12c6."
+  },
+  "fake_backend": "observer-test.c ioctl/poll; identified, no /dev/video0"
+}

@@ -1,0 +1,113 @@
+From: z23 <3616196+z23@users.noreply.github.com>
+Subject: [PATCH] Experimental default-off VA observer pause/retain (no production default)
+
+Companion omarchy-m1-video #95. Not a production merge. Paused queue_decode
+rejects new producers. observer_begin drains wait_completed_locked through
+ctx->submitted (all issued frames), not one capture index.
+
+--- a/src/v4l2_request.h	2026-09-18 00:57:30.370422166 +0000
++++ b/src/v4l2_request.h	2026-09-18 00:59:59.816253930 +0000
+@@ -434,6 +434,11 @@
+ 	uint64_t submitted;
+ 	uint64_t completed;
+ 	pthread_mutex_t mutex;
++	int observer_enabled;
++	int observer_paused;
++	int observer_retain;
++	uint64_t observer_generation;
++	uint64_t observer_run_generation;
+ 
+ 	struct v4l2r_capture_buffer captures[V4L2R_MAX_CAPTURE_BUFFERS];
+ 	unsigned int nb_captures;
+@@ -765,6 +770,20 @@
+  * buffer before it is overwritten by a new decode. */
+ VAStatus v4l2r_wait_completed(struct v4l2r_context *ctx, uint64_t target);
+ 
++/* Experimental default-off observer (companion omarchy-m1-video #95).
++ * Production contexts leave observer_enabled=0. */
++struct v4l2r_observer_receipt {
++	uint64_t run_generation;
++	uint64_t context_generation;
++	uint64_t submitted;
++	uint64_t completed;
++	uint64_t last_ref_seq;
++	uint64_t queued_capture;
++};
++VAStatus v4l2r_observer_begin(struct v4l2r_context *ctx, uint64_t deadline_ns,
++			      struct v4l2r_observer_receipt *out);
++VAStatus v4l2r_observer_end(struct v4l2r_context *ctx);
++
+ /* Non-blocking dequeue sweep, used by vaQuerySurfaceStatus. */
+ void v4l2r_reap_capture(struct v4l2r_context *ctx);
+ void v4l2r_context_fail(struct v4l2r_context *ctx);
+--- a/src/decode.c	2026-09-18 00:57:30.370422166 +0000
++++ b/src/decode.c	2026-09-18 00:59:59.842976691 +0000
+@@ -599,6 +599,10 @@
+ 	pthread_mutex_lock(&ctx->mutex);
+ 	if (ctx->failed)
+ 		goto fail;
++	if (ctx->observer_paused) {
++		pthread_mutex_unlock(&ctx->mutex);
++		return VA_STATUS_ERROR_OPERATION_FAILED;
++	}
+ 
+ 	ret = wait_on_request(ctx, output);
+ 	if (ret < 0) {
+@@ -747,3 +751,57 @@
+ 
+ 	return queue_decode(ctx, controls, count, first_slice, last_slice);
+ }
++
++VAStatus v4l2r_observer_begin(struct v4l2r_context *ctx, uint64_t deadline_ns,
++			      struct v4l2r_observer_receipt *out)
++{
++	int ret = 0;
++
++	(void)deadline_ns;
++	if (!ctx || !ctx->observer_enabled)
++		return VA_STATUS_ERROR_UNIMPLEMENTED;
++	if (!out)
++		return VA_STATUS_ERROR_INVALID_PARAMETER;
++
++	pthread_mutex_lock(&ctx->mutex);
++	if (ctx->failed || ctx->observer_paused) {
++		pthread_mutex_unlock(&ctx->mutex);
++		return VA_STATUS_ERROR_OPERATION_FAILED;
++	}
++	ctx->observer_paused = 1;
++	ctx->observer_retain = 1;
++	ctx->observer_generation++;
++	if (ctx->streaming && ctx->completed < ctx->submitted)
++		ret = wait_completed_locked(ctx, ctx->submitted);
++	if (ret < 0) {
++		ctx->observer_paused = 0;
++		ctx->observer_retain = 0;
++		pthread_mutex_unlock(&ctx->mutex);
++		return VA_STATUS_ERROR_OPERATION_FAILED;
++	}
++	out->run_generation = ctx->observer_run_generation;
++	out->context_generation = ctx->observer_generation;
++	out->submitted = ctx->submitted;
++	out->completed = ctx->completed;
++	out->queued_capture = ctx->queued_capture;
++	out->last_ref_seq = 0;
++	if (ctx->nb_captures)
++		out->last_ref_seq = ctx->captures[0].last_ref_seq;
++	pthread_mutex_unlock(&ctx->mutex);
++	return VA_STATUS_SUCCESS;
++}
++
++VAStatus v4l2r_observer_end(struct v4l2r_context *ctx)
++{
++	if (!ctx || !ctx->observer_enabled)
++		return VA_STATUS_ERROR_UNIMPLEMENTED;
++	pthread_mutex_lock(&ctx->mutex);
++	if (!ctx->observer_paused) {
++		pthread_mutex_unlock(&ctx->mutex);
++		return VA_STATUS_ERROR_OPERATION_FAILED;
++	}
++	ctx->observer_paused = 0;
++	ctx->observer_retain = 0;
++	pthread_mutex_unlock(&ctx->mutex);
++	return VA_STATUS_SUCCESS;
++}
