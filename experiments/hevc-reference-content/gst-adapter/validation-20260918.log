@@ -172,3 +172,32 @@ tsan libgstv4l2codecs.so sha256 6583c2d5efe0cabc1a492b9056f421d56fe6e93615e88cfe
 tsan observer-api sha256 6ce1625d2e933009de3f9e169f3dd128fee5e007cc968e43379aa848eb304e3d
 PASS pinned gst-tester configuration and 58 API checks
 corrected tests.py sha256 324afb62354b6374742bca3a478d295749388acb338d162952656f18bdf46ef4
+
+Supplemental pinned-library validation:
+PASS pinned linkage observer-api
+PASS pinned linkage libgstv4l2codecs.so
+PASS pinned linkage observer-api
+PASS pinned linkage libgstv4l2codecs.so
+PASS pinned linkage libgstvideoparsersbad.so
+PASS pinned linkage libgstcoreelements.so
+PASS pinned linkage libgstapp.so
+PASS pinned linkage libs_h265parser
+PASS original libs_h265parser
+Running suite(s): H265 Parser library
+100%: Checks: 17, Failures: 0, Errors: 0
+Check suite h265parser ran in 0.395s (tests failed: 0)
+PASS pinned linkage libs_h265bitwriter
+PASS original libs_h265bitwriter
+Running suite(s): H265 bitwriter library
+100%: Checks: 1, Failures: 0, Errors: 0
+Check suite h265bitwriter ran in 0.023s (tests failed: 0)
+PASS pinned linkage elements_h265parse
+PASS original elements_h265parse
+Running suite(s): h265parse_to_bs_au
+100%: Checks: 5, Failures: 0, Errors: 0
+Check suite h265parse_to_bs_au ran in 0.163s (tests failed: 0)
+Running suite(s): h265parse
+100%: Checks: 25, Failures: 0, Errors: 0
+Check suite h265parse_harnessed ran in 0.628s (tests failed: 0)
+PASS pinned dependencies and 48 original HEVC checks
+corrected tests.py sha256 93cc24cc2d6d8f489e722f432f8a1f245a694b7d822be9280efc76e586a633e6

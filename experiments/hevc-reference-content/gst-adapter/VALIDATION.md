@@ -70,7 +70,7 @@ Patch SHA-256: `7375ce4346b0e18be41fa8d7e791efd79a547b6a3cface9ebee0769183781e04
 An early invocation of the unchanged software tests through generic Meson test
 environment scanned all built plugins and reached the pinned upstream V4L2
 discovery code, where UBSan reported a null string argument. That invocation did
-not pass. The final no-device recipe gives these tests an isolated directory
+not pass. The final no-device recipe gives these tests restricted paths
 containing only the three required software plugins; it neither scans the V4L2
 plugin nor suppresses sanitizer diagnostics. Full plugin compilation and the
 actual decoder APIs remain covered separately by the syscall fixture.
@@ -94,3 +94,12 @@ check/test targets and builds that executable from the same archive; no unrelate
 validate campaign is run. Supplemental local reconfiguration/build/API results
 and the corrected runner hash are appended to the evidence log. The production
 patch is unchanged. Hosted CI executes the complete corrected recipe.
+
+The second hosted run at `24a6a12` passed all 29 ASan/UBSan API cases and the
+parser/bitwriter library tests, then failed to load the parser element plugin.
+Symlinks in a separate plugin directory changed `$ORIGIN` resolution; this host's
+matching installed libraries had masked that error. The corrected runner uses
+only the actual three software plugin directories and verifies with `ldd` that
+every linked GStreamer dependency resolves inside the pinned build. Corrected
+original-test results and linkage checks are appended; none of these failed
+hosted runs is counted as a pass.

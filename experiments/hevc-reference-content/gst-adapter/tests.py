@@ -62,18 +62,35 @@ def positive(build, label):
         print(label + ': ' + result.stdout.strip(), flush=True)
 
 
+def pinned_linkage(build, artifact):
+    # A matching installed GStreamer can mask a broken build-tree RUNPATH.
+    output = run(['ldd', artifact]).stdout
+    dependencies = [line for line in output.splitlines()
+                    if line.lstrip().startswith('libgst')]
+    if not dependencies:
+        raise RuntimeError('no linked GStreamer libraries: ' + str(artifact))
+    for line in dependencies:
+        _, separator, value = line.strip().partition(' => ')
+        if not separator or not Path(value.split()[0]).resolve().is_relative_to(build.resolve()):
+            raise RuntimeError('dependency outside pinned build: ' + line)
+    print('PASS pinned linkage ' + artifact.name, flush=True)
+
+
 def original_tests(build):
-    # A separate plugin directory prevents real V4L2 device discovery. These
-    # unchanged tests need only the parser, core elements and app plugin.
-    plugins = build / 'software-plugins'
-    plugins.mkdir()
-    for name in ['libgstvideoparsersbad.so', 'libgstcoreelements.so', 'libgstapp.so']:
-        (plugins / name).symlink_to(next(build.rglob(name)))
-    env = ENV | {'GST_PLUGIN_PATH_1_0': str(plugins), 'GST_REGISTRY_FORK': 'no',
-                 'GST_REGISTRY': str(plugins / 'registry.bin')}
+    # Restrict discovery to the three required software plugin directories.
+    # Load real paths: symlinks in another directory break $ORIGIN RUNPATHs.
+    plugins = [next(build.rglob(name)) for name in
+               ['libgstvideoparsersbad.so', 'libgstcoreelements.so', 'libgstapp.so']]
+    for plugin in plugins:
+        pinned_linkage(build, plugin)
+    env = ENV | {'GST_PLUGIN_PATH_1_0': os.pathsep.join(str(p.parent) for p in plugins),
+                 'GST_REGISTRY_FORK': 'no',
+                 'GST_REGISTRY': str(build / 'software-registry.bin')}
     for name in ORIGINAL:
-        result = run([build / 'subprojects/gst-plugins-bad/tests/check' / name],
-                     env=env, timeout=180, log=build.parent / (name + '.log'))
+        binary = build / 'subprojects/gst-plugins-bad/tests/check' / name
+        pinned_linkage(build, binary)
+        result = run([binary], env=env, timeout=180,
+                     log=build.parent / (name + '.log'))
         print('PASS original ' + name + '\n' + result.stdout.strip(), flush=True)
 
 
@@ -143,6 +160,8 @@ def validate(destination, archive, native):
         if label == 'asan-ubsan':
             targets += ORIGINAL + ['gstvideoparsersbad', 'gstcoreelements', 'gstapp']
         compile_targets(build, *targets)
+        pinned_linkage(build, api_path(build))
+        pinned_linkage(build, build / source.BASE / 'libgstv4l2codecs.so')
         positive(build, label)
         if label == 'asan-ubsan':
             original_tests(build)
