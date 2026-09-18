@@ -15,10 +15,11 @@ class AdapterError(Exception):
     pass
 
 def real_client_adapter(client, records=None, *, bodies=None):
-    """Isolated helper execution is not a real-client pause/retention adapter."""
+    """Selected helper execution cannot supply live pause/retention ownership."""
     raise AdapterError(
-        'blocked: wait_on_capture_locked waits one capture index; '
-        'exporter CPU-access is a no-op; real adapter still unimplemented')
+        'blocked: wait_on_capture_locked/helper execution supplies no '
+        'live pause/retention/exporter adapter')
+
 
 class Observer:
     def __init__(self, queue, enabled=False, clock=time.monotonic):

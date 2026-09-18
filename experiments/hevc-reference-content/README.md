@@ -12,8 +12,9 @@ module operation, shipped-patch change or support-count increase.
 python3 experiments/hevc-reference-content/tests.py
 ```
 
-Python standard library only. Sixteen test groups plus four actual-source mutation
-runs cover exact ranges/hashes at both plane sizes, default-off, external worker
+The full suite needs Python, a Linux C compiler with ASan/UBSan and network
+access for hash-pinned public source files. The original sixteen synthetic test
+groups plus four actual-source mutation runs cover exact ranges/hashes at both plane sizes, default-off, external worker
 completion, blocked submissions, writer identity, retention, timeout/error cleanup,
 foreign/stale/missing/changed records, malformed extents, caps and paired copy-off/on.
 Mutations remove the default-off, unpin, writer binding and pause guards; the same
@@ -55,7 +56,8 @@ See [CAMPAIGN.md](CAMPAIGN.md) for the separately gated hardware plan.
 
 PR90 adds hash-pinned retrieval and exact function-body identities for selected VA
 driver, FFmpeg VAAPI, vb2 exporter and upstream AVD completion sources. Run `python3 experiments/hevc-reference-content/tests.py` from the repository
-root to repeat the 23 groups and four synthetic-source mutations. File and extracted-function drift are rejected. The C bodies are
+root to repeat the current suite. The source audit alone performs no C execution;
+the isolated helper tests below have a different scope. File and extracted-function drift are rejected. The C bodies are
 **strings only: never compiled, executed or instrumented by this audit**.
 
 `source_audit.inspect_sources` reports that limited scope. It is not a producer
@@ -69,12 +71,42 @@ generation and writer-job labels. The removed joiner could accept those fabricat
 fields. Source strings and metadata cannot confer live retention. The real adapter
 still unconditionally rejects; no snapshot path or hardware authorization is added.
 
-A separate stubbed harness compiles those four helper bodies. That is isolated
-helper execution, not a client adapter or producer barrier. The success path
-waits one capture index and must leave a second queued capture; poll uses the
-exact fd/events/deadline; reader poll uses the listed dmabufs and timeout.
-Error paths cover poll/dequeue/reader failures. Mutating the reader-error
-return or clearing every queued bit is distinguished. Invented pause/generation
-fields are not used. Copying remains unauthorized. Parent #42 stays open. The
-next #82 contribution must still implement the real pause/retention/drain/join
-adapter; this PR does not.
+## Isolated helper execution added in PR94
+
+`real_barrier.py` verifies the pinned file and function hashes, then compiles four
+selected bodies into `barrier_harness.c` under ASan/UBSan. The compiled bodies are
+`wait_on_capture_locked`, `capture_wait_readers` and the two vb2 dma-contig CPU-access
+callbacks. Context/kernel types, poll/dequeue and diagnostics are explicit stubs;
+no configured client, VA display, kernel callback dispatch or real fd executes.
+
+Fifteen cases check selected-index completion while an unrelated capture remains
+queued, already-complete/empty/drained targets, initial/poll/dequeue errors,
+EAGAIN/EINTR retries, a repeated wait ending at a fixed deadline, reader-plane
+selection, reader errors/timeouts and the CPU callbacks' return values. Poll calls
+must carry the exact device, events and deadline/timeout. Ten changes to actual
+helper control flow/arguments must fail semantic assertions: reader error,
+reader timeout, negative-fd skip, clearing every queued capture, capture index, wait error, deadline, device,
+retry and CPU result. Compiler failure/crash/timeout is not counted as detection.
+
+The original PR94 invented `all_producers_paused`/`generation` fields in a stand-in
+context and mutated one of those fields. Maintainer review removed that circular
+proof and reproduced an undetected removal of the real reader-error check; the
+new error case rejects it. This narrow execution confirms selected helper
+behavior under declared stub responses. It cannot establish a real producer
+barrier, lifetime pin, cache coherence or live writer identity, nor prove that no
+other API/design can provide them. `source_audit.py` remains a separate static
+inspection, and the unexecuted FFmpeg/AVD/GStreamer scope remains as stated above.
+
+**Next artifact for #82:** design a concrete default-off client/driver adapter
+whose actual submission/requeue entrypoints participate in a pause operation,
+whose surface/allocation ownership survives the entire bounded read, and whose
+same-run writer/completion records bind that retained allocation. Test its real
+entrypoints and cleanup, including outstanding reference readers and error paths.
+A patch may introduce the missing API; do not loop on another source scan or
+synthetic “no API” assertion. Review locking/lifetime/exporter admission before
+any copy path. Every real adapter still rejects, and #82 / driver #42 remain open.
+
+Maintainer validation: 25 Python groups, 15 compiled helper cases, ten semantic
+helper mutations and four existing synthetic-source mutations pass under native
+GCC ASan/UBSan. These corrections are maintainer self-review; no hardware result
+or support-count change is claimed.

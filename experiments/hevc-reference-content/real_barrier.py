@@ -1,76 +1,66 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""Compile and run extracted wait/exporter helpers with stubs. Not client instrumentation."""
+"""Execute four pinned helper bodies with explicit stub boundaries. No live barrier."""
 from __future__ import annotations
-
+import json
+import os
 import subprocess
 import tempfile
 from pathlib import Path
-
 import client_source
 from adapter import AdapterError
 
-HERE = Path(__file__).resolve().parent
-READERS_ERROR = (
-    'if (ret < 0) {\n'
-    '\t\t\tv4l2r_diag(ctx, V4L2R_DIAG_LEVEL_ERROR,\n'
-    '\t\t\t\t   v4l2r_diag_errno_category(ret), "reader-wait",\n'
-    '\t\t\t\t   ret, "failed waiting for readers of CAPTURE "\n'
-    '\t\t\t\t   "buffer %d plane %u", index, i);\n'
-    '\t\t\treturn ret;\n'
-    '\t\t}'
-)
+HERE=Path(__file__).resolve().parent
+NAMES=('wait_on_capture_locked','capture_wait_readers',
+       'vb2_dc_dmabuf_ops_begin_cpu_access','vb2_dc_dmabuf_ops_end_cpu_access')
+MUTATIONS={
+    'reader-error':('capture_wait_readers','if (ret < 0) {','if (0) {',1),
+    'reader-timeout':('capture_wait_readers','V4L2R_POLL_TIMEOUT_MS','0',1),
+    'reader-negative-fd':('capture_wait_readers','if (capture->dmabuf_fd[i] < 0)','if (0)',1),
+    'wait-clear-all':('wait_on_capture_locked','if (ctx->queued_capture) {','ctx->queued_capture = 0;\n\tif (ctx->queued_capture) {',1),
+    'wait-index':('wait_on_capture_locked','UINT64_C(1) << index','UINT64_C(1) << (index + 1)',1),
+    'wait-error':('wait_on_capture_locked','if (ret < 0)','if (0)',2),
+    'wait-deadline':('wait_on_capture_locked','ctx->video_fd, POLLIN, deadline','ctx->video_fd, POLLIN, deadline + 1',1),
+    'wait-device':('wait_on_capture_locked','ctx->video_fd, POLLIN, deadline','ctx->video_fd + 1, POLLIN, deadline',1),
+    'wait-retry':('wait_on_capture_locked','ret < 0 && ret != -EAGAIN && ret != -EINTR','ret < 0',1),
+    'cpu-result':('vb2_dc_dmabuf_ops_begin_cpu_access','return 0;','return -1;',1),
+}
 
 
-def write_extracted(destination: Path, mutate=None):
-    texts = client_source.fetch()
-    bodies, _ = client_source.extract(texts)
-    names = (
-        'wait_on_capture_locked',
-        'capture_wait_readers',
-        'vb2_dc_dmabuf_ops_begin_cpu_access',
-        'vb2_dc_dmabuf_ops_end_cpu_access',
-    )
-    parts = [bodies[n] for n in names]
-    if mutate == 'readers-error':
-        if parts[1].count(READERS_ERROR) != 1:
-            raise ValueError('readers-error mutation drift')
-        parts[1] = parts[1].replace(READERS_ERROR, 'if (ret < 0) { /* mutated: ignore */ }')
-    elif mutate == 'clear-all':
-        old = '\twhile (ctx->queued_capture & (UINT64_C(1) << index)) {'
-        if parts[0].count(old) != 1:
-            raise ValueError('wait mutation drift')
-        parts[0] = parts[0].replace(old, '\tctx->queued_capture = 0;\n\twhile (0) {')
-    destination.write_text('\n'.join(parts) + '\n')
+def extracted_bodies():
+    texts=client_source.fetch()
+    bodies,hashes=client_source.extract(texts)
+    expected=json.loads((HERE/'function-hashes.json').read_text())
+    if hashes!=expected:raise AdapterError('extracted helper identity mismatch')
+    return {name:bodies[name] for name in NAMES}
 
 
-def run_harness(case='success', mutate=None):
+def run_harness(bodies,mutation=None):
+    bodies=dict(bodies)
+    if mutation:
+        name,old,new,count=MUTATIONS[mutation]
+        if bodies[name].count(old)!=count:raise ValueError('mutation drift: '+mutation)
+        bodies[name]=bodies[name].replace(old,new)
     with tempfile.TemporaryDirectory() as tmp:
-        extracted = Path(tmp) / 'extracted-barrier.h'
-        write_extracted(extracted, mutate=mutate)
-        binary = Path(tmp) / 'barrier'
-        subprocess.run(
-            ['cc', '-O0', '-g', '-fsanitize=address,undefined', '-Wall', '-Werror',
-             '-Wno-unused-function', '-Wno-unused-variable',
-             '-I', tmp, str(HERE / 'barrier_harness.c'), '-o', str(binary)],
-            check=True, timeout=30)
-        return subprocess.run([str(binary), case], capture_output=True, text=True, timeout=10)
+        (Path(tmp)/'extracted-barrier.h').write_text('\n'.join(bodies[n] for n in NAMES)+'\n')
+        binary=Path(tmp)/'barrier'
+        subprocess.run([os.environ.get('CC','cc'),'-O0','-g','-fsanitize=address,undefined',
+                        '-fno-sanitize-recover=all','-Wall','-Werror','-I',tmp,
+                        str(HERE/'barrier_harness.c'),'-o',str(binary)],check=True,timeout=30)
+        return subprocess.run([str(binary)],capture_output=True,text=True,timeout=10)
 
 
-def prove_no_real_barrier():
-    result = run_harness('success')
-    if result.returncode != 0:
-        raise AdapterError('barrier harness failed: ' + result.stdout + result.stderr)
-    if 'selected-index wait' not in result.stdout or 'leftover=0x2' not in result.stdout:
-        raise AdapterError('selected-index leftover capture was not preserved')
-    for case in ('readers-fail', 'dequeue-fail', 'poll-fail'):
-        extra = run_harness(case)
-        if extra.returncode != 0:
-            raise AdapterError(case + ' failed: ' + extra.stdout + extra.stderr)
-    mutant = run_harness('readers-fail', mutate='readers-error')
-    if mutant.returncode == 0:
-        raise AdapterError('removing capture_wait_readers error return was not distinguished')
-    cleared = run_harness('success', mutate='clear-all')
-    if cleared.returncode == 0:
-        raise AdapterError('clearing every queued capture was not distinguished')
-    return result.stdout.strip()
+def exercise_selected_helpers():
+    bodies=extracted_bodies()
+    result=run_harness(bodies)
+    if result.returncode!=0 or result.stdout.strip()!='PASS: 15 isolated helper cases; no device or real adapter executed':
+        raise AdapterError('helper harness failed: '+result.stdout+result.stderr)
+    if 'Sanitizer' in result.stderr or 'runtime error:' in result.stderr:
+        raise AdapterError('helper sanitizer diagnostic')
+    for mutation in MUTATIONS:
+        mutant=run_harness(bodies,mutation)
+        # Only the explicit semantic assertion counts. Compiler errors, crashes,
+        # deadline expiry or sanitizer failures are not successful mutations.
+        if mutant.returncode!=1 or 'case ' not in mutant.stderr or 'Sanitizer' in mutant.stderr or 'runtime error:' in mutant.stderr:
+            raise AdapterError('semantic mutation not distinguished: '+mutation+' '+mutant.stdout+mutant.stderr)
+    return result.stdout.strip()+f'; {len(MUTATIONS)} semantic mutations rejected'

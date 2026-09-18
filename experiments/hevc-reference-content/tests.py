@@ -14,7 +14,7 @@ from unittest.mock import patch
 from adapter import AdapterError, Observer, real_client_adapter, MAX_COPY
 from source_audit import inspect_sources, reject_historical_identity
 import client_source
-from real_barrier import prove_no_real_barrier
+from real_barrier import exercise_selected_helpers
 from synthetic_queue import FakeQueue, QueueError
 
 HERE = Path(__file__).resolve().parent
@@ -285,10 +285,10 @@ class SourceAuditTests(unittest.TestCase):
 
 
 class ExecutedBarrierTests(unittest.TestCase):
-    def test_extracted_helpers_preserve_other_queued_capture(self):
-        out = prove_no_real_barrier()
-        self.assertIn('selected-index wait', out)
-        self.assertIn('leftover=0x2', out)
+    def test_selected_helper_control_flow_with_stubbed_io(self):
+        out = exercise_selected_helpers()
+        self.assertIn('15 isolated helper cases', out)
+        self.assertIn('10 semantic mutations rejected', out)
 
     def test_real_adapter_still_blocked_after_execution(self):
         with self.assertRaisesRegex(AdapterError, 'wait_on_capture_locked'):
