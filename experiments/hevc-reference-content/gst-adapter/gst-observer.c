@@ -15,6 +15,8 @@ static struct gst_hevc_receipt receipts[8];
 static int n_receipts;
 static GstV4l2Request *held[8];
 static int n_held;
+static GstV4l2Request *live[8];
+static int n_live;
 
 void gst_hevc_observer_set_enabled(int on)
 {
@@ -79,6 +81,9 @@ int gst_hevc_observer_record(GstV4l2Request *request)
 	for (i = 0; i < n_receipts; i++) {
 		if (receipts[i].request_fd == request->fd) {
 			receipts[i] = rec;
+			for (i = 0; i < n_live; i++)
+				if (live[i] && live[i]->fd == request->fd)
+					live[i] = request;
 			pthread_mutex_unlock(&mu);
 			return 1;
 		}
@@ -88,6 +93,8 @@ int gst_hevc_observer_record(GstV4l2Request *request)
 		return 0;
 	}
 	receipts[n_receipts++] = rec;
+	if (n_live < 8)
+		live[n_live++] = request;
 	pthread_mutex_unlock(&mu);
 	return 1;
 }
@@ -117,7 +124,7 @@ int gst_hevc_observer_admit_flush(GstV4l2Decoder *decoder)
 
 int gst_hevc_observer_begin(GstV4l2Decoder *decoder, int deadline_ms)
 {
-	guint n, i;
+	int n, i;
 	GstV4l2Request *pending[8];
 	struct timespec start, now;
 
@@ -131,11 +138,11 @@ int gst_hevc_observer_begin(GstV4l2Decoder *decoder, int deadline_ms)
 	paused = 1;
 	held_decoder = decoder;
 	n_held = 0;
-	n = decoder->pending_requests ? gst_vec_deque_get_length(decoder->pending_requests) : 0;
+	n = n_live;
 	if (n > 8)
 		n = 8;
 	for (i = 0; i < n; i++)
-		pending[i] = gst_vec_deque_peek_nth(decoder->pending_requests, i);
+		pending[i] = live[i];
 	pthread_mutex_unlock(&mu);
 
 	clock_gettime(CLOCK_MONOTONIC, &start);
