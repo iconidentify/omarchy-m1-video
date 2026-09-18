@@ -26,15 +26,15 @@ No live decoder mapping.
 ## Locking
 
 1. `ctx->mutex` is held for pause/retain, receipt snapshot and the drain. Deadline is checked before and after taking the mutex.
-2. `api_mutex` is not taken by this experimental API. A public LOCKED VA wrapper is still future work.
-3. Fake V4L2 `ioctl`/`poll` in the self-test run without a device fd. The self-test compiles actual `decode.c` and `context.c`.
+2. VAContextID wrappers (`v4l2r_observer_*_id`) look up through `V4L2R_CONTEXT_GET` (driver handle mutex). Destroyed ids fail lookup. `v4l2r_DestroyContext` fails while retain is held, so the slot is not freed.
+3. Fake V4L2 `ioctl`/`poll` in the self-test run without a device fd. The self-test compiles actual `decode.c`, `context.c` and `handles.c`.
 
 ## Lifetime
 
 - Default-off: `observer_enabled==0` → begin/end/teardown return `VA_STATUS_ERROR_UNIMPLEMENTED`.
 - Receipt `run_generation` / `context_generation` come from enable/create, not per-begin increments or test-assigned fields.
 - Receipt `capture_index` / `last_ref_seq` come from `ctx->pic.target`'s capture buffer after drain.
-- Bind/decode/teardown consult `observer_retain`. Convert/VPP/import rejection and a handle-table VAContextID wrapper remain later work.
+- Bind/decode/teardown/`DestroyContext` consult `observer_retain`. Convert/VPP/import rejection remains later work.
 
 ## Sibling #96
 

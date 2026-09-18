@@ -61,14 +61,6 @@ VAStatus v4l2r_convert_drain_index(struct v4l2r_context *ctx, int capture_index)
 { (void)ctx; (void)capture_index; return VA_STATUS_SUCCESS; }
 VAStatus v4l2r_convert_wait(struct v4l2r_surface *surface)
 { (void)surface; return VA_STATUS_SUCCESS; }
-void *v4l2r_handles_lookup(struct v4l2r_handles *h, uint32_t id)
-{ (void)h; (void)id; return NULL; }
-uint32_t v4l2r_handles_alloc(struct v4l2r_handles *h, size_t object_size)
-{ (void)h; (void)object_size; return 0; }
-void v4l2r_handles_free(struct v4l2r_handles *h, uint32_t id)
-{ (void)h; (void)id; }
-void *v4l2r_handles_next(struct v4l2r_handles *h, unsigned int *iter, uint32_t *id)
-{ (void)h; (void)iter; (void)id; return NULL; }
 unsigned int v4l2r_profile_bit_depth(VAProfile profile)
 { (void)profile; return 8; }
 int v4l2r_export_capture_dmabufs(struct v4l2r_context *ctx,
@@ -184,6 +176,47 @@ int main(void)
 	CHECK(ioctl_calls > 0);
 	CHECK(v4l2r_observer_end(&ctx) == VA_STATUS_SUCCESS);
 
-	puts("PASS actual decode.c/context.c observer: pause-before-bind, deadline, retain/teardown, selected last_ref_seq; fake V4L2 ioctl identified");
+	{
+		struct v4l2r_driver drv;
+		struct VADriverContext va;
+		struct v4l2r_context *hctx;
+		VAContextID cid;
+		unsigned int i;
+
+		memset(&drv, 0, sizeof(drv));
+		memset(&va, 0, sizeof(va));
+		pthread_mutex_init(&drv.mutex, NULL);
+		pthread_mutex_init(&drv.api_mutex, NULL);
+		CHECK(v4l2r_handles_init(&drv.contexts, V4L2R_ID_OFFSET_CONTEXT) == 0);
+		CHECK(v4l2r_handles_init(&drv.surfaces, V4L2R_ID_OFFSET_SURFACE) == 0);
+		CHECK(v4l2r_handles_init(&drv.buffers, V4L2R_ID_OFFSET_BUFFER) == 0);
+		cid = v4l2r_handles_alloc(&drv.contexts, sizeof(*hctx));
+		CHECK(cid != VA_INVALID_ID);
+		hctx = v4l2r_handles_lookup(&drv.contexts, cid);
+		CHECK(hctx);
+		pthread_mutex_init(&hctx->mutex, NULL);
+		init_capture(hctx);
+		hctx->drv = &drv;
+		hctx->id = cid;
+		hctx->video_fd = -1;
+		hctx->media_fd = -1;
+		for (i = 0; i < V4L2R_OUTPUT_BUFFERS; i++)
+			hctx->output[i].request_fd = -1;
+		va.pDriverData = &drv;
+		CHECK(v4l2r_observer_begin_id(&va, cid, 0, &rec) == VA_STATUS_ERROR_UNIMPLEMENTED);
+		CHECK(v4l2r_observer_enable_id(&va, cid) == VA_STATUS_SUCCESS);
+		CHECK(v4l2r_observer_begin_id(&va, cid, 0, &rec) == VA_STATUS_SUCCESS);
+		CHECK(v4l2r_DestroyContext(&va, cid) == VA_STATUS_ERROR_OPERATION_FAILED);
+		CHECK(v4l2r_handles_lookup(&drv.contexts, cid) == hctx);
+		CHECK(v4l2r_observer_end_id(&va, cid) == VA_STATUS_SUCCESS);
+		CHECK(v4l2r_DestroyContext(&va, cid) == VA_STATUS_SUCCESS);
+		CHECK(v4l2r_handles_lookup(&drv.contexts, cid) == NULL);
+		CHECK(v4l2r_observer_begin_id(&va, cid, 0, &rec) == VA_STATUS_ERROR_INVALID_CONTEXT);
+		v4l2r_handles_destroy(&drv.contexts);
+		v4l2r_handles_destroy(&drv.surfaces);
+		v4l2r_handles_destroy(&drv.buffers);
+	}
+
+	puts("PASS actual decode.c/context.c observer: pause-before-bind, deadline, retain/teardown, selected last_ref_seq, VAContextID handle lifetime; fake V4L2 ioctl identified");
 	return 0;
 }

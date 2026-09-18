@@ -80,6 +80,7 @@ def compile_and_run(tree: Path, decode_text: str, context_text: str, env=None):
             '-I', str(tree), '-I', str(tree / 'src'), *va_cflags,
             '-Wl,--wrap=ioctl', '-Wl,--wrap=poll',
             str(HERE / 'observer-test.c'), str(root / 'decode.c'), str(root / 'context.c'),
+            str(tree / 'src/handles.c'),
             '-lpthread', '-o', str(binary),
         ]
         compiled = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -125,7 +126,18 @@ def main():
                     raise RuntimeError(diagnostic)
             elif result.returncode != 1 or 'failed line ' not in result.stderr:
                 raise RuntimeError('mutation not distinguished: ' + name + '\n' + diagnostic)
-        print('PASS: actual patched decode.c/context.c observer with fake V4L2; four semantic mutations fail')
+        destroy = (
+            '	if (!ctx)\n'
+            '		return VA_STATUS_ERROR_INVALID_CONTEXT;\n'
+            '	if (ctx->observer_retain)\n'
+            '		return VA_STATUS_ERROR_OPERATION_FAILED;\n'
+        )
+        mutated_ctx = replace_once(context, destroy,
+            '	if (!ctx)\n		return VA_STATUS_ERROR_INVALID_CONTEXT;\n')
+        result = compile_and_run(tree, decode, mutated_ctx)
+        if result.returncode != 1 or 'failed line ' not in result.stderr:
+            raise RuntimeError('destroy-retain mutation not distinguished\n' + result.stdout + result.stderr)
+        print('PASS: actual patched decode.c/context.c observer with fake V4L2; five semantic mutations fail')
         print('driver', PIN, 'patch', sha((HERE / 'driver-observer.patch').read_bytes()))
 
 

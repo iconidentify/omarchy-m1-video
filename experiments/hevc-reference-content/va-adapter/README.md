@@ -17,6 +17,7 @@ driver archive. The test applies `driver-observer.patch` to
 and `src/context.c`, and links a **named fake V4L2** `ioctl`/`poll` backend. It
 is not a toy queue and not an extracted-predicate-only harness. Pause is taken
 before bind. Expired deadlines and stopped/partial contexts fail. Retain blocks
-bind and teardown.
+bind, teardown and `DestroyContext`. `VAContextID` wrappers use the real handle
+table; lookup after destroy fails.
 
 See [CONTRACT.md](CONTRACT.md).

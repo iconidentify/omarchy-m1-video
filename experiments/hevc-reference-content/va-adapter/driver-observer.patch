@@ -2,11 +2,11 @@ From: z23 <3616196+z23@users.noreply.github.com>
 Subject: [PATCH] Experimental default-off VA observer pause/retain (no production default)
 
 Companion omarchy-m1-video #95. Pause/retain before bind. Drain uses
-wait_completed_locked(ctx->submitted, deadline). Receipt generations come
-from enable/create. Bind/teardown consult retain.
+deadline. Receipt generations from enable/create. Bind/teardown/DestroyContext
+consult retain. VAContextID lookup wrappers use the real handle table.
 
 --- a/src/v4l2_request.h	2026-09-18 00:57:30.370422166 +0000
-+++ b/src/v4l2_request.h	2026-09-18 01:36:25.778134326 +0000
++++ b/src/v4l2_request.h	2026-09-18 02:07:36.929514973 +0000
 @@ -434,6 +434,12 @@
  	uint64_t submitted;
  	uint64_t completed;
@@ -20,7 +20,7 @@ from enable/create. Bind/teardown consult retain.
  
  	struct v4l2r_capture_buffer captures[V4L2R_MAX_CAPTURE_BUFFERS];
  	unsigned int nb_captures;
-@@ -765,6 +771,23 @@
+@@ -765,6 +771,29 @@
   * buffer before it is overwritten by a new decode. */
  VAStatus v4l2r_wait_completed(struct v4l2r_context *ctx, uint64_t target);
  
@@ -40,12 +40,18 @@ from enable/create. Bind/teardown consult retain.
 +			      struct v4l2r_observer_receipt *out);
 +VAStatus v4l2r_observer_end(struct v4l2r_context *ctx);
 +VAStatus v4l2r_observer_teardown(struct v4l2r_context *ctx);
++VAStatus v4l2r_observer_enable_id(VADriverContextP va, VAContextID id);
++VAStatus v4l2r_observer_begin_id(VADriverContextP va, VAContextID id,
++				 uint64_t deadline_ns,
++				 struct v4l2r_observer_receipt *out);
++VAStatus v4l2r_observer_end_id(VADriverContextP va, VAContextID id);
++VAStatus v4l2r_observer_teardown_id(VADriverContextP va, VAContextID id);
 +
  /* Non-blocking dequeue sweep, used by vaQuerySurfaceStatus. */
  void v4l2r_reap_capture(struct v4l2r_context *ctx);
  void v4l2r_context_fail(struct v4l2r_context *ctx);
 --- a/src/decode.c	2026-09-18 00:57:30.370422166 +0000
-+++ b/src/decode.c	2026-09-18 01:36:25.778170785 +0000
++++ b/src/decode.c	2026-09-18 02:07:50.578393993 +0000
 @@ -376,9 +376,13 @@
  	pthread_mutex_unlock(&ctx->mutex);
  }
@@ -91,7 +97,7 @@ from enable/create. Bind/teardown consult retain.
  
  	/* First submission of the context configures the CAPTURE side using
  	 * the codec controls that are now known (e.g. SPS bit depth). Set
-@@ -747,3 +757,108 @@
+@@ -747,3 +757,153 @@
  
  	return queue_decode(ctx, controls, count, first_slice, last_slice);
  }
@@ -200,8 +206,53 @@ from enable/create. Bind/teardown consult retain.
 +	pthread_mutex_unlock(&ctx->mutex);
 +	return VA_STATUS_SUCCESS;
 +}
++
++static struct v4l2r_context *observer_ctx_id(VADriverContextP va, VAContextID id)
++{
++	if (!va || !va->pDriverData)
++		return NULL;
++	return V4L2R_CONTEXT_GET(v4l2r_driver(va), id);
++}
++
++VAStatus v4l2r_observer_enable_id(VADriverContextP va, VAContextID id)
++{
++	struct v4l2r_context *ctx = observer_ctx_id(va, id);
++
++	if (!ctx)
++		return VA_STATUS_ERROR_INVALID_CONTEXT;
++	return v4l2r_observer_enable(ctx);
++}
++
++VAStatus v4l2r_observer_begin_id(VADriverContextP va, VAContextID id,
++				 uint64_t deadline_ns,
++				 struct v4l2r_observer_receipt *out)
++{
++	struct v4l2r_context *ctx = observer_ctx_id(va, id);
++
++	if (!ctx)
++		return VA_STATUS_ERROR_INVALID_CONTEXT;
++	return v4l2r_observer_begin(ctx, deadline_ns, out);
++}
++
++VAStatus v4l2r_observer_end_id(VADriverContextP va, VAContextID id)
++{
++	struct v4l2r_context *ctx = observer_ctx_id(va, id);
++
++	if (!ctx)
++		return VA_STATUS_ERROR_INVALID_CONTEXT;
++	return v4l2r_observer_end(ctx);
++}
++
++VAStatus v4l2r_observer_teardown_id(VADriverContextP va, VAContextID id)
++{
++	struct v4l2r_context *ctx = observer_ctx_id(va, id);
++
++	if (!ctx)
++		return VA_STATUS_ERROR_INVALID_CONTEXT;
++	return v4l2r_observer_teardown(ctx);
++}
 --- a/src/context.c	2026-09-18 00:57:30.370422166 +0000
-+++ b/src/context.c	2026-09-18 01:36:25.778199535 +0000
++++ b/src/context.c	2026-09-18 02:07:50.578393993 +0000
 @@ -916,8 +916,11 @@
  	bool starting = !ctx->streaming;
  	int ret;
@@ -214,3 +265,12 @@ from enable/create. Bind/teardown consult retain.
  
  	if (surface->ctx && surface->ctx != ctx) {
  		v4l2r_diag(ctx, V4L2R_DIAG_LEVEL_DEBUG, V4L2R_DIAG_CLIENT,
+@@ -1338,6 +1341,8 @@
+ 	ctx = V4L2R_CONTEXT_GET(drv, context_id);
+ 	if (!ctx)
+ 		return VA_STATUS_ERROR_INVALID_CONTEXT;
++	if (ctx->observer_retain)
++		return VA_STATUS_ERROR_OPERATION_FAILED;
+ 
+ 	/* A missing EndPicture cannot leave a successful frame behind or
+ 	 * submit an incomplete held-back picture during teardown. */
