@@ -1,9 +1,22 @@
 name: HEVC reference memory
 on:
   push:
+    paths:
+      - '.github/workflows/hevc-reference-memory.yml'
+      - 'experiments/hevc-reference-memory/**'
+      - 'experiments/hevc-avd-command-capture/**'
+      - 'experiments/hevc-avd-trace/**'
   pull_request:
+    paths:
+      - '.github/workflows/hevc-reference-memory.yml'
+      - 'experiments/hevc-reference-memory/**'
+      - 'experiments/hevc-avd-command-capture/**'
+      - 'experiments/hevc-avd-trace/**'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   reference-memory:
     runs-on: ubuntu-latest

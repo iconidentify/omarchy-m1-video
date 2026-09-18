@@ -1,9 +1,20 @@
 name: HEVC reference content
 on:
   push:
+    paths:
+      - '.github/workflows/hevc-reference-content.yml'
+      - 'experiments/hevc-reference-content/**'
+      - 'experiments/hevc-reference-memory/**'
   pull_request:
+    paths:
+      - '.github/workflows/hevc-reference-content.yml'
+      - 'experiments/hevc-reference-content/**'
+      - 'experiments/hevc-reference-memory/**'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   reference-content:
     runs-on: ubuntu-latest

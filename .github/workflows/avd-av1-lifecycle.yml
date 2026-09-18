@@ -1,9 +1,20 @@
 name: AVD AV1 lifecycle
 on:
   push:
+    paths:
+      - '.github/workflows/avd-av1-lifecycle.yml'
+      - 'experiments/avd-av1-lifecycle/**'
+      - 'experiments/avd-allocation-retry/**'
   pull_request:
+    paths:
+      - '.github/workflows/avd-av1-lifecycle.yml'
+      - 'experiments/avd-av1-lifecycle/**'
+      - 'experiments/avd-allocation-retry/**'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   av1-lifecycle:
     runs-on: ubuntu-latest

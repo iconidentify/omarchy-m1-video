@@ -1,9 +1,18 @@
 name: HEVC full control evidence
 on:
   push:
+    paths:
+      - '.github/workflows/hevc-full-controls.yml'
+      - 'experiments/hevc-full-controls/**'
   pull_request:
+    paths:
+      - '.github/workflows/hevc-full-controls.yml'
+      - 'experiments/hevc-full-controls/**'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   full-controls:
     runs-on: ubuntu-latest

@@ -1,9 +1,26 @@
 name: HEVC AVD source map
 on:
   push:
+    paths:
+      - '.github/workflows/hevc-avd-map.yml'
+      - 'experiments/hevc-avd-map/**'
+      - 'experiments/hevc-avd-trace/**'
+      - 'experiments/hevc-controls/**'
+      - 'patches/**'
+      - 'tests/hevc-reftrace-check.py'
   pull_request:
+    paths:
+      - '.github/workflows/hevc-avd-map.yml'
+      - 'experiments/hevc-avd-map/**'
+      - 'experiments/hevc-avd-trace/**'
+      - 'experiments/hevc-controls/**'
+      - 'patches/**'
+      - 'tests/hevc-reftrace-check.py'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   avd-map:
     runs-on: ubuntu-latest

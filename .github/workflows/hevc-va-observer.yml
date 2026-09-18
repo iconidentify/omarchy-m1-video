@@ -1,9 +1,18 @@
 name: HEVC VA observer
 on:
   push:
+    paths:
+      - '.github/workflows/hevc-va-observer.yml'
+      - 'experiments/hevc-reference-content/**'
   pull_request:
+    paths:
+      - '.github/workflows/hevc-va-observer.yml'
+      - 'experiments/hevc-reference-content/**'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   va-observer:
     runs-on: ubuntu-latest

@@ -1,9 +1,18 @@
 name: H.264 client admission
 on:
   push:
+    paths:
+      - '.github/workflows/h264-client-admission.yml'
+      - 'experiments/h264-client-admission/**'
   pull_request:
+    paths:
+      - '.github/workflows/h264-client-admission.yml'
+      - 'experiments/h264-client-admission/**'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   admission:
     runs-on: ubuntu-latest

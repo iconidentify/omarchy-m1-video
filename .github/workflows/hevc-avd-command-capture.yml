@@ -1,9 +1,26 @@
 name: HEVC paired capture supervisor
 on:
   push:
+    paths:
+      - '.github/workflows/hevc-avd-command-capture.yml'
+      - 'experiments/hevc-avd-command-capture/**'
+      - 'experiments/hevc-avd-command-trace/**'
+      - 'experiments/hevc-avd-trace/**'
+      - 'experiments/hevc-full-controls/**'
+      - 'tests/hevc-reftrace-check.py'
   pull_request:
+    paths:
+      - '.github/workflows/hevc-avd-command-capture.yml'
+      - 'experiments/hevc-avd-command-capture/**'
+      - 'experiments/hevc-avd-command-trace/**'
+      - 'experiments/hevc-avd-trace/**'
+      - 'experiments/hevc-full-controls/**'
+      - 'tests/hevc-reftrace-check.py'
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   paired-capture:
     runs-on: ubuntu-latest
