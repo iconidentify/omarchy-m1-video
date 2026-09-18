@@ -1,12 +1,12 @@
 From: z23 <3616196+z23@users.noreply.github.com>
-Subject: [PATCH] Experimental default-off VA observer pause/retain (no production default)
+Subject: [PATCH] Experimental default-off VA observer (incomplete lifetime contract)
 
-Companion omarchy-m1-video #95. Pause/retain before bind. Drain uses
-deadline. Receipt generations from enable/create. Bind/teardown/DestroyContext
-consult retain. VAContextID lookup wrappers use the real handle table.
+Original observer by z23; maintainer fixes serialize handle lookup, bound
+lock waits, reject unsupported writers, and guard surface destruction.
+Not a completed observer or live-copy contract. See CONTRACT.md.
 
---- a/src/v4l2_request.h	2026-09-18 00:57:30.370422166 +0000
-+++ b/src/v4l2_request.h	2026-09-18 02:07:36.929514973 +0000
+--- a/src/v4l2_request.h
++++ b/src/v4l2_request.h
 @@ -434,6 +434,12 @@
  	uint64_t submitted;
  	uint64_t completed;
@@ -20,10 +20,11 @@ consult retain. VAContextID lookup wrappers use the real handle table.
  
  	struct v4l2r_capture_buffer captures[V4L2R_MAX_CAPTURE_BUFFERS];
  	unsigned int nb_captures;
-@@ -765,6 +771,29 @@
+@@ -764,6 +770,29 @@
+  * until ctx->completed >= target. Used to drain the frames that reference a
   * buffer before it is overwritten by a new decode. */
  VAStatus v4l2r_wait_completed(struct v4l2r_context *ctx, uint64_t target);
- 
++
 +/* Experimental default-off observer (companion omarchy-m1-video #95).
 + * Production contexts leave observer_enabled=0. */
 +struct v4l2r_observer_receipt {
@@ -46,21 +47,21 @@ consult retain. VAContextID lookup wrappers use the real handle table.
 +				 struct v4l2r_observer_receipt *out);
 +VAStatus v4l2r_observer_end_id(VADriverContextP va, VAContextID id);
 +VAStatus v4l2r_observer_teardown_id(VADriverContextP va, VAContextID id);
-+
+ 
  /* Non-blocking dequeue sweep, used by vaQuerySurfaceStatus. */
  void v4l2r_reap_capture(struct v4l2r_context *ctx);
- void v4l2r_context_fail(struct v4l2r_context *ctx);
---- a/src/decode.c	2026-09-18 00:57:30.370422166 +0000
-+++ b/src/decode.c	2026-09-18 02:07:50.578393993 +0000
+--- a/src/decode.c
++++ b/src/decode.c
 @@ -376,9 +376,13 @@
  	pthread_mutex_unlock(&ctx->mutex);
  }
  
 -static int wait_completed_locked(struct v4l2r_context *ctx, uint64_t target)
+-{
+-	uint64_t deadline = v4l2r_now_ns() + (uint64_t)V4L2R_POLL_TIMEOUT_MS * 1000000;
 +static int wait_completed_locked(struct v4l2r_context *ctx, uint64_t target,
 +				 uint64_t deadline)
- {
--	uint64_t deadline = v4l2r_now_ns() + (uint64_t)V4L2R_POLL_TIMEOUT_MS * 1000000;
++{
 +	if (!deadline)
 +		deadline = v4l2r_now_ns() + (uint64_t)V4L2R_POLL_TIMEOUT_MS * 1000000;
 +	if (v4l2r_now_ns() >= deadline)
@@ -97,12 +98,28 @@ consult retain. VAContextID lookup wrappers use the real handle table.
  
  	/* First submission of the context configures the CAPTURE side using
  	 * the codec controls that are now known (e.g. SPS bit depth). Set
-@@ -747,3 +757,153 @@
+@@ -747,3 +757,176 @@
  
  	return queue_decode(ctx, controls, count, first_slice, last_slice);
  }
 +
 +#include <stdatomic.h>
++
++/* A finite monotonic deadline covers lock contention as well as poll. */
++static int observer_lock_until(pthread_mutex_t *mutex, uint64_t deadline)
++{
++	for (;;) {
++		if (v4l2r_now_ns() >= deadline)
++			return -ETIMEDOUT;
++		int err = pthread_mutex_trylock(mutex);
++		if (!err)
++			return 0;
++		if (err != EBUSY)
++			return -err;
++		struct timespec pause = { .tv_nsec = 100000 };
++		nanosleep(&pause, NULL);
++	}
++}
 +
 +VAStatus v4l2r_observer_enable(struct v4l2r_context *ctx)
 +{
@@ -135,15 +152,18 @@ consult retain. VAContextID lookup wrappers use the real handle table.
 +		return VA_STATUS_ERROR_UNIMPLEMENTED;
 +	if (!out)
 +		return VA_STATUS_ERROR_INVALID_PARAMETER;
-+	if (deadline_ns && v4l2r_now_ns() >= deadline_ns)
++	if (!deadline_ns)
++		deadline_ns = v4l2r_now_ns() + (uint64_t)V4L2R_POLL_TIMEOUT_MS * 1000000;
++	if (observer_lock_until(&ctx->mutex, deadline_ns) < 0)
 +		return VA_STATUS_ERROR_OPERATION_FAILED;
-+
-+	pthread_mutex_lock(&ctx->mutex);
-+	if (deadline_ns && v4l2r_now_ns() >= deadline_ns) {
++	if (v4l2r_now_ns() >= deadline_ns) {
 +		pthread_mutex_unlock(&ctx->mutex);
 +		return VA_STATUS_ERROR_OPERATION_FAILED;
 +	}
-+	if (ctx->failed || ctx->observer_paused) {
++	/* Partial pictures and other writers cannot establish this barrier. */
++	if (ctx->failed || ctx->observer_paused || ctx->in_picture ||
++	    ctx->conv || ctx->vpp ||
++	    ctx->capture_memory == V4L2_MEMORY_DMABUF) {
 +		pthread_mutex_unlock(&ctx->mutex);
 +		return VA_STATUS_ERROR_OPERATION_FAILED;
 +	}
@@ -155,7 +175,7 @@ consult retain. VAContextID lookup wrappers use the real handle table.
 +	ctx->observer_retain = 1;
 +	if (ctx->streaming && ctx->completed < ctx->submitted)
 +		ret = wait_completed_locked(ctx, ctx->submitted, deadline_ns);
-+	if (ret < 0) {
++	if (ret < 0 || v4l2r_now_ns() >= deadline_ns) {
 +		ctx->observer_paused = 0;
 +		ctx->observer_retain = 0;
 +		pthread_mutex_unlock(&ctx->mutex);
@@ -207,64 +227,67 @@ consult retain. VAContextID lookup wrappers use the real handle table.
 +	return VA_STATUS_SUCCESS;
 +}
 +
-+static struct v4l2r_context *observer_ctx_id(VADriverContextP va, VAContextID id)
++/* Public experimental wrappers follow api_mutex -> handle table -> ctx.
++ * Raw context helpers above are internal and require API serialization. */
++static VAStatus observer_by_id(VADriverContextP va, VAContextID id,
++                              uint64_t deadline, int operation,
++                              struct v4l2r_observer_receipt *out)
 +{
 +	if (!va || !va->pDriverData)
-+		return NULL;
-+	return V4L2R_CONTEXT_GET(v4l2r_driver(va), id);
++		return VA_STATUS_ERROR_INVALID_CONTEXT;
++	struct v4l2r_driver *drv = v4l2r_driver(va);
++	if (!deadline)
++		deadline = v4l2r_now_ns() + (uint64_t)V4L2R_POLL_TIMEOUT_MS * 1000000;
++	if (observer_lock_until(&drv->api_mutex, deadline) < 0)
++		return VA_STATUS_ERROR_OPERATION_FAILED;
++	struct v4l2r_context *ctx = V4L2R_CONTEXT_GET(drv, id);
++	VAStatus status = VA_STATUS_ERROR_INVALID_CONTEXT;
++	if (ctx) {
++		switch (operation) {
++		case 0: status = v4l2r_observer_enable(ctx); break;
++		case 1: status = v4l2r_observer_begin(ctx, deadline, out); break;
++		case 2: status = v4l2r_observer_end(ctx); break;
++		case 3: status = v4l2r_observer_teardown(ctx); break;
++		}
++	}
++	pthread_mutex_unlock(&drv->api_mutex);
++	return status;
 +}
 +
 +VAStatus v4l2r_observer_enable_id(VADriverContextP va, VAContextID id)
 +{
-+	struct v4l2r_context *ctx = observer_ctx_id(va, id);
-+
-+	if (!ctx)
-+		return VA_STATUS_ERROR_INVALID_CONTEXT;
-+	return v4l2r_observer_enable(ctx);
++	return observer_by_id(va, id, 0, 0, NULL);
 +}
 +
 +VAStatus v4l2r_observer_begin_id(VADriverContextP va, VAContextID id,
-+				 uint64_t deadline_ns,
-+				 struct v4l2r_observer_receipt *out)
++                                 uint64_t deadline_ns,
++                                 struct v4l2r_observer_receipt *out)
 +{
-+	struct v4l2r_context *ctx = observer_ctx_id(va, id);
-+
-+	if (!ctx)
-+		return VA_STATUS_ERROR_INVALID_CONTEXT;
-+	return v4l2r_observer_begin(ctx, deadline_ns, out);
++	return observer_by_id(va, id, deadline_ns, 1, out);
 +}
 +
 +VAStatus v4l2r_observer_end_id(VADriverContextP va, VAContextID id)
 +{
-+	struct v4l2r_context *ctx = observer_ctx_id(va, id);
-+
-+	if (!ctx)
-+		return VA_STATUS_ERROR_INVALID_CONTEXT;
-+	return v4l2r_observer_end(ctx);
++	return observer_by_id(va, id, 0, 2, NULL);
 +}
 +
 +VAStatus v4l2r_observer_teardown_id(VADriverContextP va, VAContextID id)
 +{
-+	struct v4l2r_context *ctx = observer_ctx_id(va, id);
-+
-+	if (!ctx)
-+		return VA_STATUS_ERROR_INVALID_CONTEXT;
-+	return v4l2r_observer_teardown(ctx);
++	return observer_by_id(va, id, 0, 3, NULL);
 +}
---- a/src/context.c	2026-09-18 00:57:30.370422166 +0000
-+++ b/src/context.c	2026-09-18 02:07:50.578393993 +0000
-@@ -916,8 +916,11 @@
+--- a/src/context.c
++++ b/src/context.c
+@@ -916,7 +916,10 @@
  	bool starting = !ctx->streaming;
  	int ret;
  
 +	ctx->observer_bind_count++;
  	if (ctx->failed)
- 		return VA_STATUS_ERROR_OPERATION_FAILED;
-+	if (ctx->observer_paused || ctx->observer_retain)
 +		return VA_STATUS_ERROR_OPERATION_FAILED;
++	if (ctx->observer_paused || ctx->observer_retain)
+ 		return VA_STATUS_ERROR_OPERATION_FAILED;
  
  	if (surface->ctx && surface->ctx != ctx) {
- 		v4l2r_diag(ctx, V4L2R_DIAG_LEVEL_DEBUG, V4L2R_DIAG_CLIENT,
 @@ -1338,6 +1341,8 @@
  	ctx = V4L2R_CONTEXT_GET(drv, context_id);
  	if (!ctx)
@@ -274,3 +297,23 @@ consult retain. VAContextID lookup wrappers use the real handle table.
  
  	/* A missing EndPicture cannot leave a successful frame behind or
  	 * submit an incomplete held-back picture during teardown. */
+@@ -1448,6 +1453,8 @@
+ 			   context_id);
+ 		return VA_STATUS_ERROR_INVALID_CONTEXT;
+ 	}
++	if (ctx->observer_paused || ctx->observer_retain)
++		return VA_STATUS_ERROR_OPERATION_FAILED;
+ 	if (ctx->in_picture) {
+ 		v4l2r_diag(ctx, V4L2R_DIAG_LEVEL_WARNING, V4L2R_DIAG_CLIENT,
+ 			   "begin-picture", 0,
+--- a/src/surface.c
++++ b/src/surface.c
+@@ -126,6 +126,8 @@
+ 		pthread_mutex_unlock(&drv->mutex);
+ 		if (!surface)
+ 			return VA_STATUS_ERROR_INVALID_SURFACE;
++		if (surface->ctx && surface->ctx->observer_retain)
++			return VA_STATUS_ERROR_SURFACE_BUSY;
+ 		if (image_busy || vpp_busy)
+ 			return VA_STATUS_ERROR_SURFACE_BUSY;
+ 		if (surface->ctx && surface->ctx->in_picture &&

@@ -13,7 +13,7 @@ No live decoder mapping.
 
 | Entrypoint | Role while observer is enabled |
 | --- | --- |
-| `v4l2r_observer_enable` | Default-off gate. Assigns `observer_run_generation` and `observer_context_id` once from process-wide create counters |
+| `v4l2r_observer_enable` | Default-off gate. Assigns `observer_run_generation` and `observer_context_id` once from process-wide enable counters (not allocation identity) |
 | `v4l2r_observer_begin` | Pause/retain under `ctx->mutex`, then `wait_completed_locked(ctx, ctx->submitted, deadline_ns)` so **every issued frame** drains. Expired `deadline_ns` fails. `!streaming && submitted > completed` fails |
 | `v4l2r_decode` | Returns fail **before** `v4l2r_context_bind_surface` when paused or retained |
 | `v4l2r_context_bind_surface` | Counts the call, then fails if paused/retained so reuse cannot proceed |
@@ -25,17 +25,35 @@ No live decoder mapping.
 
 ## Locking
 
-1. `ctx->mutex` is held for pause/retain, receipt snapshot and the drain. Deadline is checked before and after taking the mutex.
-2. VAContextID wrappers (`v4l2r_observer_*_id`) look up through `V4L2R_CONTEXT_GET` (driver handle mutex). Destroyed ids fail lookup. `v4l2r_DestroyContext` fails while retain is held, so the slot is not freed.
+1. `ctx->mutex` is held for pause/retain, receipt snapshot and the drain. A finite deadline bounds acquisition and drain.
+2. VAContextID wrappers (`v4l2r_observer_*_id`) hold `api_mutex` while looking up through `V4L2R_CONTEXT_GET` (driver handle mutex). Destroyed ids fail lookup. `v4l2r_DestroyContext` fails while retain is held, so the slot is not freed.
 3. Fake V4L2 `ioctl`/`poll` in the self-test run without a device fd. The self-test compiles actual `decode.c`, `context.c` and `handles.c`.
 
 ## Lifetime
 
 - Default-off: `observer_enabled==0` → begin/end/teardown return `VA_STATUS_ERROR_UNIMPLEMENTED`.
-- Receipt `run_generation` / `context_generation` come from enable/create, not per-begin increments or test-assigned fields.
+- Receipt `run_generation` / `context_generation` come from enable counters, not per-begin increments or test-assigned fields; these are not creation/allocation generations.
 - Receipt `capture_index` / `last_ref_seq` come from `ctx->pic.target`'s capture buffer after drain.
-- Bind/decode/teardown/`DestroyContext` consult `observer_retain`. Convert/VPP/import rejection remains later work.
+- Bind/decode/teardown/`DestroyContext` consult `observer_retain`. The current correction rejects conversion, VPP and DMABUF capture; other external reader/writer paths remain unqualified.
 
 ## Sibling #96
 
 Receipt field names match the list above. GStreamer implementation files stay separate.
+
+## Current correction and remaining blockers
+
+The ID wrappers now take `drv->api_mutex` before looking up a context, then the
+context helper takes `ctx->mutex`; this follows the public API's lifetime order.
+Begin's monotonic deadline covers both acquisitions and the drain, and zero
+chooses the existing two-second timeout. Partial pictures, conversion, VPP and
+DMABUF capture are rejected. Retain is consulted by public BeginPicture and
+DestroySurfaces as well as context destruction/binding. The test now builds the
+whole configured driver and invokes the public vtable for those lifetime checks.
+
+This does not complete the API contract. Raw context helpers still require the
+caller's API serialization. An ID lookup is not a session capability: stale/ABA
+handles and foreign end calls need explicit tokens. `pic.target` is cleared by
+normal EndPicture, so it cannot identify the allocation a parent wants to inspect.
+A real selected-surface/allocation/writer receipt, complete writer/reader exclusion
+(including images, exports and foreign VPP contexts), and concurrent schedules
+are required before merge. None of this patch admits live mapping or copying.

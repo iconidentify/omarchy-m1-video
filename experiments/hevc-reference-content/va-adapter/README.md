@@ -21,3 +21,30 @@ bind, teardown and `DestroyContext`. `VAContextID` wrappers use the real handle
 table; lookup after destroy fails.
 
 See [CONTRACT.md](CONTRACT.md).
+
+## Maintainer adversarial correction (2026-09-18)
+
+On `aa7596c`, begin accepted an unfinished picture, a conversion context, and a
+VPP context. Handle wrappers did not take `api_mutex`, and the nominal deadline
+did not bound mutex acquisition. The correction rejects these unsupported writer
+states and imported DMABUF capture, serializes ID lookup through the driver's API
+lock, and applies the same monotonic deadline to API/context lock acquisition and
+drain. Zero selects the existing finite two-second limit. Public BeginPicture and
+DestroySurfaces now reject retained context/surface mutation.
+
+The test configures and links the full pinned driver with Meson and ASan/UBSan,
+then executes actual public locking wrappers with a synthetic context/capture
+fixture and intercepted ioctl/poll. It also retains the actual decode/context
+fixture and five semantic mutations. Required dependencies now include Meson,
+Ninja and libdrm headers; the hosted workflow installs them. No device is opened.
+
+**Still draft; the complete ownership/receipt contract remains unmet.** Numeric
+VAContextIDs can be reused, and end has no session token to reject an old caller.
+The receipt selects `pic.target`, not an explicitly retained allocation/writer;
+normal EndPicture clears that pointer. Run/context generations are assigned on
+enable, and allocation/writer creation generations are absent. Imported GPU
+readers, writable images/exports, VPP readers from another context and all other
+mutation paths have not been fenced or qualified. Suitable concurrent schedules
+and same-run receipt joins remain required before accepting #95. Raw context
+helpers require external API serialization; only the ID wrappers acquire it.
+Maintainer corrections are self-reviewed. No live-copy or coherence claim.

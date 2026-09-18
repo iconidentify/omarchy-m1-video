@@ -81,7 +81,16 @@ VAStatus v4l2r_vpp_render_buffer(struct v4l2r_context *ctx, struct v4l2r_buffer 
 VAStatus v4l2r_vpp_end_picture(struct v4l2r_context *ctx)
 { (void)ctx; return VA_STATUS_ERROR_OPERATION_FAILED; }
 
-#define CHECK(c) do { if (!(c)) { fprintf(stderr, "failed line %d: %s\n", __LINE__, #c); return 1; } } while (0)
+static struct v4l2r_driver drv;
+
+static void cleanup_handles(void)
+{
+	v4l2r_handles_destroy(&drv.contexts);
+	v4l2r_handles_destroy(&drv.surfaces);
+	v4l2r_handles_destroy(&drv.buffers);
+}
+
+#define CHECK(c) do { if (!(c)) { fprintf(stderr, "failed line %d: %s\n", __LINE__, #c); cleanup_handles(); return 1; } } while (0)
 
 static void init_capture(struct v4l2r_context *ctx)
 {
@@ -127,6 +136,24 @@ int main(void)
 	CHECK(v4l2r_observer_begin(&ctx, 0, &rec) == VA_STATUS_ERROR_UNIMPLEMENTED);
 	CHECK(v4l2r_observer_enable(&ctx) == VA_STATUS_SUCCESS);
 	CHECK(ctx.observer_run_generation != 0 && ctx.observer_context_id != 0);
+	ctx.in_picture = true;
+	CHECK(v4l2r_observer_begin(&ctx, 0, &rec) == VA_STATUS_ERROR_OPERATION_FAILED);
+	ctx.in_picture = false;
+	ctx.conv = (void *)&ctx;
+	CHECK(v4l2r_observer_begin(&ctx, 0, &rec) == VA_STATUS_ERROR_OPERATION_FAILED);
+	ctx.conv = NULL;
+	ctx.vpp = (void *)&ctx;
+	CHECK(v4l2r_observer_begin(&ctx, 0, &rec) == VA_STATUS_ERROR_OPERATION_FAILED);
+	ctx.vpp = NULL;
+	ctx.capture_memory = V4L2_MEMORY_DMABUF;
+	CHECK(v4l2r_observer_begin(&ctx, 0, &rec) == VA_STATUS_ERROR_OPERATION_FAILED);
+	ctx.capture_memory = V4L2_MEMORY_MMAP;
+	pthread_mutex_lock(&ctx.mutex);
+	uint64_t before = v4l2r_now_ns();
+	CHECK(v4l2r_observer_begin(&ctx, before + 5000000, &rec) == VA_STATUS_ERROR_OPERATION_FAILED);
+	CHECK(v4l2r_now_ns() - before < 500000000);
+	pthread_mutex_unlock(&ctx.mutex);
+
 	CHECK(v4l2r_observer_begin(&ctx, 0, &rec) == VA_STATUS_SUCCESS);
 	CHECK(rec.run_generation == ctx.observer_run_generation);
 	CHECK(rec.context_generation == ctx.observer_context_id);
@@ -177,7 +204,6 @@ int main(void)
 	CHECK(v4l2r_observer_end(&ctx) == VA_STATUS_SUCCESS);
 
 	{
-		struct v4l2r_driver drv;
 		struct VADriverContext va;
 		struct v4l2r_context *hctx;
 		VAContextID cid;
@@ -205,6 +231,12 @@ int main(void)
 		va.pDriverData = &drv;
 		CHECK(v4l2r_observer_begin_id(&va, cid, 0, &rec) == VA_STATUS_ERROR_UNIMPLEMENTED);
 		CHECK(v4l2r_observer_enable_id(&va, cid) == VA_STATUS_SUCCESS);
+		pthread_mutex_lock(&drv.api_mutex);
+		before = v4l2r_now_ns();
+		CHECK(v4l2r_observer_begin_id(&va, cid, before + 5000000, &rec) == VA_STATUS_ERROR_OPERATION_FAILED);
+		CHECK(v4l2r_now_ns() - before < 500000000);
+		pthread_mutex_unlock(&drv.api_mutex);
+
 		CHECK(v4l2r_observer_begin_id(&va, cid, 0, &rec) == VA_STATUS_SUCCESS);
 		CHECK(v4l2r_DestroyContext(&va, cid) == VA_STATUS_ERROR_OPERATION_FAILED);
 		CHECK(v4l2r_handles_lookup(&drv.contexts, cid) == hctx);

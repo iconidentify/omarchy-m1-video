@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Install libva headers
-        run: sudo apt-get update && sudo apt-get install -y libva-dev pkg-config
-      - name: Actual patched decode.c observer with fake V4L2
+      - name: Install driver build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libva-dev libdrm-dev pkg-config meson ninja-build
+      - name: Full driver build and observer API tests with fake V4L2
         run: python3 experiments/hevc-reference-content/va-adapter/tests.py
