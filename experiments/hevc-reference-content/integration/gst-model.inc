@@ -48,7 +48,7 @@ __attribute__((visibility("default"))) int __wrap_munmap(void *addr,size_t lengt
     int result=__real_munmap(addr,length);if(!result)content_mapping=NULL;return result;
 }
 int main(int argc,char **argv) {
-    assert(argc==2);mode=argv[1];model_identify();if(!strcmp(mode,"padded"))model_length=368128;
+    assert(argc==2);mode=argv[1];model_identify();model_peer((const void*)gst_hevc_content_snapshot);if(!strcmp(mode,"padded"))model_length=368128;
     if(!strcmp(mode,"bad-extent")) model_length=345599;
     g_setenv("GST_PLUGIN_SYSTEM_PATH_1_0","",TRUE);g_setenv("GST_PLUGIN_PATH_1_0","",TRUE);gst_init(NULL,NULL);
     GST_DEBUG_CATEGORY_INIT(gstv4l2codecs_debug,"v4l2codecs",0,"model plugin log");
@@ -75,6 +75,7 @@ int main(int argc,char **argv) {
             assert(!gst_v4l2_decoder_close(decoder));fail_unmap=false;
         } else if(strcmp(mode,"changed-proof") && strcmp(mode,"mmap-failure") && strcmp(mode,"slow-copy")) assert(content_maps==0);
     } else {
+        if(!ok) diagnose_refusal(&pool);
         assert(ok);
         assert(pool.slot[0].identity.client==HEVC_CONTENT_GST &&
             pool.slot[0].identity.context_generation==session.context &&

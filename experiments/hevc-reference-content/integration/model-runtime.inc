@@ -9,7 +9,9 @@ static int evidence_fds[128], evidence_count, model_video;
 static void *content_mapping;
 static bool fail_unmap;
 static uint64_t clock_jump;
-static char model_self_id[129];
+static char model_self_id[129], model_peer_id[129];
+static unsigned model_stats, model_directories, model_links;
+static char last_evidence[256];
 int __real_fstat(int, struct stat *);
 int __real_close(int);
 int __real_clock_gettime(clockid_t, struct timespec *);
@@ -20,6 +22,7 @@ static bool evidence_fd(int fd) {
     return false;
 }
 static int evidence_open(const char *name) {
+    snprintf(last_evidence,sizeof(last_evidence),"%s",name);
     unsigned char bytes[4096]; size_t length=0;
     if(!strcmp(name,HEVC_CONTENT_MANIFEST)) {
         manifest_reads++;
@@ -46,16 +49,19 @@ static int evidence_open(const char *name) {
     assert(evidence_count<128);evidence_fds[evidence_count++]=fd;return fd;
 }
 __attribute__((visibility("default"))) int __wrap_fstat(int fd,struct stat *st) {
+    model_stats++;
     if(fd==model_video) {memset(st,0,sizeof(*st));st->st_mode=S_IFCHR|0600;st->st_rdev=makedev(81,0);return 0;}
     int result=__real_fstat(fd,st);
     if(!result && evidence_fd(fd)) {st->st_uid=!strcmp(mode,"untrusted-owner")?1000:0;st->st_mode=S_IFREG|(!strcmp(mode,"writable-manifest")?0666:0600);}
     return result;
 }
 __attribute__((visibility("default"))) int __wrap_lstat(const char *name,struct stat *st) {
+    model_directories++;
     assert(!strcmp(name,"/etc/apple-avd-observer"));
     memset(st,0,sizeof(*st));st->st_mode=S_IFDIR|0755;st->st_uid=!strcmp(mode,"untrusted-directory")?1000:0;return 0;
 }
 __attribute__((visibility("default"))) ssize_t __wrap_readlink(const char *name,char *data,size_t length) {
+    model_links++;
     assert(!strcmp(name,"/sys/dev/char/81:0/device/driver/module"));
     const char *target=!strcmp(mode,"wrong-device")?"../../../unrelated":"../../../apple_avd";
     assert(strlen(target)<length);memcpy(data,target,strlen(target));return strlen(target);
@@ -93,3 +99,12 @@ static bool is_refusal(void) {
 
 __attribute__((visibility("default"))) int __wrap_fstat64(int fd,struct stat *st) {return __wrap_fstat(fd,st);}
 __attribute__((visibility("default"))) int __wrap_lstat64(const char *name,struct stat *st) {return __wrap_lstat(name,st);}
+
+static void model_peer(const void *address) {
+    struct hevc_content_self self;hevc_content_identify(&self,address);strcpy(model_peer_id,self.id);
+}
+static void diagnose_refusal(const struct hevc_content_pool *p) {
+    fprintf(stderr,"unexpected copy refusal: stopped=%u used=%u maps=%u unmaps=%u manifests=%u stats=%u dirs=%u links=%u last=%s self=%s peer=%s\n",
+        p->stopped,p->used,content_maps,content_unmaps,manifest_reads,model_stats,model_directories,model_links,
+        last_evidence[0]?last_evidence:"none",model_self_id,model_peer_id);
+}

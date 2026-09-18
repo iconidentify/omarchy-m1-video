@@ -67,7 +67,7 @@ int __wrap_munmap(void *addr,size_t length) {
     int result=__real_munmap(addr,length);if(!result)content_mapping=NULL;return result;
 }
 int main(int argc,char **argv) {
-    assert(argc==2);mode=argv[1];model_identify();
+    assert(argc==2);mode=argv[1];model_identify();model_peer((const void*)v4l2r_content_snapshot);
     if(!strcmp(mode,"padded")) model_length=368128;
     if(!strcmp(mode,"bad-extent")) model_length=345599;
     capture_file=memfd_create("VA-capture-allocations",MFD_CLOEXEC);assert(capture_file>=0);
@@ -103,6 +103,7 @@ int main(int argc,char **argv) {
             fail_unmap=false;
         } else if(strcmp(mode,"changed-proof") && strcmp(mode,"mmap-failure") && strcmp(mode,"slow-copy")) assert(content_maps==0);
     } else {
+        if(!ok) diagnose_refusal(&pool);
         assert(ok);
         assert(pool.slot[0].identity.client==HEVC_CONTENT_VA &&
             pool.slot[0].identity.context_generation==session.context_generation &&
