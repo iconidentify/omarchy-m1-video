@@ -57,6 +57,9 @@ generation and writer-job labels. The removed joiner could accept those fabricat
 fields. Source strings and metadata cannot confer live retention. The real adapter
 still unconditionally rejects; no snapshot path or hardware authorization is added.
 
-#82 still needs actual client/kernel instrumentation with a reviewed producer
-barrier and retention/lifetime design. Another source scan or synthetic wrapper does
-not satisfy that implementation step. Keep its original criteria open.
+`real_barrier.py` now **compiles and runs** those four extracted functions
+with recorded stubs. The wait waits one capture index on one `video_fd`;
+reader-wait polls only that buffer's dmabuf fds; CPU-access is a no-op and
+does not mint a generation. There is still no client API that pauses all
+producers and retains writer identity through a later copy. Hardware copy
+stays unauthorized. Parent #42 remains open.

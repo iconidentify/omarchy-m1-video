@@ -14,6 +14,7 @@ from unittest.mock import patch
 from adapter import AdapterError, Observer, real_client_adapter, MAX_COPY
 from source_audit import inspect_sources, reject_historical_identity
 import client_source
+from real_barrier import prove_no_real_barrier
 from synthetic_queue import FakeQueue, QueueError
 
 HERE = Path(__file__).resolve().parent
@@ -283,6 +284,17 @@ class SourceAuditTests(unittest.TestCase):
                 real_client_adapter('VA',bodies=bodies)
 
 
+class ExecutedBarrierTests(unittest.TestCase):
+    def test_extracted_wait_cannot_pause_all_producers(self):
+        out = prove_no_real_barrier()
+        self.assertIn('no pause token', out)
+        self.assertIn('no generation', out)
+
+    def test_real_adapter_still_blocked_after_execution(self):
+        with self.assertRaisesRegex(AdapterError, 'wait_on_capture_locked'):
+            real_client_adapter('VA')
+
+
 def mutations():
     variants = {
         'default-on': ('adapter.py', 'enabled=False', 'enabled=True', 1),
@@ -291,7 +303,8 @@ def mutations():
         'pause-bypassed': ('synthetic_queue.py', 'if self.paused:', 'if False:', 2),
     }
     copies = ('tests.py', 'adapter.py', 'synthetic_queue.py', 'source_audit.py',
-              'client_source.py', 'source-map.json', 'function-hashes.json')
+              'client_source.py', 'source-map.json', 'function-hashes.json',
+              'real_barrier.py', 'barrier_harness.c')
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
         for name, (file, old, new, count) in variants.items():
@@ -316,6 +329,7 @@ if __name__ == '__main__':
     suite.addTests(loader.loadTestsFromTestCase(ObserverTests))
     if not unit_only:
         suite.addTests(loader.loadTestsFromTestCase(SourceAuditTests))
+        suite.addTests(loader.loadTestsFromTestCase(ExecutedBarrierTests))
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     if not result.wasSuccessful(): sys.exit(1)
     if not unit_only: mutations()

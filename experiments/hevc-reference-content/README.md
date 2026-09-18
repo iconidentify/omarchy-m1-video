@@ -69,6 +69,9 @@ generation and writer-job labels. The removed joiner could accept those fabricat
 fields. Source strings and metadata cannot confer live retention. The real adapter
 still unconditionally rejects; no snapshot path or hardware authorization is added.
 
-#82 still needs actual client/kernel instrumentation with a reviewed producer
-barrier and retention/lifetime design. Another source scan or synthetic wrapper does
-not satisfy that implementation step. Keep its original criteria open.
+Executed `wait_on_capture_locked`, `capture_wait_readers` and vb2 dma-contig
+CPU-access callbacks (extracted, compiled, ASan) show: one capture index is
+waited, listed dmabuf fds are polled, CPU-access returns 0 without changing a
+generation, and no all-producer pause token exists. Mutating the wait loop to
+set `all_producers_paused` is distinguished (exit 11). Copying remains
+unauthorized. Parent #42 stays open.
