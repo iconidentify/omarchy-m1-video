@@ -15,8 +15,11 @@ class AdapterError(Exception):
     pass
 
 def real_client_adapter(client, records=None, *, bodies=None):
-    """Records or source strings cannot enforce a live producer barrier or lifetime pin."""
-    raise AdapterError('blocked: no verified real-client pause/retention/exporter adapter')
+    """Selected helper execution cannot supply live pause/retention ownership."""
+    raise AdapterError(
+        'blocked: wait_on_capture_locked/helper execution supplies no '
+        'live pause/retention/exporter adapter')
+
 
 class Observer:
     def __init__(self, queue, enabled=False, clock=time.monotonic):
