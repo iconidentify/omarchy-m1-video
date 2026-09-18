@@ -1,4 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
+#include <gst/gst.h>
+#include <linux/videodev2.h>
+#include "gst-compat.h"
+#include "extracted-structs.inc"
 #include "gst-observer.h"
 #include <pthread.h>
 #include <string.h>
@@ -7,13 +11,13 @@
 static pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
 static int enabled;
 static int paused;
-static unsigned run_id = 1;
-static unsigned generation;
 static unsigned next_writer;
 static GstV4l2Decoder *held_decoder;
 static struct gst_hevc_receipt receipts[8];
 static int n_receipts;
-static GstV4l2Request *held[8];
+static GstV4l2Request *held_req[8];
+static GstBuffer *held_pic[8];
+static GstMemory *held_bit[8];
 static int n_held;
 static GstV4l2Request *live[8];
 static int n_live;
@@ -71,18 +75,16 @@ int gst_hevc_observer_record(GstV4l2Request *request)
 		return 1;
 	}
 	memset(&rec, 0, sizeof(rec));
-	rec.run = run_id;
-	rec.context = (unsigned long)request->decoder;
-	rec.allocation = (unsigned)request->fd;
-	rec.generation = ++generation;
+	rec.object = request;
+	rec.context = request->decoder;
+	rec.object_generation = 1;
 	rec.writer_job = ++next_writer;
-	rec.request_fd = request->fd;
-	rec.frame_num = request->frame_num;
 	for (i = 0; i < n_receipts; i++) {
-		if (receipts[i].request_fd == request->fd) {
+		if (receipts[i].object == request) {
+			rec.object_generation = receipts[i].object_generation + 1;
 			receipts[i] = rec;
 			for (i = 0; i < n_live; i++)
-				if (live[i] && live[i]->fd == request->fd)
+				if (live[i] == request)
 					live[i] = request;
 			pthread_mutex_unlock(&mu);
 			return 1;
@@ -105,7 +107,7 @@ int gst_hevc_observer_admit_free(GstV4l2Request *request)
 	pthread_mutex_lock(&mu);
 	if (enabled && paused && request) {
 		for (i = 0; i < n_held; i++)
-			if (held[i] == request || (held[i] && held[i]->fd == request->fd))
+			if (held_req[i] == request)
 				ok = 0;
 	}
 	pthread_mutex_unlock(&mu);
@@ -170,7 +172,9 @@ int gst_hevc_observer_begin(GstV4l2Decoder *decoder, int deadline_ms)
 		}
 		pthread_mutex_lock(&mu);
 		if (n_held < 8) {
-			held[n_held] = gst_v4l2_request_ref(req);
+			held_req[n_held] = gst_v4l2_request_ref(req);
+			held_pic[n_held] = req->pic_buf ? gst_buffer_ref(req->pic_buf) : NULL;
+			held_bit[n_held] = req->bitstream ? gst_memory_ref(req->bitstream) : NULL;
 			n_held++;
 		}
 		pthread_mutex_unlock(&mu);
@@ -187,9 +191,15 @@ int gst_hevc_observer_end(GstV4l2Decoder *decoder)
 		return 0;
 	}
 	for (i = 0; i < n_held; i++) {
-		if (held[i])
-			gst_v4l2_request_unref(held[i]);
-		held[i] = NULL;
+		if (held_req[i])
+			gst_v4l2_request_unref(held_req[i]);
+		if (held_pic[i])
+			gst_buffer_unref(held_pic[i]);
+		if (held_bit[i])
+			gst_memory_unref(held_bit[i]);
+		held_req[i] = NULL;
+		held_pic[i] = NULL;
+		held_bit[i] = NULL;
 	}
 	n_held = 0;
 	paused = 0;
@@ -205,7 +215,7 @@ int gst_hevc_observer_receipt(const GstV4l2Request *request, struct gst_hevc_rec
 		return 0;
 	pthread_mutex_lock(&mu);
 	for (i = 0; i < n_receipts; i++) {
-		if (receipts[i].request_fd == request->fd) {
+		if (receipts[i].object == request) {
 			*out = receipts[i];
 			ok = 1;
 		}

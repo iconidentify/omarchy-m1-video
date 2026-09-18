@@ -95,6 +95,17 @@ def write_full_patch(original, patched, destination):
         + 'See gst-adapter tests for the applied insert sites.\n')
 
 
+def extract_structs(decoder_c):
+    chunks = []
+    for name in ('struct _GstV4l2Request', 'struct _GstV4l2Decoder'):
+        start = decoder_c.index(name)
+        end = decoder_c.index('};', start) + 2
+        chunks.append(decoder_c[start:end])
+    return ('typedef struct _GstV4l2Request GstV4l2Request;\n'
+            'typedef struct _GstV4l2Decoder GstV4l2Decoder;\n\n' +
+            '\n\n'.join(chunks) + '\n')
+
+
 def patched_bodies(texts, mutate=None):
     original = texts[DEC]
     patched = patch_decoder(original, mutate=mutate)

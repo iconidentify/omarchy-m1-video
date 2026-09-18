@@ -1,5 +1,9 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
-#include "gst-types-min.h"
+#include <gst/gst.h>
+#include <gst/video/video.h>
+#include <linux/videodev2.h>
+#include "gst-compat.h"
+#include "extracted-structs.inc"
 #include "gst-observer.h"
 #include <stdio.h>
 #include <string.h>
@@ -112,9 +116,12 @@ int main(int argc, char **argv)
 			gst_vec_deque_pop_head(pending);
 		CHECK(gst_v4l2_request_queue(&req, 0));
 		CHECK(gst_hevc_observer_receipt(&req, &rec));
-		CHECK(rec.writer_job == 1 && rec.request_fd == 11);
+		CHECK(rec.object == &req && rec.writer_job == 1);
+		CHECK(rec.object_generation == 1 && rec.context == &dec);
 		req.pending = FALSE;
 		CHECK(gst_hevc_observer_begin(&dec, 200));
+		CHECK(GST_MINI_OBJECT_REFCOUNT_VALUE(GST_MINI_OBJECT(picture)) >= 2);
+		CHECK(GST_MINI_OBJECT_REFCOUNT_VALUE(GST_MINI_OBJECT(bitstream)) >= 2);
 		CHECK(!gst_v4l2_request_queue(&req, 0));
 		gst_hevc_observer_set_enabled(0);
 		CHECK(gst_hevc_observer_paused());
@@ -150,9 +157,10 @@ int main(int argc, char **argv)
 			gst_vec_deque_pop_head(pending);
 		CHECK(gst_v4l2_request_queue(&req, 0));
 		CHECK(gst_hevc_observer_receipt(&req, &rec2));
+		CHECK(rec2.object == rec.object);
 		CHECK(rec2.writer_job != rec.writer_job);
-		CHECK(rec2.generation != rec.generation);
-		puts("PASS: reused request retires previous writer_job");
+		CHECK(rec2.object_generation != rec.object_generation);
+		puts("PASS: reused request object retires previous writer_job");
 		gst_vec_deque_free(pending);
 		gst_memory_unref(bitstream);
 		gst_buffer_unref(picture);

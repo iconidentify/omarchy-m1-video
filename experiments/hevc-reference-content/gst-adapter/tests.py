@@ -20,6 +20,7 @@ def compile_run(mode='success', mutate=None):
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         (tmp / 'extracted-gst.inc').write_text(source.patched_bodies(texts, mutate=mutate))
+        (tmp / 'extracted-structs.inc').write_text(source.extract_structs(texts[source.DEC]))
         binary = tmp / 'harness'
         cmd = ['cc', '-std=c11', '-O0', '-g', '-fsanitize=address,undefined',
                '-Wall', '-Werror', '-Wno-unused-parameter', '-Wno-unused-variable',
@@ -70,7 +71,7 @@ def main():
     write_patch()
     expect('success', 'PASS: success pause/retain after successful queue')
     expect('fail-ioctl', 'PASS: failed ioctl does not mint a writer receipt')
-    expect('reuse', 'PASS: reused request retires previous writer_job')
+    expect('reuse', 'PASS: reused request object retires previous writer_job')
     expect('drain-timeout', 'PASS: begin does not invent completion on drain timeout')
     expect_fail('success', 'no-queue-hook', 'fail')
     expect_fail('success', 'no-record-hook', 'fail')

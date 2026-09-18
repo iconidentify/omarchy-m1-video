@@ -30,9 +30,12 @@ lock before begin and before queue/free/flush.
 
 Receipts are written only after both bitstream/picture QBUF and
 `MEDIA_REQUEST_IOC_QUEUE` succeed. Failed ioctl must not mint a writer.
-Reuse of the same request fd overwrites the previous writer_job/generation.
-Context is stored as an unsigned long decoder identity. Historical POC/index
-labels are not used. Exporter/cache/mapping stay unproven.
+Lookup is by owned `GstV4l2Request *`. Reuse of that object bumps
+`object_generation` and `writer_job`. Context is the decoder pointer.
+While paused, begin holds `gst_v4l2_request_ref`, `gst_buffer_ref(pic_buf)`
+and `gst_memory_ref(bitstream)`; end unrefs them. Plugin structs are
+extracted from pinned `gstv4l2decoder.c`, not a handwritten ABI. Historical
+POC/index labels are not used. Exporter/cache/mapping stay unproven.
 
 ## Limits
 
