@@ -46,8 +46,12 @@ class Patch(unittest.TestCase):
         self.assertIn('end_frame.inc', harness)
         self.assertIn('flush.inc', harness)
         self.assertIn('decode_frame.inc', harness)
+        self.assertIn('last_nal.inc', harness)
         self.assertNotIn('static int finish_frame(', harness)
         self.assertNotIn('(void)nal; /* Deliberately does not parse', harness)
+        self.assertNotIn(
+            'static int get_last_needed_nal(H264Context *h) { (void)h; return 0; }',
+            harness)
         patch = (HERE / 'ffmpeg-n9.0.1-h264-vaapi-admission.patch').read_text()
         self.assertIn('FF_HW_SIMPLE_CALL(avctx, end_frame)', patch)
         readme = (HERE / 'README.md').read_text().lower()

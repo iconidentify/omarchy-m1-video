@@ -70,6 +70,7 @@
   "slice_queue_test": {
     "decode_nal_units_sha256": "6f7e3143431cdf6e936f2114221ca5b1e5648ba8cff7ee5480d1a076feef276d",
     "h264_decode_frame_sha256": "13889d4d1a48b2600c3fd352c87ee9c8000331105baa4ee0b442e2f099d0cc91",
+    "get_last_needed_nal_sha256": "71f880b7c962aa7e6f7c1ae16a2253c3a95282135a02bc4dc6b7b9ef42562efe",
     "ff_h264_flush_change_sha256": "f4ccd8826d96de51505a0f7a0c303214efda48ac19b3633b6ed0e4b977d92782",
     "frame_helpers_sha256": "2adba1556ff0d3b31c870542df76319a95b9959056dfa926dd95162dd62475f3",
     "h264_parse_sha256": "6da29f6f210cb787b5aa2fd4550a17580669db5a458f315b6c428b7cec8a34c3",
@@ -77,11 +78,11 @@
     "queue_sha256": "3080e410bf55662e68cb9d5164c762781c6a610ff709ab89ffd112c069e013c4",
     "header_parse_sha256": "b35bcabdd26d06d6c463ad6fbe57676e54a56663b4845a74518eb3eb26ad3574",
     "field_end_sha256": "d9f8683ef272c80c4729ed737f61dfa581649a7fc4cc0bdd59d130ca51ed2f6c",
-    "harness_sha256": "739150009d9ea7f389450a2c20759ca078dd836a938169edddd782a1fd6305eb",
+    "harness_sha256": "89132bf69387500309fb274390a426c21118efedb7614d41db76d685f207722e",
     "results": {
       "actual": {
         "returncode": 0,
-        "stdout_sha256": "29b87105e08cd05742647dada2a68e202ae56fe410656ac76cbf29405dde1566",
+        "stdout_sha256": "8c63d01c02338bb3e624a4e87ad222a7b33567bc6b801e81f71929adaba22473",
         "expected_failure": false,
         "assertion": null
       },
@@ -132,16 +133,23 @@
         "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "expected_failure": true,
         "assertion": "ret == n && issues == 0 && cancels == 0 && starts == 1"
+      },
+      "thread-premature": {
+        "returncode": 1,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "expected_failure": true,
+        "assertion": "ret == n && thread_setups == 0"
       }
     },
     "device_used": false,
     "remap": "disabled",
     "limitations": [
-      "h264_field_start/h264_slice_init substituted (no DPB allocation)",
+      "h264_field_start/h264_slice_init substituted: real h264_frame_start allocates the DPB picture via ff_get_buffer, which for AV_PIX_FMT_VAAPI requires a device-backed hw_frames_ctx; confirmed unreachable offline, not just unattempted",
       "software MB decode not executed",
       "output-frame construction substituted; delayed output not qualified",
       "VA start/slice parameter buffers not filled (no surface/device)",
-      "vaapi_decode_make_config and frame threading untested",
+      "vaapi_decode_make_config untested: it calls real libva vaQueryConfigProfiles/vaCreateConfig against hwctx->display; faking that display would fabricate a profile advertisement, which is out of scope",
+      "get_last_needed_nal is now the real function and ff_thread_finish_setup is called at its real gating point (current_slice==1, i>=nals_needed, !setup_finished); ff_thread_finish_setup's own pthread synchronization body (real frame-thread worker handoff) remains stubbed as a no-op",
       "linked FFmpeg libraries not fully sanitizer-instrumented"
     ]
   },
@@ -170,14 +178,14 @@
   "ffmpeg_commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
   "source_archive_sha256": "fb1931fd4eb29297ee1c1017a24f800c4d8fbea35b4f2aaeb28308a48a9149b4",
   "patch_sha256": "288005510c1c9d9e94580faa25a540f44b075cba9ca5f8e42323d5e49bb120e5",
-  "vaapi_off_ffmpeg_sha256": "6439c5366a45beb989f2a30cc1acae2fd4e55c7c6755c83a6882c109d65f1c97",
-  "vaapi_on_ffmpeg_sha256": "50ae02b14aadee5a05865b9a961a9498134811f1d2135f726999dab553c05fb0",
+  "vaapi_off_ffmpeg_sha256": "1c51103958e75cbd0e4688f87488654700f964996f03f17ada94fa54bb9b2d3b",
+  "vaapi_on_ffmpeg_sha256": "8712b314c494c0d278ed0dbb9a4222b531a31f9a484101e56fd5503ef27b3022",
   "remap": "disabled",
   "hardware": "none",
   "installed_changes": "none",
   "logs": {
-    "build-off.log": "1b8b5291496fe714ad4645826df3407282ab461c44187c4ce4385caf7013f254",
-    "build-on.log": "39c9e95dc6b5b8e0ac58acf4c58f5f6a4c81bf375cf9c26a9b16f8b7747c5877",
+    "build-off.log": "ce64bbc6736b6a3c933b136a7ab68d83373fc45fdc4c033ecfeaf7e58b465f5f",
+    "build-on.log": "86df9cd9792f880dc0b72d4148b3fa208a0a54661fcc870c044dc4cff6dae8a8",
     "configure-off.log": "fc019cb1be569adca2683a05cb02e6b0db58ce42602aca2aebb9523cf47e6b3b",
     "configure-on.log": "8d47c57c44d913a868454c5bcf3ce1f9358eabe36835b058e5799172a1428117",
     "patch-off.log": "da252151989093a9a1ec109d9497c3ec8b42cf2743fff023853fd1377b49bf58",
