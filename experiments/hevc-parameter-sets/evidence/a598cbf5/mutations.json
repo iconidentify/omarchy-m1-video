@@ -1,0 +1,77 @@
+{
+  "patch_sha256": "a598cbf599060ff2bb105bb95a24c5dada122b58363ad9d24337cfb1f307f26b",
+  "method": "each mutation is one source edit to the patched tree, rebuilt and run with run.py (vector and fixtures); listed names are the checks that failed",
+  "mutations": {
+    "no-clear-pending-sps-on-store": [
+      "corrupted-repeat-sps-mid-gop",
+      "missing-dependency-never-arrives",
+      "pps-before-replacement-sps",
+      "stale-pps-not-revived",
+      "stale-sps-not-revived",
+      "vps-churn-large-dependants"
+    ],
+    "no-clear-pending-pps-on-store": [
+      "missing-dependency-never-arrives",
+      "stale-pps-not-revived"
+    ],
+    "no-thread-copy": [
+      "pending-across-access-units",
+      "unresolved-replacement-sps-not-stale"
+    ],
+    "drop-pps-on-sps-replace": [
+      "sps-before-replacement-vps",
+      "unresolved-replacement-sps-not-stale"
+    ],
+    "drop-sps-on-vps-replace": [
+      "sps-before-replacement-vps"
+    ],
+    "discard-pps-after-failed-parse": [
+      "pps-survives-present-incompatible-sps"
+    ],
+    "discard-sps-after-failed-parse": [
+      "sps-survives-present-incompatible-vps"
+    ],
+    "no-lazy-resolution": [
+      "corrupted-repeat-pps-mid-gop",
+      "malformed-pending-sps",
+      "pending-across-access-units",
+      "pps-before-replacement-sps",
+      "pps-survives-incompatible-intermediate-sps",
+      "pps-survives-present-incompatible-sps",
+      "remapped-ids-delayed",
+      "resolution-changes-delayed",
+      "reversed-order",
+      "sps-before-replacement-vps",
+      "sps-survives-present-incompatible-vps",
+      "unresolved-replacement-pps-not-stale",
+      "unresolved-replacement-sps-not-stale",
+      "vector"
+    ],
+    "unresolved-pps-not-refused": [
+      "corrupted-repeat-pps-mid-gop",
+      "unresolved-replacement-pps-not-stale"
+    ],
+    "unresolved-sps-not-refused": [
+      "unresolved-replacement-sps-not-stale"
+    ],
+    "unresolved-sps-refuses-non-irap": [
+      "corrupted-repeat-sps-mid-gop"
+    ],
+    "pictures-after-refused-irap-decoded": [
+      "unresolved-replacement-sps-not-stale"
+    ],
+    "failed-pps-blocks": [
+      "invalid-replacement-pps-keeps-state"
+    ],
+    "failed-sps-blocks": [
+      "invalid-replacement-sps-keeps-state"
+    ],
+    "byte-rounded-sps-reparse": [
+      "deferred-sps-uses-exact-length"
+    ],
+    "remove-stored-sps-on-defer": [
+      "corrupted-repeat-sps-mid-gop",
+      "invalid-replacement-sps-keeps-state"
+    ]
+  }
+}
