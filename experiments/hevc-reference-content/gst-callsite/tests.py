@@ -14,7 +14,10 @@ PARENT = HERE.parent
 BASE = Path('subprojects/gst-plugins-bad/sys/v4l2codecs')
 MODES = '''copy control padded disabled cancel-arm late-arm readers wrong-buffer
 wrong-frame missing-manifest mmap-failure munmap-failure decode-error timeout
-published flush changed-proof slow-copy lifecycle'''.split()
+published flush changed-proof slow-copy lifecycle schedule-copy schedule-control
+schedule-incomplete schedule-duplicate schedule-invalid schedule-frame-mismatch
+schedule-munmap schedule-mid-failure schedule-budget schedule-reuse
+schedule-mutable-plan schedule-cancel'''.split()
 
 
 def module(name, path):
@@ -37,6 +40,13 @@ def configure_fixture(root):
     source = (directory / 'content-api-test.c').read_text()
     source = integration.replace(source, 'int main(int argc,char **argv)',
                                   'int integration_fixture_main(int argc,char **argv)')
+    # Enough distinct real allocations for eight selected + two unselected
+    # outputs; the reuse case deliberately keeps the original four-slot pool.
+    for direction in ['SINK', 'SRC']:
+        source = integration.replace(source,
+            'gst_v4l2_codec_allocator_new(decoder,GST_PAD_' + direction + ',4)',
+            'gst_v4l2_codec_allocator_new(decoder,GST_PAD_' + direction +
+            ',g_str_has_prefix(mode,"schedule-") && strcmp(mode,"schedule-reuse")?12:4)')
     source += '\n' + (HERE / 'callsite-model.inc').read_text()
     (directory / 'callsite-api-test.c').write_text(source)
     meson = directory / 'meson.build'
@@ -82,13 +92,30 @@ def mutations(root, build):
          'state->receipt.frame_num == frame->system_frame_number &&\n      state->receipt.frame_num == GST_CODEC_PICTURE (picture)->system_frame_number &&',
          'TRUE &&', 'wrong-frame', 'result==GST_FLOW_ERROR && published==0 && finished==0'),
         ('later-output-reentry', 'gst-callsite.inc',
-         'state->in_callback = TRUE;\n  *active = state;\n  if (state->attempted)\n    return state->success;',
-         'if (state->attempted)\n    return state->success;\n  state->in_callback = TRUE;\n  *active = state;',
+         'state->in_callback = TRUE;\n  *active = state;',
+         'if (!state->scheduled && state->attempted)\n    return state->success;\n  state->in_callback = TRUE;\n  *active = state;',
          'copy', '!gst_hevc_callsite_finish(GST_H265_DECODER(client))'),
         ('armed-lifecycle', 'gstv4l2codech265dec.c',
          'gst_v4l2_codec_h265_dec_close (GstVideoDecoder * decoder)\n{\n  GST_HEVC_OBSERVER_LOCK;\n  GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);\n  if (self->content_callsite || gst_hevc_observer_busy (self->decoder))',
          'gst_v4l2_codec_h265_dec_close (GstVideoDecoder * decoder)\n{\n  GST_HEVC_OBSERVER_LOCK;\n  GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);\n  if (gst_hevc_observer_busy (self->decoder))',
          'lifecycle', '!gst_v4l2_codec_h265_dec_close(GST_VIDEO_DECODER(client))'),
+        ('schedule-immutable', 'gst-callsite.inc',
+         'memcpy (state->frames, frames, count * sizeof (*frames));',
+         'memset (state->frames, 0, count * sizeof (*frames));',
+         'schedule-copy', 'state->pool.used==scheduled_maps'),
+        ('schedule-all-selected', 'gst-callsite.inc',
+         'state->success = state->collected == state->count;',
+         'state->success = TRUE; state->count = state->collected;',
+         'schedule-copy', '!gst_hevc_callsite_result(GST_H265_DECODER(client))'),
+        ('schedule-duplicate', 'gst-callsite.inc', 'if (state->observed[selected]) {',
+         'if (state->observed[selected]) return TRUE;\n    if (FALSE) {',
+         'schedule-duplicate', 'output(order[target_count-1])==GST_FLOW_ERROR'),
+        ('schedule-native-frame', 'gst-callsite-native.inc',
+         'request->frame_num == frame', 'TRUE', 'schedule-frame-mismatch',
+         'output(wrong?999:order[i])==GST_FLOW_ERROR'),
+        ('schedule-plan-unique', 'gst-callsite.inc', 'if (frames[i] == frames[j])',
+         'if (FALSE)', 'schedule-invalid',
+         '!gst_hevc_callsite_arm_frames(GST_H265_DECODER(client),TRUE,duplicates,2)'),
     ]
     for label, name, before, after, mode, assertion in cases:
         path = root / BASE / name

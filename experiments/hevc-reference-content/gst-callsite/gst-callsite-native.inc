@@ -15,3 +15,10 @@ gst_hevc_callsite_output_matches (GstV4l2Request *request, GstBuffer *buffer)
   GST_HEVC_OBSERVER_LOCK;
   return request && buffer && request->pic_buf == buffer;
 }
+
+gboolean
+gst_hevc_callsite_frame_matches (GstV4l2Request *request, guint32 frame)
+{
+  GST_HEVC_OBSERVER_LOCK;
+  return request && request->frame_num == frame;
+}

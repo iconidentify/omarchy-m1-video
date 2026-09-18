@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 /* Extends the existing explicit V4L2/runtime model, not production code. */
 static unsigned published, finished, dropped;
+static unsigned scheduled_maps;
 void __real_gst_hevc_observer_buffer_publish (GstBuffer *);
 GstFlowReturn __real_gst_video_decoder_finish_frame (GstVideoDecoder *, GstVideoCodecFrame *);
 GstFlowReturn __real_gst_video_decoder_drop_frame (GstVideoDecoder *, GstVideoCodecFrame *);
@@ -9,7 +10,12 @@ __attribute__((visibility("default"))) void __wrap_gst_hevc_observer_buffer_publ
 {
   assert(!gst_hevc_observer_busy(decoder) && !content_mapping);
   GstHevcCallsite *state=client->content_callsite;
-  if(state) assert(state->success && state->pool.slot[0].valid);
+  if(state && !state->scheduled) assert(state->success && state->pool.slot[0].valid);
+  if(state && state->scheduled) {
+    assert(!state->failed && state->pool.used==scheduled_maps);
+    assert(content_maps==scheduled_maps && content_unmaps==scheduled_maps);
+    for(unsigned i=0;i<state->pool.used;i++) assert(state->pool.slot[i].valid);
+  }
   published++;
   __real_gst_hevc_observer_buffer_publish(buffer);
 }
@@ -87,6 +93,116 @@ static void check_lifecycle(void)
   gst_v4l2_codec_h265_dec_reset_allocation(client);
   assert(ioctls==before && client->streaming && client->src_allocator && client->sink_allocator);
 }
+static void schedule_release_request(void)
+{
+  g_clear_pointer(&request,gst_v4l2_request_unref);
+  gst_clear_buffer(&picture);g_clear_pointer(&bitstream,gst_memory_unref);
+}
+static void schedule_queue(guint32 number)
+{
+  schedule_release_request();
+  request=new_request(number,&picture,&bitstream);
+  assert(gst_v4l2_request_queue(request,0));selected_capture=last_capture;
+}
+static void schedule_tests(void)
+{
+  guint32 frames[HEVC_CONTENT_SLOTS]={31,0,2,3,4,5,6,7};
+  gboolean control=!strcmp(mode,"schedule-control");
+  gboolean budget=!strcmp(mode,"schedule-budget");
+  guint count=budget?HEVC_CONTENT_SLOTS:3;
+  if(!strcmp(mode,"schedule-invalid")) {
+    guint32 duplicates[]={31,31};
+    unsigned before=ioctls;
+    assert(!gst_hevc_callsite_arm_frames(GST_H265_DECODER(client),TRUE,NULL,1));
+    assert(!gst_hevc_callsite_arm_frames(GST_H265_DECODER(client),TRUE,frames,0));
+    assert(!gst_hevc_callsite_arm_frames(GST_H265_DECODER(client),TRUE,frames,9));
+    assert(!gst_hevc_callsite_arm_frames(GST_H265_DECODER(client),TRUE,duplicates,2));
+    assert(!gst_hevc_callsite_arm_frames(GST_H265_DECODER(client),2,frames,3));
+    assert(!client->content_callsite && !manifest_reads && ioctls==before);
+    teardown();return;
+  }
+  if(!strcmp(mode,"schedule-reuse")) {frames[0]=4;count=1;}
+  assert(gst_hevc_callsite_arm_frames(GST_H265_DECODER(client),!control,frames,count));
+  assert(!gst_hevc_callsite_arm_frames(GST_H265_DECODER(client),TRUE,frames,count));
+  if(!strcmp(mode,"schedule-cancel")) {
+    assert(gst_hevc_callsite_finish(GST_H265_DECODER(client)));
+    assert(!content_maps && !manifest_reads);teardown();return;
+  }
+  if(!strcmp(mode,"schedule-reuse")) {
+    /* Four real pool allocations have been published. Reuse cannot clear the
+     * observer's sticky alias exclusion just because the plan wants it. */
+    for(guint i=0;i<4;i++) {schedule_queue(i);assert(output(i)==GST_FLOW_OK);}
+    schedule_queue(4);assert(output(4)==GST_FLOW_ERROR);
+    assert(client->content_callsite->failed && !content_maps);
+    assert(!gst_hevc_callsite_result(GST_H265_DECODER(client)));
+  } else {
+    if(!strcmp(mode,"schedule-mutable-plan")) frames[0]=999;
+    /* Unselected output must execute the real framework path, without a map
+     * or a manifest read. Its ordinal is not the selected writer identity. */
+    schedule_queue(90);assert(output(90)==GST_FLOW_OK);
+    assert(!content_maps && !manifest_reads && !gst_hevc_callsite_result(GST_H265_DECODER(client)));
+    guint32 order[HEVC_CONTENT_SLOTS]={0,31,2,3,4,5,6,7};
+    guint target_count=budget?HEVC_CONTENT_SLOTS:3;
+    if(!strcmp(mode,"schedule-incomplete")) target_count=2;
+    for(guint i=0;i<target_count;i++) {
+      schedule_queue(order[i]);
+      gboolean wrong=!strcmp(mode,"schedule-frame-mismatch") && i==1;
+      gboolean middle=!strcmp(mode,"schedule-mid-failure") && i==1;
+      gboolean unmap=!strcmp(mode,"schedule-munmap") && i==1;
+      if(middle) __real_gst_hevc_observer_buffer_publish(picture);
+      fail_unmap=unmap;
+      if(wrong || middle || unmap) {
+        assert(output(wrong?999:order[i])==GST_FLOW_ERROR);
+        assert(client->content_callsite->failed);
+        assert(!gst_hevc_callsite_result(GST_H265_DECODER(client)));
+        if(unmap) {
+          assert(content_mapping && gst_hevc_observer_busy(decoder));
+          assert(client->content_callsite->held_frame && client->content_callsite->held_picture);
+          assert(!gst_hevc_callsite_finish(GST_H265_DECODER(client)));
+          check_cancel_state(PTHREAD_CANCEL_DISABLE);fail_unmap=FALSE;
+        } else {
+          assert(!content_mapping && !gst_hevc_observer_busy(decoder));
+          unsigned before=content_maps;
+          assert(output(order[i])==GST_FLOW_ERROR);assert(content_maps==before);
+        }
+        break;
+      }
+      scheduled_maps++;
+      assert(output(order[i])==GST_FLOW_OK);
+      assert(client->content_callsite->collected==i+1);
+      assert(client->content_callsite->pool.used==i+1);
+      check_slot(&client->content_callsite->pool,i,!control,selected_capture);
+      const struct hevc_content_identity *id=&client->content_callsite->pool.slot[i].identity;
+      assert(id->detail.gst.frame==order[i] && id->writer && id->detail.gst.request);
+      if(i) {
+        const struct hevc_content_identity *prior=&client->content_callsite->pool.slot[i-1].identity;
+        assert(id->writer!=prior->writer && id->detail.gst.request!=prior->detail.gst.request);
+        assert(id->session==prior->session && id->context_generation==prior->context_generation);
+        assert(!memcmp(id->run,prior->run,sizeof(id->run)));
+      }
+      if(i+1<count) assert(!gst_hevc_callsite_result(GST_H265_DECODER(client)));
+    }
+    if(!strcmp(mode,"schedule-incomplete")) {
+      assert(!gst_hevc_callsite_result(GST_H265_DECODER(client)));
+      assert(!client->content_callsite->failed && !client->content_callsite->success);
+    } else if(!client->content_callsite->failed) {
+      const struct hevc_content_pool *result=gst_hevc_callsite_result(GST_H265_DECODER(client));
+      assert(result && result->used==count);
+      if(!strcmp(mode,"schedule-duplicate")) {
+        assert(output(order[target_count-1])==GST_FLOW_ERROR);
+        assert(client->content_callsite->failed && !gst_hevc_callsite_result(GST_H265_DECODER(client)));
+        assert(content_maps==scheduled_maps);
+      } else {
+        schedule_queue(91);assert(output(91)==GST_FLOW_OK);
+        assert(content_maps==scheduled_maps && result->used==count);
+      }
+    }
+  }
+  assert(gst_hevc_callsite_finish(GST_H265_DECODER(client)));
+  assert(!gst_hevc_callsite_finish(GST_H265_DECODER(client)));
+  check_cancel_state(PTHREAD_CANCEL_ENABLE);
+  assert(!content_mapping && !gst_hevc_observer_busy(decoder));teardown();
+}
 int main(int argc,char **argv)
 {
   assert(argc==2);mode=argv[1];model_identify();model_peer((const void*)gst_hevc_content_snapshot);
@@ -95,6 +211,12 @@ int main(int argc,char **argv)
   GST_DEBUG_CATEGORY_INIT(gstv4l2codecs_debug,"v4l2codecs",0,"model plugin log");
   GST_DEBUG_CATEGORY_INIT(v4l2_h265dec_debug,"v4l2codecs-h265dec",0,"model client log");
   setup();
+  if(g_str_has_prefix(mode,"schedule-")) {
+    schedule_tests();
+    for(int i=0;i<evidence_count;i++)assert(evidence_fds[i]==-1);
+    printf("PASS actual Gst callsite %s (synthetic V4L2/runtime; no device)\n",mode);
+    return 0;
+  }
   bool disabled=!strcmp(mode,"disabled"), late=!strcmp(mode,"late-arm"), control=!strcmp(mode,"control");
   bool canceled=!strcmp(mode,"cancel-arm"), bad=!strcmp(mode,"wrong-buffer") || !strcmp(mode,"wrong-frame");
   bool fail=bad || !strcmp(mode,"missing-manifest") || !strcmp(mode,"mmap-failure") ||

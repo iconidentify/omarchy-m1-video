@@ -14,11 +14,23 @@ It is not a GStreamer launch property or a shipped activation
 recipe. A future in-plugin campaign controller must call it at that boundary.
 Calling it after submission is rejected by the actual decoder counters.
 
+`gst_hevc_callsite_arm_frames()` instead installs an immutable plan of one to
+eight distinct `system_frame_number` hints. It uses the same pristine-session
+boundary and native admission. Selected outputs can arrive in any order;
+unselected outputs run the original callback without mapping or reading the
+manifest. A wrong request/frame/picture association refuses even on an
+unselected output. Duplicate selected outputs refuse rather than spending a
+second slot. The result is available only when every selection succeeded, in
+callback order with its full native identity; incomplete and failed plans
+have no result. Finish still cancels/cleans an incomplete or failed plan and
+does **not** report campaign success. See [SCHEDULING.md](SCHEDULING.md).
+
 At the output callback, the hook verifies the actual request/output-buffer
 relationship, selects that request's live writer/allocation, drains through the
 existing native begin API, checks frame identity, takes the bounded snapshot and
 ends the lease. Only then does the original callback mark the buffer published
-and invoke framework delivery. Later outputs do not take more snapshots.
+and invoke framework delivery. The legacy arm remains one-shot; a frame plan
+observes each selected output once.
 The `copy=FALSE` control performs the same retention, mapping, provenance and
 cleanup operations without copying bytes. The native eight-copy lifetime budget
 and all existing geometry/exporter/build checks remain in force.
@@ -59,8 +71,10 @@ operations and fulfill same-owner cleanup. Abandoning the arm leaks its explicit
 element reference; abandoning a failed end also retains the native lease. No
 timeout silently releases storage still in use.
 
-This is a one-output wiring slice, not the campaign controller. The arm API does
-not identify which B/E writer the campaign should sample. No kernel command or
+This is output wiring and an internal selection scheduler, not a campaign
+controller. The frame plan does not establish which B/E writer the campaign
+should sample, and cannot override sticky exclusion of previously published
+allocations. No kernel command or
 reference collector is joined here. No approved live manifest, full client/corpus
 attestation, hardware DMA visibility result, or campaign authorization ships.
 VA production call-site wiring remains separate. #82 and driver #42 stay open.
