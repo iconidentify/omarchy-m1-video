@@ -87,3 +87,10 @@ kernel command capture, exporter/cache/coherence validation, hardware memory
 mapping/copying, installation and module operations. Parent #82 must integrate the
 same-run receipt tuple with its command/reference records and establish copy
 eligibility. Parent #82 and driver #42 remain open.
+
+The first hosted run at `ff87181` exposed a configuration dependency on an
+installed `gst-tester-1.0`. The recipe now explicitly enables the pinned core
+check/test targets and builds that executable from the same archive; no unrelated
+validate campaign is run. Supplemental local reconfiguration/build/API results
+and the corrected runner hash are appended to the evidence log. The production
+patch is unchanged. Hosted CI executes the complete corrected recipe.

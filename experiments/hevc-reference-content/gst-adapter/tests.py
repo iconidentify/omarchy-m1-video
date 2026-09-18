@@ -37,7 +37,7 @@ def run(command, *, cwd=None, env=ENV, timeout=1200, log=None):
 def configure(root, build, sanitizer, native):
     command = ['meson', 'setup', build, root, '-Dauto_features=disabled',
                '-Dbase=enabled', '-Dbad=enabled', '-Dgood=disabled', '-Dugly=disabled',
-               '-Dtests=disabled', '-Dgstreamer:check=enabled',
+               '-Dtests=disabled', '-Dgstreamer:check=enabled', '-Dgstreamer:tests=enabled',
                '-Dgst-plugins-bad:tests=enabled', '-Dgst-plugins-bad:v4l2codecs=enabled',
                '-Dgst-plugins-bad:videoparsers=enabled', '-Dgst-plugins-base:app=enabled',
                '-Db_sanitize=' + sanitizer]
@@ -139,7 +139,7 @@ def validate(destination, archive, native):
     for label, sanitizer in [('asan-ubsan', 'address,undefined'), ('tsan', 'thread')]:
         build = destination / label
         configure(root, build, sanitizer, native)
-        targets = ['gstv4l2codecs', 'observer-api']
+        targets = ['gstv4l2codecs', 'observer-api', 'gst-tester-1.0']
         if label == 'asan-ubsan':
             targets += ORIGINAL + ['gstvideoparsersbad', 'gstcoreelements', 'gstapp']
         compile_targets(build, *targets)
