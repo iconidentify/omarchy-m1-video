@@ -149,19 +149,22 @@ def mutations(root, build):
 
 def validate(destination, archive, native):
     root = source.fetch(destination, archive)
-    run(['patch', '--batch', '--fuzz=0', '-p1', '-i', HERE / 'gstv4l2decoder-observer.patch'], cwd=root)
+    for patch in ['unaligned-io.patch', 'gstv4l2decoder-observer.patch']:
+        run(['patch', '--batch', '--fuzz=0', '-p1', '-i', HERE / patch], cwd=root)
     shutil.copyfile(HERE / 'public-api-test.c', root / source.BASE / 'observer-api-test.c')
+    shutil.copyfile(HERE / 'unaligned-io-test.c', root / source.BASE / 'unaligned-io-test.c')
     with (root / source.BASE / 'meson.build').open('a') as file:
         file.write('\n' + (HERE / 'test-meson.build').read_text())
     for label, sanitizer in [('asan-ubsan', 'address,undefined'), ('tsan', 'thread')]:
         build = destination / label
         configure(root, build, sanitizer, native)
-        targets = ['gstv4l2codecs', 'observer-api', 'gst-tester-1.0']
+        targets = ['gstv4l2codecs', 'observer-api', 'gst-tester-1.0', 'unaligned-io-test']
         if label == 'asan-ubsan':
             targets += ORIGINAL + ['gstvideoparsersbad', 'gstcoreelements', 'gstapp']
         compile_targets(build, *targets)
         pinned_linkage(build, api_path(build))
         pinned_linkage(build, build / source.BASE / 'libgstv4l2codecs.so')
+        print(label + ': ' + run([build / source.BASE / 'unaligned-io-test'], timeout=20).stdout.strip(), flush=True)
         positive(build, label)
         if label == 'asan-ubsan':
             original_tests(build)

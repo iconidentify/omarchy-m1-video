@@ -3,11 +3,13 @@
 AI-assisted implementation and maintainer adversarial self-review. No independent
 specialist review or hardware result is claimed. Original z23 history is retained.
 
-The committed patch was applied with zero fuzz to a fresh verified complete
-GStreamer 1.28.7 source archive. The committed runner configured the original
-Meson project, including matching core/base/bad libraries and generated headers,
-and compiled the complete v4l2codecs plugin. It did not use extracted struct
-layouts or substitute request ref/unref implementations.
+Two committed patches were applied with zero fuzz to a fresh verified complete
+GStreamer 1.28.7 source archive: the observer patch, and a separate pinned
+utility portability patch described below that touches no observer code. The
+committed runner configured the original Meson project, including matching
+core/base/bad libraries and generated headers, and compiled the complete
+v4l2codecs plugin. It did not use extracted struct layouts or substitute request
+ref/unref implementations.
 
 Full results, exact patch/test/helper identities, and built module/API binary
 hashes are in [validation-20260918.log](validation-20260918.log).
@@ -16,6 +18,7 @@ hashes are in [validation-20260918.log](validation-20260918.log).
 | --- | --- |
 | Full configured plugin and linked dependencies | Pass under ASan/UBSan and TSan |
 | Actual API cases | 29 under ASan/UBSan; 29 under TSan |
+| Focused pinned fast unaligned IO | Pass under ASan/UBSan and TSan |
 | Original HEVC software regressions | 48 checks passed: parser 17, bitwriter 1, element 30 |
 | Actual-source semantic mutations | 12 named assertions detect their intended failures |
 | Companion Bash syntax and mocked rebuild | Pass |
@@ -48,7 +51,7 @@ Commands, from the companion root:
 ```sh
 python3 experiments/hevc-reference-content/gst-adapter/tests.py \
   --archive /tmp/gst-observer-completion-20260918/source.tar.gz \
-  --keep /tmp/gst-observer-completion-20260918/verified \
+  --keep /tmp/gst-observer-completion-20260918/portable-final \
   --native-file /tmp/gst-observer-completion-20260918/tools/native.ini
 bash -n install.sh uninstall.sh bin/apple-avd-rebuild tests/rebuild.sh libva/PKGBUILD libva/libva-v4l2_request-avd.install
 bash tests/rebuild.sh
@@ -65,7 +68,10 @@ and builds the pinned GStreamer libraries instead of relying on system GStreamer
 
 Source revision: `070125524a8422e29d3b69a372ed4f62fd343ffa`.
 Archive SHA-256: `1def36bd4c68f13cb731740d0cd2697d858c073e674ef54726e97ee245639a44`.
-Patch SHA-256: `7375ce4346b0e18be41fa8d7e791efd79a547b6a3cface9ebee0769183781e04`.
+Observer patch SHA-256: `7375ce4346b0e18be41fa8d7e791efd79a547b6a3cface9ebee0769183781e04`.
+Utility portability patch SHA-256:
+`164b085aba2265e44d196eb6fab110b3508dacd6ee0570deaebe63ae2b02794b`.
+Exact runner, fixture and helper identities for every run are in the evidence log.
 
 An early invocation of the unchanged software tests through generic Meson test
 environment scanned all built plugins and reached the pinned upstream V4L2
@@ -103,3 +109,27 @@ only the actual three software plugin directories and verifies with `ldd` that
 every linked GStreamer dependency resolves inside the pinned build. Corrected
 original-test results and linkage checks are appended; none of these failed
 hosted runs is counted as a pass.
+
+The third hosted run at `e3ef6aa` passed the 29 observer ASan/UBSan modes and the
+parser and bitwriter library regressions, then failed four original H265 element
+cases. UBSan reported stores to misaligned addresses in pinned upstream
+`gstutils.h:204`, inside `__gst_fast_write_swap16`. `GST_HAVE_UNALIGNED_ACCESS`
+selects that fast path on the hosted x86 runner; the normal aarch64 configuration
+on this host takes the bytewise path, so no local run had reached it. The defect
+is in the pinned upstream utility header, not in observer code, and it is real
+undefined behaviour rather than a sanitizer artefact.
+
+`unaligned-io.patch` therefore converts all twelve pinned fast 16/32/64-bit
+native and byte-swapped reads and writes to defined `memcpy` operations,
+preserving byte order and the existing macro interface. It is applied separately
+from and before the observer patch, changes no file that the observer patch
+touches, and changes no installed or shipped source. `unaligned-io-test.c` forces
+`GST_HAVE_UNALIGNED_ACCESS` on so this host exercises the same fast path, and
+checks both byte orders at all three widths across offsets 1..8; the runner builds
+and runs it under both sanitizer configurations. A local reproducer first
+triggered the original misaligned-store diagnostic and then passed with the patch
+applied; its baseline and corrected exits are recorded in the evidence log. That
+reproducer is a bug witness, not one of the twelve semantic observer mutations,
+and the mutation count is unchanged. No sanitizer was suppressed, relaxed or
+disabled to obtain any of these results, and the observer patch itself is
+unchanged across all three hosted corrections.

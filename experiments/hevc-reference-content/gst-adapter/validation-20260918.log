@@ -201,3 +201,133 @@ Running suite(s): h265parse
 Check suite h265parse_harnessed ran in 0.628s (tests failed: 0)
 PASS pinned dependencies and 48 original HEVC checks
 corrected tests.py sha256 93cc24cc2d6d8f489e722f432f8a1f245a694b7d822be9280efc76e586a633e6
+
+Supplemental pinned utility portability fix and complete final run:
+unaligned-io.patch sha256 164b085aba2265e44d196eb6fab110b3508dacd6ee0570deaebe63ae2b02794b
+unaligned-io-test.c sha256 463acdba64c9de767c49601a0980a3cdedcdb4eba0ae58014cd9d9d013ec2247
+corrected test-meson.build sha256 0a53197d2947d264994b881805ca54784a44caae477d31d050c06ba5daa71e1b
+corrected tests.py sha256 a7f668deff12f4d7c7cac0ee7695085a707e027f90ac24518a19a8b2d0942420
+unchanged gstv4l2decoder-observer.patch sha256 7375ce4346b0e18be41fa8d7e791efd79a547b6a3cface9ebee0769183781e04
+unchanged public-api-test.c sha256 eb418ce126c708a09e72fb39c187d914fe1f3b7644f2b8b1ce951079a220323a
+unchanged source.py sha256 e9c9db1da136274c7fa7d01f6daef116776ed1d1ac81e0374473fe5ec85eb135
+pinned subprojects/gstreamer/gst/gstutils.h before unaligned-io.patch sha256 2c28617e038f65c5ab4354ac68038fe9a02c98d376da38a4c98a3b393a31d72d
+glib-mkenums local tool sha256 25f76c960677aca54b1b77d924a59063b923ad51ae3d91cb3760831f46d94577
+glib-genmarshal local tool sha256 e840ba247b6f15ca832d6a96178c01dd3391283d6aa59acd56bf9862d123d1cf
+
+Third hosted failure at e3ef6aa, run 35307095650, before this patch:
+RuntimeError: [PosixPath('/tmp/gst-observer-zvo4lzff/asan-ubsan/subprojects/gst-plugins-bad/tests/check/elements_h265parse')] exited 4:
+../gstreamer-070125524a8422e29d3b69a372ed4f62fd343ffa/subprojects/gstreamer/gst/gstutils.h:204:25: runtime error: store to misaligned address 0x512000003fd5 for type 'guint16', which requires 2 byte alignment
+    #0 0x7f513e9ac794 in __gst_fast_write_swap16 ../gstreamer-070125524a8422e29d3b69a372ed4f62fd343ffa/subprojects/gstreamer/gst/gstutils.h:204
+
+Focused baseline reproducer on this host, pinned fast path forced on aarch64:
+../gstreamer-070125524a8422e29d3b69a372ed4f62fd343ffa/subprojects/gstreamer/gst/gstutils.h:204:25: runtime error: store to misaligned address 0xfbff136d0021 for type 'guint16', which requires 2 byte alignment
+Original fast path exit: 1
+Corrected fast path exit: 0
+PASS pinned fast unaligned IO: 16/32/64-bit, both byte orders, offsets 1..8
+(Baseline capture used a pre-cast revision of the test and also emitted benign
+-Woverflow conversion warnings; explicit casts were added before the final run.)
+
+Complete final validation run, exit code 0:
+PASS pinned archive and original client source hashes
+PASS pinned linkage observer-api
+PASS pinned linkage libgstv4l2codecs.so
+asan-ubsan: PASS pinned fast unaligned IO: 16/32/64-bit, both byte orders, offsets 1..8
+asan-ubsan: PASS actual Gst observer lifecycle (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer readers (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer contention (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer cancellation (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer timeout (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer eintr (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer decode-error (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer published (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer mapped (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer raw-fd (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer expired (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer retention (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer recycling (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer unqueued (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer default-off (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer queue-error (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer partial (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer trace-join (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer deadline-poll (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer late-timeout (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer gates (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer wrong-index (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer export (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer output-publication (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer identities (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer unsupported (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer sticky-publication (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer retirement (fake V4L2, no device)
+asan-ubsan: PASS actual Gst observer shared-memory (fake V4L2, no device)
+PASS pinned linkage libgstvideoparsersbad.so
+PASS pinned linkage libgstcoreelements.so
+PASS pinned linkage libgstapp.so
+PASS pinned linkage libs_h265parser
+PASS original libs_h265parser
+Running suite(s): H265 Parser library
+100%: Checks: 17, Failures: 0, Errors: 0
+Check suite h265parser ran in 0.604s (tests failed: 0)
+PASS pinned linkage libs_h265bitwriter
+PASS original libs_h265bitwriter
+Running suite(s): H265 bitwriter library
+100%: Checks: 1, Failures: 0, Errors: 0
+Check suite h265bitwriter ran in 0.041s (tests failed: 0)
+PASS pinned linkage elements_h265parse
+PASS original elements_h265parse
+Running suite(s): h265parse_to_bs_au
+100%: Checks: 5, Failures: 0, Errors: 0
+Check suite h265parse_to_bs_au ran in 0.215s (tests failed: 0)
+Running suite(s): h265parse
+100%: Checks: 25, Failures: 0, Errors: 0
+Check suite h265parse_harnessed ran in 0.950s (tests failed: 0)
+PASS mutation producer-gate: SIGABRT at !gst_v4l2_decoder_flush(decoder)
+PASS mutation request-pin: SIGABRT at ioctls==before
+PASS mutation end-release: SIGABRT at ioctls==before+1
+PASS mutation failed-begin-release: SIGABRT at ioctls==before+1
+PASS mutation drain: SIGABRT at gst_hevc_observer_begin(decoder,&session,request,&target,0,&receipt)
+PASS mutation remaining-deadline: SIGABRT at last_poll_timeout>0 && last_poll_timeout<20*GST_MSECOND
+PASS mutation allocation-generation: SIGABRT at allocations[j]!=target.allocation
+PASS mutation writer-generation: SIGABRT at target.writer!=last_writer && target.request!=last_request
+PASS mutation session-owner: SIGABRT at !gst_hevc_observer_end(decoder,&session,receipt.lease)
+PASS mutation publication: SIGABRT at !gst_hevc_observer_begin(decoder,&session,request,&target,0,&receipt)
+PASS mutation client-output: SIGABRT at !gst_hevc_observer_begin(decoder,&session,request,&target,0,&receipt)
+PASS mutation capture-identity: SIGABRT at !gst_hevc_observer_begin(decoder,&session,request,&target,0,&receipt)
+asan-ubsan libgstv4l2codecs.so sha256 afbe2a4b9ed5e464d72ec35f5b37640abd2782113585ea7e725d370475d79012
+asan-ubsan observer-api sha256 5aac3cce5b851c3089bfdd5a91ea3257e13bdfd5dbe8cb597656b8fa760e3fae
+PASS pinned linkage observer-api
+PASS pinned linkage libgstv4l2codecs.so
+tsan: PASS pinned fast unaligned IO: 16/32/64-bit, both byte orders, offsets 1..8
+tsan: PASS actual Gst observer lifecycle (fake V4L2, no device)
+tsan: PASS actual Gst observer readers (fake V4L2, no device)
+tsan: PASS actual Gst observer contention (fake V4L2, no device)
+tsan: PASS actual Gst observer cancellation (fake V4L2, no device)
+tsan: PASS actual Gst observer timeout (fake V4L2, no device)
+tsan: PASS actual Gst observer eintr (fake V4L2, no device)
+tsan: PASS actual Gst observer decode-error (fake V4L2, no device)
+tsan: PASS actual Gst observer published (fake V4L2, no device)
+tsan: PASS actual Gst observer mapped (fake V4L2, no device)
+tsan: PASS actual Gst observer raw-fd (fake V4L2, no device)
+tsan: PASS actual Gst observer expired (fake V4L2, no device)
+tsan: PASS actual Gst observer retention (fake V4L2, no device)
+tsan: PASS actual Gst observer recycling (fake V4L2, no device)
+tsan: PASS actual Gst observer unqueued (fake V4L2, no device)
+tsan: PASS actual Gst observer default-off (fake V4L2, no device)
+tsan: PASS actual Gst observer queue-error (fake V4L2, no device)
+tsan: PASS actual Gst observer partial (fake V4L2, no device)
+tsan: PASS actual Gst observer trace-join (fake V4L2, no device)
+tsan: PASS actual Gst observer deadline-poll (fake V4L2, no device)
+tsan: PASS actual Gst observer late-timeout (fake V4L2, no device)
+tsan: PASS actual Gst observer gates (fake V4L2, no device)
+tsan: PASS actual Gst observer wrong-index (fake V4L2, no device)
+tsan: PASS actual Gst observer export (fake V4L2, no device)
+tsan: PASS actual Gst observer output-publication (fake V4L2, no device)
+tsan: PASS actual Gst observer identities (fake V4L2, no device)
+tsan: PASS actual Gst observer unsupported (fake V4L2, no device)
+tsan: PASS actual Gst observer sticky-publication (fake V4L2, no device)
+tsan: PASS actual Gst observer retirement (fake V4L2, no device)
+tsan: PASS actual Gst observer shared-memory (fake V4L2, no device)
+tsan libgstv4l2codecs.so sha256 41ec2d30e030ad5756245bd7e832055dc79bb68a774d4ec4e8f98b566ea6f494
+tsan observer-api sha256 ff17e857452e030abedba83ac3f32b91352afda3f978e76723ec20fb9b8170de
+PASS complete configured plugin, 29 API modes per sanitizer, original HEVC tests and 12 semantic mutations

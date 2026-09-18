@@ -11,3 +11,7 @@ observer_test = executable('observer-api', 'observer-api-test.c', observer_sourc
   dependencies: [gstbase_dep, gstcodecs_dep, gstallocators_dep, libgudev_dep, gstpbutils_dep],
   link_args: ['-Wl,--wrap=open', '-Wl,--wrap=open64', '-Wl,--wrap=close',
               '-Wl,--wrap=ioctl', '-Wl,--wrap=gst_poll_wait', '-Wl,--wrap=clock_gettime'])
+
+unaligned_io_test = executable('unaligned-io-test', 'unaligned-io-test.c',
+  c_args: gst_plugins_bad_args + ['-UNDEBUG'],
+  include_directories: [configinc], dependencies: [gstbase_dep])
