@@ -2,8 +2,9 @@
 
 AI-assisted implementation for [#82](https://github.com/iconidentify/omarchy-m1-video/issues/82).
 **Offline experiment; no hardware qualification or installed changes.** Separate
-Codex design/code review is recorded in [REVIEW.md](REVIEW.md). Human specialist
-review and the remaining #82 gates are still required.
+Codex design/code and adversarial review is recorded in [REVIEW.md](REVIEW.md).
+Human specialist review and the remaining #82 gates are required before live
+qualification; this PR's acceptance is limited to the offline experiment.
 
 This applies additive patches to the complete, pinned VA driver and Gst plugin
 already exercised by [va-adapter](../va-adapter/CONTRACT.md) and
@@ -12,8 +13,9 @@ The actual native lease protects allocation selection, read-only mapping, bounde
 copy, post-copy validation and unmapping. Native end refuses to release a lease
 while an unsuccessful unmap still owns a pointer; the owner must retry cleanup.
 The eight-copy limit is also kept privately by the native context, so reinitializing
-a caller pool cannot reset it. A failure after acquiring the snapshot lock stops that pool; disabled, wrong-owner
-and lock-contention refusals return without changing it.
+a caller pool cannot reset it. A failure after acquiring the outer snapshot lock
+stops that pool, including VA context-mutex contention. Disabled, wrong-owner
+and outer-lock-contention refusals return without changing it.
 
 The normalized record fixes the plane bound at eight and separates common generation
 fields from client-specific identities:
@@ -51,7 +53,8 @@ fail closed. This first version deliberately does not support built-in vb2: a
 missing module note cannot prove built-in status.
 
 The private build-ID cache identifies the object containing each native snapshot
-function before the lease. It **does not attest the entire FFmpeg/Gst dependency
+function before the lease. ELF note ranges must fit entirely within a readable
+loaded segment before they are read. It **does not attest the entire FFmpeg/Gst dependency
 stack or corpus**. No production FFmpeg call site or Gst pre-publication hook is
 wired, and no kernel command/reference collector is joined here. Existing native
 writer/completion receipts are normalized faithfully; they do not retroactively
@@ -90,6 +93,11 @@ producer/destruction gates are exercised while a lease is retained. The original
 21 VA / 29 Gst observer modes run again on the extended sources under both
 sanitizers. Mutations must compile and abort at a named semantic assertion;
 compiler failures, timeouts and sanitizer errors are not counted as detections.
+
+Both suites first run the build-ID parser regression under ASan/UBSan, including
+an unreadable ELF note, an incomplete readable range and address overflow.
+Deadline checks reject late results; they cannot preempt a blocked syscall or
+an in-progress copy. See the timing limitation in [CONTRACT.md](CONTRACT.md).
 
 The Gst allocation mutation removes **both** redundant allocation checks, at
 receipt normalization and the private map boundary. Other mutants independently

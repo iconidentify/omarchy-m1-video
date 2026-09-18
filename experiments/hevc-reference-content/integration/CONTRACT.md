@@ -47,13 +47,20 @@ one bounded plane read-only, copies only compression [161280,338432) and the fin
 7168 MV bytes, then unmaps before releasing the native lease. Copy off/on perform
 the same mapping, lifetime and provenance checks. No allocation, hashing,
 serialization or callbacks occur within the timed two-memcpy interval (20 ms).
-The whole mapping/copy operation shares the native lease's finite deadline.
+The whole mapping/copy operation checks the native lease's original absolute
+deadline before admission and after validation. This is a result-acceptance
+deadline, not a hard wall-clock timeout: synchronous file/sysfs reads, ioctls,
+mmap/munmap and memcpy cannot be interrupted by these checks. Cancellation stays
+disabled while the native lease is retained. Live qualification must account for
+blocked operations and use the separately authorized external guard; this
+offline implementation does not prove bounded device response or lease duration.
 
 Before and after copying, allocation/writer/lease and runtime identity must still
 match. Failures after transfer reserves a slot consume that slot and leave it invalid.
 Admission refusals before transfer do not reserve a slot. Failures after acquiring
-the native snapshot lock stop the pool; initial disabled/owner/contention refusals
-return without changing it. Raw bytes remain private. Hashing and publication happen only after end.
+the outer native snapshot lock stop the pool, including VA context-mutex
+contention; initial disabled/owner/outer-lock-contention refusals return without
+changing it. Raw bytes remain private. Hashing and publication happen only after end.
 Same-run command/reference association and the separately guarded B/E x VA/Gst x
 off/on campaign remain required; old captures cannot acquire new provenance by
 attaching a normalized receipt.

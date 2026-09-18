@@ -51,15 +51,33 @@ static int hevc_content_image(struct dl_phdr_info *info, size_t size, void *opaq
     bool owner = false;
     for (unsigned i = 0; i < info->dlpi_phnum; i++) {
         const ElfW(Phdr) *p = &info->dlpi_phdr[i];
+        if (p->p_vaddr > UINTPTR_MAX - info->dlpi_addr) continue;
         uintptr_t start = info->dlpi_addr + p->p_vaddr;
         if (p->p_type == PT_LOAD && address >= start && address - start < p->p_memsz) owner = true;
     }
     if (!owner) return 0;
     for (unsigned i = 0; i < info->dlpi_phnum; i++) {
         const ElfW(Phdr) *p = &info->dlpi_phdr[i];
-        if (p->p_type == PT_NOTE && p->p_memsz <= 65536) {
+        if (p->p_type == PT_NOTE && p->p_memsz) {
+            /* PT_NOTE describes metadata; the loader need not map it. Only
+             * dereference notes wholly inside a readable PT_LOAD segment. */
+            if (p->p_vaddr > UINTPTR_MAX - info->dlpi_addr || p->p_memsz > 65536) {
+                self->id[0] = 0; return 1;
+            }
+            uintptr_t start = info->dlpi_addr + p->p_vaddr;
+            bool readable = false;
+            for (unsigned j = 0; j < info->dlpi_phnum; j++) {
+                const ElfW(Phdr) *load = &info->dlpi_phdr[j];
+                if (load->p_type != PT_LOAD || !(load->p_flags & PF_R) ||
+                    load->p_vaddr > UINTPTR_MAX - info->dlpi_addr) continue;
+                uintptr_t mapped = info->dlpi_addr + load->p_vaddr;
+                if (start >= mapped && start - mapped < load->p_memsz &&
+                    p->p_memsz <= load->p_memsz - (start - mapped) &&
+                    p->p_memsz <= UINTPTR_MAX - start) readable = true;
+            }
+            if (!readable) { self->id[0] = 0; return 1; }
             char id[129] = {0};
-            if (hevc_content_note((const unsigned char *)(info->dlpi_addr + p->p_vaddr), p->p_memsz, id)) {
+            if (hevc_content_note((const unsigned char *)start, p->p_memsz, id)) {
                 if (self->id[0]) { self->id[0] = 0; return 1; }
                 memcpy(self->id, id, sizeof(id));
             }

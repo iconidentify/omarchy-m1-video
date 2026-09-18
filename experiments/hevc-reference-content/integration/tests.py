@@ -192,6 +192,11 @@ def main():
     destination.mkdir(parents=True, exist_ok=True)
     if any(destination.iterdir()):
         parser.error('--keep must be empty')
+    runtime_test = destination / 'runtime-test'
+    run(['cc', '-std=gnu11', '-g', '-O1', '-UNDEBUG', '-Wl,--build-id',
+         '-fsanitize=address,undefined', '-fno-sanitize-recover=all',
+         HERE / 'runtime-test.c', '-ldl', '-o', runtime_test])
+    print(run([runtime_test]).strip(), flush=True)
     if args.client == 'va':
         adapter = module('va_adapter_tests', PARENT / 'va-adapter/tests.py')
         root = adapter.fetch_tree(destination, args.archive)
