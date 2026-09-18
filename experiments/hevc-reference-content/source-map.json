@@ -8,8 +8,8 @@
   "capture": "e5b226e843a145eabd846816d51a43ae9a58fee5",
   "ffmpeg_revision": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
   "driver_revision": "3570a2e09d232a5a541c63df7d2cf699fa4b096b",
-  "implementation": "synthetic observer plus static hash-pinned source inspection; no real-client instrumentation or adapter",
-  "limitations": "Function strings are inspected, never executed or instrumented. AVD completion source is the upstream base, not the shipped-patched build. GStreamer direct-V4L2 APIs are not pinned or audited here. Historical labels cannot prove live ownership.",
+  "implementation": "synthetic observer, static hash-pinned source inspection and four isolated compiled helper bodies; no real-client instrumentation or adapter",
+  "limitations": "Static audit does not execute C. Separate helper harness executes selected wait/reader/CPU-access bodies with stub types and poll/dequeue; no configured client or device API. AVD completion is upstream base only, not shipped-patched. GStreamer direct-V4L2 APIs are not audited. No live retention, producer barrier, cache visibility or writer identity is established.",
   "client_files": {
     "src/surface.c": {
       "url": "https://raw.githubusercontent.com/iconidentify/libva-v4l2_request/3570a2e09d232a5a541c63df7d2cf699fa4b096b/src/surface.c",
@@ -60,5 +60,18 @@
     }
   },
   "avd_completion_scope": "upstream base only; use #77/#76 for shipped-patched ownership/capture evidence",
-  "gstreamer_scope": "not audited; accepted v4l2slh265dec campaign uses direct V4L2, not the VA driver"
+  "gstreamer_scope": "not audited; accepted v4l2slh265dec campaign uses direct V4L2, not the VA driver",
+  "isolated_execution": {
+    "functions": [
+      "wait_on_capture_locked",
+      "capture_wait_readers",
+      "vb2_dc_dmabuf_ops_begin_cpu_access",
+      "vb2_dc_dmabuf_ops_end_cpu_access"
+    ],
+    "cases": 15,
+    "semantic_mutations": 10,
+    "configured_client_executed": false,
+    "device_executed": false,
+    "copy_authorized": false
+  }
 }
