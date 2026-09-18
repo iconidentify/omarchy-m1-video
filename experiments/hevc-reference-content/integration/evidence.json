@@ -1,0 +1,53 @@
+{
+  "scope": "Initial locally passing candidate, synthetic syscalls and no hardware; before final SPDX/docs and fixture-only glibc portability diagnostics. Hosted checks build the submitted revision.",
+  "base": "69815eacb0aac6501d87b75b94d2603df9b8178a",
+  "va_revision": "c77e7b566f7baf9c7a2aad797e62c9aa578d9687",
+  "gst_revision": "070125524a8422e29d3b69a372ed4f62fd343ffa",
+  "tools": {
+    "cc": "cc (GCC) 16.1.1 20260430",
+    "meson": "1.12.0",
+    "ninja": "1.13.2",
+    "pkg-config": "3.0.7",
+    "python": "Python 3.14.7",
+    "packages": {
+      "libva": "1.24.0",
+      "libdrm": "2.4.134",
+      "glib-2.0": "2.88.3",
+      "gudev-1.0": "238"
+    }
+  },
+  "artifacts_sha256": {
+    "va-configured-asan-ubsan": "d8bd66eef225fcc690e73ba3f21243deaab7b6e9e75c0982e7ab3f00788260bb",
+    "va-content-asan-ubsan": "f3a435d113a06b7732b6f39e251a37c00e3a88c83f5cbdc414d61363373b34c4",
+    "va-content-tsan": "b71fe04efd45b3cd6845538fbc9efaf1b49b89f7cb9a6737a716c45f79be4843",
+    "gst-asan-ubsan-libgstv4l2codecs.so": "5f852a68d8931c83526b9a24a0d3f44d04627f432330e62752c9bd40a718afa9",
+    "gst-asan-ubsan-content-api": "6de8f84d3e4cb983445812c8f49c9cefe5448c15b908493b1ee4b2701bffa279",
+    "gst-tsan-libgstv4l2codecs.so": "f3b985db83debe8211367c033f0469d8bfa8387144d2c2f6e7a3d218879c7630",
+    "gst-tsan-content-api": "e376f97372521c0e31d04b858ac0a459692617e306668773d13f5bb2853a1897"
+  },
+  "tested_integration_source_sha256": {
+    "va-content.inc": "eab4e6cc81abc2b14696d6625cfefb5279c125aa9abc294600eee39008e4a1e7",
+    "va-content.h": "86c90fa832e44f4f34a676bafe97c72b0deaa4e9f7a481393a6697dcc14fd627",
+    "runtime.h": "c514976df80464a2b7a9ece1753270d05674a360aa310ebe3410ad87ee1b8ed3",
+    "content.h": "b6322276ebc6dfb703efbac67b1dbd5823f5449c28d38bd32d69e5c0dd0613d6",
+    "gst/content.h": "b6322276ebc6dfb703efbac67b1dbd5823f5449c28d38bd32d69e5c0dd0613d6",
+    "gst/runtime.h": "c514976df80464a2b7a9ece1753270d05674a360aa310ebe3410ad87ee1b8ed3",
+    "gst/gst-content.h": "d9ad842d963e08f666889a63ad963fc659a918a517277a510dcaa09e72122f74",
+    "gst/gst-content.inc": "584fd0adf5a236bedf7924dca7f8836baad6bd2e58ca530b791f4874fd9946c1",
+    "gst/gst-allocation-content.inc": "e74f9886555a6ab6bc3200178bafbce4a230c17f84949c0f5c56cbb6e1829437",
+    "gst/content-api-test.c": "029905db15f082bd81a4b90600bd4ebfb18aadf78d2655fa2d8abe3f49a53611",
+    "gst/model-runtime.inc": "8f4276aa3d2221db960978b75c654356fbf431435a4148b3f4fb03784f349a0e",
+    "va-integration.patch": "f3097dc68a2aa4ce06160a94a907359c91e386be5b598a93cc9fb51aedef66b9",
+    "gst-integration.patch": "57ffe5b4705406e379202ed9988078fddeadcd6459cd1697c14d4c7c2799d3fc"
+  },
+  "results": {
+    "va_meson": 195,
+    "va_integration_per_sanitizer": 27,
+    "gst_integration_per_sanitizer": 25,
+    "va_native_per_sanitizer": 21,
+    "gst_native_per_sanitizer": 29,
+    "integration_mutations": 12,
+    "python_groups": 25,
+    "software_shared_context_frames": 168
+  }
+}
