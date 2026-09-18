@@ -24,3 +24,26 @@ barrier. begin drains via `gst_v4l2_request_set_done` and does not invent
 completion. Hook mutations must fail the intended CHECK, not ASan.
 
 See [CONTRACT.md](CONTRACT.md). No hardware, install, mapping or copy.
+
+## Maintainer adversarial correction (2026-09-18)
+
+Three additional no-device regressions reproduced bugs on `c115fcd`: failed
+begin leaked pins acquired before a later timeout; a dequeued request marked
+failed could produce a successful begin; and a ninth distinct request was
+submitted before receipt-capacity rejection. The correction releases all held
+references on failure, rejects failed completion, and checks capacity before
+submission in the serialized fixture. Release callbacks run outside the observer
+mutex. Seven positive cases and three specific semantic mutations pass with
+ASan/UBSan. Tests now compare the committed patch with the tested hooks instead
+of rewriting it. Internal static plugin functions are no longer redeclared as
+external functions in the shared observer header.
+
+**Still draft; not a usable concurrent observer.** The registry keeps borrowed
+request pointers until begin, and real final-unref/recycle/free is still replaced
+by the harness. The admission check and queue submission are separate critical
+sections, so another thread can submit after begin. `set_done` still has its
+one-second poll rather than the operation's remaining deadline. Direct
+streamoff/close and allocator recycling are not all intercepted. A configured
+full plugin build, real request ownership/retirement, context/run/allocation
+identity, and thread/race tests are required before accepting #96. These fixes
+do not establish that broader contract. Maintainer corrections are self-reviewed.

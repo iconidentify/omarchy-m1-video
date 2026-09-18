@@ -53,8 +53,14 @@ int gst_hevc_observer_paused(void)
 
 int gst_hevc_observer_admit_queue(GstV4l2Request *request)
 {
-	int ok = 1;
+	int ok = 1, known = 0;
 	pthread_mutex_lock(&mu);
+	for (int i = 0; i < n_receipts; i++)
+		known |= receipts[i].object == request;
+	/* Reject a full registry before QBUF or MEDIA_REQUEST_IOC_QUEUE.
+	 * This preflight still requires the documented serialized caller. */
+	if (enabled && !known && n_receipts >= 8)
+		ok = 0;
 	if (enabled && paused)
 		ok = 0;
 	if (!request || !request->decoder)
@@ -124,6 +130,31 @@ int gst_hevc_observer_admit_flush(GstV4l2Decoder *decoder)
 	return ok;
 }
 
+/* Drop external references without mu held: the real final unref may call
+ * back into the observer's free hook. Caller keeps paused set until done. */
+static void release_held(void)
+{
+	int count;
+	GstV4l2Request *requests[8];
+	GstBuffer *pictures[8];
+	GstMemory *bits[8];
+	pthread_mutex_lock(&mu);
+	count = n_held;
+	memcpy(requests, held_req, sizeof(requests));
+	memcpy(pictures, held_pic, sizeof(pictures));
+	memcpy(bits, held_bit, sizeof(bits));
+	memset(held_req, 0, sizeof(held_req));
+	memset(held_pic, 0, sizeof(held_pic));
+	memset(held_bit, 0, sizeof(held_bit));
+	n_held = 0;
+	pthread_mutex_unlock(&mu);
+	for (int i = 0; i < count; i++) {
+		if (requests[i]) gst_v4l2_request_unref(requests[i]);
+		if (pictures[i]) gst_buffer_unref(pictures[i]);
+		if (bits[i]) gst_memory_unref(bits[i]);
+	}
+}
+
 int gst_hevc_observer_begin(GstV4l2Decoder *decoder, int deadline_ms)
 {
 	int n, i;
@@ -150,26 +181,20 @@ int gst_hevc_observer_begin(GstV4l2Decoder *decoder, int deadline_ms)
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	for (i = 0; i < n; i++) {
 		GstV4l2Request *req = pending[i];
-		if (!req)
+		if (!req || req->decoder != decoder)
 			continue;
 		if (req->pending) {
 			clock_gettime(CLOCK_MONOTONIC, &now);
 			if ((now.tv_sec - start.tv_sec) * 1000 +
 			    (now.tv_nsec - start.tv_nsec) / 1000000 >= deadline_ms) {
-				pthread_mutex_lock(&mu);
-				paused = 0;
-				held_decoder = NULL;
-				pthread_mutex_unlock(&mu);
-				return 0;
+				goto failed;
 			}
-			if (gst_v4l2_request_set_done(req) <= 0 || req->pending) {
-				pthread_mutex_lock(&mu);
-				paused = 0;
-				held_decoder = NULL;
-				pthread_mutex_unlock(&mu);
-				return 0;
+			if (gst_v4l2_request_set_done(req) <= 0 || req->pending || req->failed) {
+				goto failed;
 			}
 		}
+		if (req->failed)
+			goto failed;
 		pthread_mutex_lock(&mu);
 		if (n_held < 8) {
 			held_req[n_held] = gst_v4l2_request_ref(req);
@@ -180,28 +205,25 @@ int gst_hevc_observer_begin(GstV4l2Decoder *decoder, int deadline_ms)
 		pthread_mutex_unlock(&mu);
 	}
 	return 1;
+failed:
+	release_held();
+	pthread_mutex_lock(&mu);
+	paused = 0;
+	held_decoder = NULL;
+	pthread_mutex_unlock(&mu);
+	return 0;
 }
 
 int gst_hevc_observer_end(GstV4l2Decoder *decoder)
 {
-	int i;
 	pthread_mutex_lock(&mu);
 	if (!enabled || !paused || decoder != held_decoder) {
 		pthread_mutex_unlock(&mu);
 		return 0;
 	}
-	for (i = 0; i < n_held; i++) {
-		if (held_req[i])
-			gst_v4l2_request_unref(held_req[i]);
-		if (held_pic[i])
-			gst_buffer_unref(held_pic[i]);
-		if (held_bit[i])
-			gst_memory_unref(held_bit[i]);
-		held_req[i] = NULL;
-		held_pic[i] = NULL;
-		held_bit[i] = NULL;
-	}
-	n_held = 0;
+	pthread_mutex_unlock(&mu);
+	release_held();
+	pthread_mutex_lock(&mu);
 	paused = 0;
 	held_decoder = NULL;
 	pthread_mutex_unlock(&mu);

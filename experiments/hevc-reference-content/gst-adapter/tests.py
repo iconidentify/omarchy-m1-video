@@ -43,39 +43,41 @@ def expect(mode, substring, mutate=None):
 
 def expect_fail(mode, mutate, assertion):
     result = compile_run(mode=mode, mutate=mutate)
-    if result.returncode == 0:
+    if result.returncode != 1:
         raise SystemExit('mutation %s unexpectedly passed:\n%s' % (mutate, result.stdout))
     if assertion not in result.stderr and assertion not in result.stdout:
         raise SystemExit('mutation %s missing assertion %r (rc=%s):\n%s%s' %
                          (mutate, assertion, result.returncode, result.stdout, result.stderr))
-    if 'ERROR: AddressSanitizer' in result.stderr or 'runtime error:' in result.stderr:
+    if 'Sanitizer' in result.stderr or 'runtime error:' in result.stderr:
         raise SystemExit('mutation %s sanitizer crash counted as negative:\n%s' %
                          (mutate, result.stderr))
     print('PASS: mutation', mutate, 'failed as', assertion)
 
 
-def write_patch():
+def check_patch():
+    import difflib
     texts = source.fetch()
     original = texts[source.DEC]
     patched = source.patch_decoder(original)
-    Path('/tmp/gst-orig.c').write_text(original)
-    Path('/tmp/gst-patched.c').write_text(patched)
-    diff = subprocess.run(
-        ['diff', '-u', '--label', 'a/' + source.DEC, '--label', 'b/' + source.DEC,
-         '/tmp/gst-orig.c', '/tmp/gst-patched.c'],
-        capture_output=True, text=True)
-    (HERE / 'gstv4l2decoder-observer.patch').write_text(diff.stdout)
+    expected = ''.join(difflib.unified_diff(
+        original.splitlines(keepends=True), patched.splitlines(keepends=True),
+        fromfile='a/' + source.DEC, tofile='b/' + source.DEC))
+    if (HERE / 'gstv4l2decoder-observer.patch').read_text() != expected:
+        raise SystemExit('committed observer patch differs from tested hooks')
 
 
 def main():
-    write_patch()
+    check_patch()
     expect('success', 'PASS: success pause/retain after successful queue')
     expect('fail-ioctl', 'PASS: failed ioctl does not mint a writer receipt')
+    expect('partial-drain', 'PASS: failed begin releases earlier pins')
+    expect('failed-completion', 'PASS: failed dequeue cannot establish quiescence')
+    expect('capacity', 'PASS: exhausted registry rejects before submission')
     expect('reuse', 'PASS: reused request object retires previous writer_job')
     expect('drain-timeout', 'PASS: begin does not invent completion on drain timeout')
-    expect_fail('success', 'no-queue-hook', 'fail')
-    expect_fail('success', 'no-record-hook', 'fail')
-    expect_fail('success', 'no-free-hook', 'fail')
+    expect_fail('success', 'no-queue-hook', '!gst_v4l2_request_queue(&req, 0)')
+    expect_fail('success', 'no-record-hook', 'gst_hevc_observer_receipt(&req, &rec)')
+    expect_fail('success', 'no-free-hook', 'req.decoder == &dec')
     print('PASS: gst observer correction')
 
 

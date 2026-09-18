@@ -18,10 +18,7 @@ int gst_hevc_observer_admit_flush(GstV4l2Decoder *decoder);
 GstV4l2Request *gst_v4l2_request_ref(GstV4l2Request *request);
 void gst_v4l2_request_unref(GstV4l2Request *request);
 gint gst_v4l2_request_set_done(GstV4l2Request *request);
-gboolean gst_v4l2_decoder_dequeue_sink(GstV4l2Decoder *self);
-gboolean gst_v4l2_decoder_dequeue_src(GstV4l2Decoder *self, guint32 *out_frame_num);
 gboolean gst_v4l2_request_queue(GstV4l2Request *request, guint flags);
-void gst_v4l2_request_free(GstV4l2Request *request);
 gboolean gst_v4l2_decoder_flush(GstV4l2Decoder *self);
 
 struct gst_hevc_receipt {

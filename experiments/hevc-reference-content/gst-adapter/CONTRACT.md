@@ -41,3 +41,20 @@ POC/index labels are not used. Exporter/cache/mapping stay unproven.
 
 Fake ioctl is allowed and identified. No `/dev/video*`, no dma-buf mmap, no
 copy, no installed GStreamer change.
+
+## Unmet contract after maintainer review
+
+The mutex currently protects observer bookkeeping, not the entire producer or
+lifetime operation. In particular queue admission releases it before QBUF and
+request submission. The registry contains borrowed pointers; the fixture's
+request ref/unref functions do not execute the actual final-unref/recycle path.
+Those are merge blockers, not assurances provided by the caller. The operation
+deadline also does not yet bound the pinned `set_done` poll. Real final-unref,
+stop/close/streamoff, allocation retirement, bounded waits and concurrent schedules
+must be implemented and exercised against a complete configured plugin build.
+
+The current serialized fixture now rejects registry exhaustion before submitting,
+rejects failed request completion, ignores other decoder contexts during begin,
+and releases earlier pins on any later drain failure. Its release callbacks run
+outside the bookkeeping mutex to avoid recursive locking on real cleanup paths.
+No receipt from this partial implementation admits a live memory copy.
