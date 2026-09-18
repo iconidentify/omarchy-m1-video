@@ -61,7 +61,18 @@
      return FALSE;
  
    gst_v4l2_codec_h265_dec_streamoff (self);
-@@ -1368,6 +1372,8 @@
+@@ -1048,6 +1052,10 @@
+     const GstH265SPS * sps, gint max_dpb_size)
+ {
+   GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);
++  /* Finish the observation before a sequence can change fields or negotiate.
++   * streamoff/reset are void APIs: refusing there alone cannot stop this caller. */
++  if (self->content_callsite)
++    return GST_FLOW_NOT_NEGOTIATED;
+   gint crop_width = sps->width;
+   gint crop_height = sps->height;
+   gboolean negotiation_needed = FALSE;
+@@ -1368,6 +1376,8 @@
    GstVideoDecoder *vdec = GST_VIDEO_DECODER (decoder);
    GstV4l2Request *request = gst_h265_picture_get_user_data (picture);
    GstCodecPicture *codec_picture = GST_CODEC_PICTURE (picture);
@@ -70,7 +81,7 @@
    gint ret;
  
    g_return_val_if_fail (request, GST_FLOW_ERROR);
-@@ -1383,6 +1389,12 @@
+@@ -1383,6 +1393,12 @@
        codec_picture->system_frame_number);
  
    GST_HEVC_OBSERVER_LOCK;
@@ -83,7 +94,7 @@
    ret = gst_v4l2_request_set_done (request);
    if (ret == 0) {
      g_clear_pointer (&observer_locker, g_rec_mutex_locker_free);
-@@ -1729,7 +1741,7 @@
+@@ -1729,7 +1745,7 @@
  {
    GST_HEVC_OBSERVER_LOCK;
    GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);

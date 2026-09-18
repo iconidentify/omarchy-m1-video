@@ -30,7 +30,8 @@ gst_hevc_callsite_arm (GstH265Decoder *decoder, gboolean copy)
   GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);
   gboolean ok = FALSE;
   GST_VIDEO_DECODER_STREAM_LOCK (decoder);
-  if (self->content_callsite)
+  if (self->content_callsite || !self->streaming || !self->sink_allocator ||
+      !self->src_allocator || !self->src_pool)
     goto done;
   GstHevcCallsite *state = g_try_new0 (GstHevcCallsite, 1);
   if (!state)

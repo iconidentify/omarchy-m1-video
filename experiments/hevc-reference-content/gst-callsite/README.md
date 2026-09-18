@@ -8,8 +8,9 @@ patches and historical evidence remain unchanged.
 
 The unarmed decoder does no new allocation, session creation, build-manifest
 read, or content mapping. The internal `gst_hevc_callsite_arm()` API deliberately
-arms one output, on the streaming owner, before the first request is allocated
-or submitted. It is not a GStreamer launch property or a shipped activation
+arms one output, on the streaming owner, after initial format/pool negotiation
+and stream-on but before the first request is allocated or submitted.
+It is not a GStreamer launch property or a shipped activation
 recipe. A future in-plugin campaign controller must call it at that boundary.
 Calling it after submission is rejected by the actual decoder counters.
 
@@ -45,7 +46,9 @@ streamoff and allocation reset refuse while an arm exists, including before begi
 and after a successful copy. Otherwise close could invalidate the session needed
 by finish. Finish the arm before those lifecycle operations. The arm pointer is
 published/removed under both stream and observer locks, matching the lifecycle
-callbacks' observer-lock reads.
+callbacks' observer-lock reads. New-sequence handling also refuses before
+changing dimensions, controls or entering renegotiation; simply refusing its
+void streamoff helper would let that caller continue with inconsistent state.
 
 No user callback is invoked inside the native retained interval. The hook defers
 pthread cancellation until its native resources and callback-owned objects are

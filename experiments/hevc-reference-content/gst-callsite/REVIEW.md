@@ -40,6 +40,12 @@
   Client lifecycle operations now require finish first; arm pointer changes
   use the observer mutex as well as the stream lock, matching those readers.
   A named mutation removes the close guard and must fail the lifecycle assertion.
+- R3, confirmed reverse-call-site finding and fixed: the new-sequence caller
+  would continue after its void streamoff helper refused an armed operation,
+  updating fields and negotiating against still-streaming storage. Arm now
+  requires completed initial streaming/pool setup, and new-sequence rejects
+  before changing state. The lifecycle test invokes the real registered
+  new-sequence vfunc with a changed SPS and checks the refusal without I/O.
 - D1, dismissed: putting begin after publication would always encounter sticky
   alias exclusion. The hook is before the existing publication marker, uses
   the request's exact buffer, and is exercised via the registered output vfunc.

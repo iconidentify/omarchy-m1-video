@@ -81,6 +81,8 @@ static void check_lifecycle(void)
   assert(!gst_v4l2_codec_h265_dec_close(GST_VIDEO_DECODER(client)));
   assert(!gst_v4l2_codec_h265_dec_stop(GST_VIDEO_DECODER(client)));
   assert(!gst_v4l2_codec_h265_dec_flush(GST_VIDEO_DECODER(client)));
+  GstH265SPS sps={.width=448,.height=240,.chroma_format_idc=1};
+  assert(GST_H265_DECODER_GET_CLASS(client)->new_sequence(GST_H265_DECODER(client),&sps,4)==GST_FLOW_NOT_NEGOTIATED);
   gst_v4l2_codec_h265_dec_streamoff(client);
   gst_v4l2_codec_h265_dec_reset_allocation(client);
   assert(ioctls==before && client->streaming && client->src_allocator && client->sink_allocator);
