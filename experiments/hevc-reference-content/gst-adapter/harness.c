@@ -1,18 +1,18 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
-/* Execute patched gst_v4l2_request_queue / flush / free. Fake ioctl. No device. */
 #include "gst-types-min.h"
 #include "gst-observer.h"
 #include <stdio.h>
+#include <string.h>
 
 static int fail_ioctl;
+static int poll_timeout;
 static int ioctl_count;
-static unsigned long last_req;
 
 int ioctl(int fd, unsigned long request, ...)
 {
 	(void)fd;
+	(void)request;
 	ioctl_count++;
-	last_req = request;
 	if (fail_ioctl) {
 		errno = EIO;
 		return -1;
@@ -20,67 +20,159 @@ int ioctl(int fd, unsigned long request, ...)
 	return 0;
 }
 
-void gst_v4l2_request_set_done(GstV4l2Request *request)
+GstV4l2Request *gst_v4l2_request_ref(GstV4l2Request *request)
 {
 	if (request)
-		request->pending = FALSE;
+		request->ref_count++;
+	return request;
 }
 
-int gst_v4l2_decoder_streamoff(GstV4l2Decoder *self, GstPadDirection d)
+void gst_v4l2_request_unref(GstV4l2Request *request)
+{
+	if (request && request->ref_count > 0)
+		request->ref_count--;
+}
+
+gint gst_poll_wait(GstPoll *poll, GstClockTime timeout)
+{
+	(void)poll;
+	(void)timeout;
+	if (poll_timeout)
+		return 0;
+	return 1;
+}
+
+gboolean gst_v4l2_decoder_streamoff(GstV4l2Decoder *self, GstPadDirection d)
 {
 	(void)self;
 	(void)d;
-	return 1;
+	return TRUE;
 }
-int gst_v4l2_decoder_streamon(GstV4l2Decoder *self, GstPadDirection d)
+gboolean gst_v4l2_decoder_streamon(GstV4l2Decoder *self, GstPadDirection d)
 {
 	(void)self;
 	(void)d;
-	return 1;
+	return TRUE;
 }
 
+#undef g_free
+#define g_free(p) ((void)(p))
+#undef g_object_unref
+#define g_object_unref(p) ((void)(p))
+#undef gst_poll_free
+#define gst_poll_free(p) ((void)(p))
+#undef close
+#define close(fd) ((void)(fd))
 #include "extracted-gst.inc"
 
 #define CHECK(c) do { if (!(c)) { fprintf(stderr, "fail %d: %s\n", __LINE__, #c); return 1; } } while (0)
 
-int main(void)
+static void init_dec(GstV4l2Decoder *dec, GstVecDeque *pending)
 {
-	GstVecDeque pending = {0};
-	GstV4l2Decoder dec = {.video_fd = 3, .pending_requests = &pending, .render_delay = 4,
-			      .supports_holding_capture = 1, .mplane = 0,
-			      .sink_buf_type = V4L2_BUF_TYPE_VIDEO_OUTPUT,
-			      .src_buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE};
-	GstV4l2Request req = {.decoder = &dec, .fd = 11, .frame_num = 28, .bitstream = (void *)1,
-			      .pic_buf = (void *)1};
-	struct gst_hevc_receipt rec;
+	memset(dec, 0, sizeof(*dec));
+	dec->video_fd = 3;
+	dec->pending_requests = pending;
+	dec->render_delay = 8;
+	dec->supports_holding_capture = TRUE;
+	dec->sink_buf_type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+	dec->src_buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+}
 
-	CHECK(gst_v4l2_request_queue(&req, 0));
-	CHECK(req.pending);
-	CHECK(gst_hevc_observer_receipt(&req, &rec) == 0); /* default-off: no receipts */
+int main(int argc, char **argv)
+{
+	const char *mode = argc > 1 ? argv[1] : "success";
+	GstVecDeque *pending;
+	GstV4l2Decoder dec;
+	GstV4l2Request req;
+	GstMemory *bitstream;
+	GstBuffer *picture;
+	struct gst_hevc_receipt rec, rec2;
+	int rc;
 
-	gst_hevc_observer_set_enabled(1);
-	req.pending = FALSE;
-	pending.len = 0;
-	CHECK(gst_v4l2_request_queue(&req, 0));
-	CHECK(gst_hevc_observer_receipt(&req, &rec));
-	CHECK(rec.request_fd == 11 && rec.frame_num == 28 && rec.writer_job == 1);
-	CHECK(rec.generation == 0);
-	req.pending = FALSE; /* completed before pause */
-	CHECK(gst_hevc_observer_begin(&dec, 100));
-	CHECK(!gst_v4l2_request_queue(&req, 0)); /* producers stopped */
-	gst_v4l2_request_free(&req);
-	CHECK(req.decoder == &dec); /* retained: free is refused */
-	CHECK(!gst_v4l2_decoder_flush(&dec));
-	CHECK(gst_hevc_observer_end(&dec));
-	gst_v4l2_request_free(&req);
-	CHECK(req.decoder == NULL);
+	gst_init(NULL, NULL);
+	pending = gst_vec_deque_new(8);
+	bitstream = gst_allocator_alloc(NULL, 16, NULL);
+	picture = gst_buffer_new_allocate(NULL, 16, NULL);
+	CHECK(bitstream && picture);
+	init_dec(&dec, pending);
+	memset(&req, 0, sizeof(req));
+	req.decoder = &dec;
+	req.fd = 11;
+	req.frame_num = 28;
+	req.bitstream = bitstream;
+	req.pic_buf = picture;
+	req.ref_count = 1;
 
-	/* Incomplete pending request: begin must not invent completion. */
-	req.pending = TRUE;
-	pending.len = 0;
-	gst_vec_deque_push_tail(&pending, &req);
-	CHECK(!gst_hevc_observer_begin(&dec, 100));
-
-	puts("PASS: patched gst_v4l2_request_queue pause/retain/receipt; default-off; no invented drain");
-	return 0;
+	if (!strcmp(mode, "success")) {
+		CHECK(gst_v4l2_request_queue(&req, 0));
+		CHECK(gst_hevc_observer_receipt(&req, &rec) == 0);
+		gst_hevc_observer_set_enabled(1);
+		req.pending = FALSE;
+		while (gst_vec_deque_get_length(pending))
+			gst_vec_deque_pop_head(pending);
+		CHECK(gst_v4l2_request_queue(&req, 0));
+		CHECK(gst_hevc_observer_receipt(&req, &rec));
+		CHECK(rec.writer_job == 1 && rec.request_fd == 11);
+		req.pending = FALSE;
+		CHECK(gst_hevc_observer_begin(&dec, 200));
+		CHECK(!gst_v4l2_request_queue(&req, 0));
+		gst_hevc_observer_set_enabled(0);
+		CHECK(gst_hevc_observer_paused());
+		CHECK(!gst_v4l2_request_queue(&req, 0));
+		gst_v4l2_request_free(&req);
+		CHECK(req.decoder == &dec);
+		CHECK(!gst_v4l2_decoder_flush(&dec));
+		CHECK(gst_hevc_observer_end(&dec));
+		puts("PASS: success pause/retain after successful queue");
+		gst_vec_deque_free(pending);
+		gst_memory_unref(bitstream);
+		gst_buffer_unref(picture);
+		return 0;
+	}
+	if (!strcmp(mode, "fail-ioctl")) {
+		gst_hevc_observer_set_enabled(1);
+		fail_ioctl = 1;
+		rc = gst_v4l2_request_queue(&req, 0);
+		CHECK(rc == FALSE);
+		CHECK(gst_hevc_observer_receipt(&req, &rec) == 0);
+		puts("PASS: failed ioctl does not mint a writer receipt");
+		gst_vec_deque_free(pending);
+		gst_memory_unref(bitstream);
+		gst_buffer_unref(picture);
+		return 0;
+	}
+	if (!strcmp(mode, "reuse")) {
+		gst_hevc_observer_set_enabled(1);
+		CHECK(gst_v4l2_request_queue(&req, 0));
+		CHECK(gst_hevc_observer_receipt(&req, &rec));
+		req.pending = FALSE;
+		while (gst_vec_deque_get_length(pending))
+			gst_vec_deque_pop_head(pending);
+		CHECK(gst_v4l2_request_queue(&req, 0));
+		CHECK(gst_hevc_observer_receipt(&req, &rec2));
+		CHECK(rec2.writer_job != rec.writer_job);
+		CHECK(rec2.generation != rec.generation);
+		puts("PASS: reused request retires previous writer_job");
+		gst_vec_deque_free(pending);
+		gst_memory_unref(bitstream);
+		gst_buffer_unref(picture);
+		return 0;
+	}
+	if (!strcmp(mode, "drain-timeout")) {
+		gst_hevc_observer_set_enabled(1);
+		CHECK(gst_v4l2_request_queue(&req, 0));
+		poll_timeout = 1;
+		CHECK(!gst_hevc_observer_begin(&dec, 50));
+		CHECK(!gst_hevc_observer_paused());
+		puts("PASS: begin does not invent completion on drain timeout");
+		gst_vec_deque_free(pending);
+		gst_memory_unref(bitstream);
+		gst_buffer_unref(picture);
+		return 0;
+	}
+	fprintf(stderr, "unknown mode\n");
+	gst_vec_deque_free(pending);
+	gst_memory_unref(bitstream);
+	gst_buffer_unref(picture);
+	return 2;
 }

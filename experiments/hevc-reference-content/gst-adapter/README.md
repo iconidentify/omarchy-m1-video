@@ -11,11 +11,14 @@ Does not implement the VA sibling [#95](https://github.com/iconidentify/omarchy-
 python3 experiments/hevc-reference-content/gst-adapter/tests.py
 ```
 
-Retrieves hash-pinned `gstv4l2decoder.c` / `gstv4l2codech265dec.c`, patches
-`gst_v4l2_request_queue`, `gst_v4l2_request_free` and `gst_v4l2_decoder_flush`,
-and executes those functions under ASan/UBSan with a fake ioctl. Default-off
-queue still works. When enabled, begin stops further queues, refuses flush and
-free of held request fds, and will not invent completion for still-pending
-requests. Removing each hook fails the harness.
+Retrieves hash-pinned `gstv4l2decoder.c` / `gstv4l2codech265dec.c` and applies
+`gstv4l2decoder-observer.patch`. The patched `gst_v4l2_request_queue` /
+`gst_v4l2_request_free` / `gst_v4l2_decoder_flush` are compiled against
+configured GStreamer headers (`pkg-config gstreamer-1.0 gstreamer-video-1.0`)
+with a fake ioctl. Receipts are recorded only after successful QBUF and
+`MEDIA_REQUEST_IOC_QUEUE`. Reuse of the same request fd retires the previous
+writer_job. Pause state is mutex-protected; `set_enabled(0)` while paused does
+not drop the barrier. begin drains via `gst_v4l2_request_set_done` and does not
+invent completion. Hook mutations must fail the intended CHECK, not ASan.
 
 See [CONTRACT.md](CONTRACT.md). No hardware, install, mapping or copy.

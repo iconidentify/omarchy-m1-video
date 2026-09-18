@@ -28,10 +28,11 @@ lock before begin and before queue/free/flush.
 
 ## Receipts
 
-On a successful patched queue, the observer records run, decoder identity,
-request fd (allocation), generation (begin count), writer_job (monotonic),
-and frame_num from the request. Historical POC/index labels are not used.
-Exporter/cache/mapping stay unproven (vb2 CPU-access is a no-op at the kernel pin).
+Receipts are written only after both bitstream/picture QBUF and
+`MEDIA_REQUEST_IOC_QUEUE` succeed. Failed ioctl must not mint a writer.
+Reuse of the same request fd overwrites the previous writer_job/generation.
+Context is stored as an unsigned long decoder identity. Historical POC/index
+labels are not used. Exporter/cache/mapping stay unproven.
 
 ## Limits
 

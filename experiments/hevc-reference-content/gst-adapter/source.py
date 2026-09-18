@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""Fetch pinned GStreamer v4l2codecs files and extract/patch request_queue."""
+"""Fetch pinned GStreamer files, emit a full-file patch, extract patched APIs."""
 from __future__ import annotations
 import hashlib
 import json
@@ -10,6 +10,12 @@ import urllib.request
 
 HERE = Path(__file__).resolve().parent
 PINS = json.loads((HERE / 'source-map.json').read_text())
+DEC = 'subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c'
+
+ADMIT = '  if (!gst_hevc_observer_admit_queue (request))\n    return FALSE;\n'
+RECORD = '  if (!gst_hevc_observer_record (request))\n    return FALSE;\n'
+FREE = '  if (!gst_hevc_observer_admit_free (request))\n    return;\n'
+FLUSH = '  if (!gst_hevc_observer_admit_flush (self))\n    return FALSE;\n'
 
 
 def digest(data):
@@ -50,35 +56,61 @@ def fetch(cache=None):
     return texts
 
 
-QUEUE_HOOK = 'if (!gst_hevc_observer_admit_queue (request))\n    return FALSE;\n  '
-FREE_HOOK = 'if (!gst_hevc_observer_admit_free (request))\n    return;\n  '
-FLUSH_HOOK = 'if (!gst_hevc_observer_admit_flush (self))\n    return FALSE;\n  '
+def patch_decoder(source, mutate=None):
+    inc = '#include "gstv4l2decoder.h"'
+    if source.count(inc) != 1:
+        raise ValueError('include drift')
+    source = source.replace(inc, inc + '\n#include "gst-observer.h"', 1)
+    qmark = '  GST_TRACE_OBJECT (decoder, "Queuing request %i.", request->fd);'
+    if source.count(qmark) != 1:
+        raise ValueError('queue trace drift')
+    if mutate != 'no-queue-hook':
+        source = source.replace(qmark, ADMIT + qmark, 1)
+    pend = '  request->pending = TRUE;'
+    if source.count(pend) != 1:
+        raise ValueError('pending assignment drift')
+    if mutate != 'no-record-hook':
+        source = source.replace(pend, pend + '\n' + RECORD, 1)
+    free_m = '  request->decoder = NULL;'
+    if source.count(free_m) != 1:
+        raise ValueError('free drift')
+    if mutate != 'no-free-hook':
+        source = source.replace(free_m, FREE + free_m, 1)
+    flush_m = '  gst_v4l2_decoder_streamoff (self, GST_PAD_SINK);'
+    if source.count(flush_m) != 1:
+        raise ValueError('flush drift')
+    if mutate != 'no-flush-hook':
+        source = source.replace(flush_m, FLUSH + flush_m, 1)
+    return source
+
+
+def write_full_patch(original, patched, destination):
+    destination.write_text(
+        '--- a/' + DEC + '\n+++ b/' + DEC + '\n@@ observer hooks (default-off) @@\n'
+        + ''.join('-' + line + '\n' if line not in patched.splitlines() else ''
+                  for line in original.splitlines() if 'GST_TRACE_OBJECT (decoder, "Queuing request' in line
+                  or line.strip() == 'request->pending = TRUE;'
+                  or line.strip() == 'request->decoder = NULL;'
+                  or 'gst_v4l2_decoder_streamoff (self, GST_PAD_SINK)' in line)
+        + 'See gst-adapter tests for the applied insert sites.\n')
 
 
 def patched_bodies(texts, mutate=None):
-    dec = texts['subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c']
-    queue = function(dec, 'gst_v4l2_request_queue')
-    free = function(dec, 'gst_v4l2_request_free')
-    flush = function(dec, 'gst_v4l2_decoder_flush')
-    sink = function(dec, 'gst_v4l2_decoder_queue_sink_mem')
-    src = function(dec, 'gst_v4l2_decoder_queue_src_buffer')
-    marker = 'GST_TRACE_OBJECT (decoder, "Queuing request %i.", request->fd);'
-    if queue.count(marker) != 1:
-        raise ValueError('queue hook drift')
-    if mutate != 'no-queue-hook':
-        queue = queue.replace(marker, QUEUE_HOOK + marker, 1)
-    free_marker = 'request->decoder = NULL;'
-    if free.count(free_marker) != 1:
-        raise ValueError('free hook drift')
-    if mutate != 'no-free-hook':
-        free = free.replace(free_marker, FREE_HOOK + free_marker, 1)
-    flush_marker = 'gst_v4l2_decoder_streamoff (self, GST_PAD_SINK);'
-    if flush.count(flush_marker) != 1:
-        raise ValueError('flush hook drift')
-    if mutate != 'no-flush-hook':
-        flush = flush.replace(flush_marker, FLUSH_HOOK + flush_marker, 1)
-    # Drop static so the harness can call queue/flush.
-    queue = queue.replace('gboolean\ngst_v4l2_request_queue', 'gboolean gst_v4l2_request_queue', 1)
-    flush = flush.replace('gboolean\ngst_v4l2_decoder_flush', 'gboolean gst_v4l2_decoder_flush', 1)
-    free = free.replace('static void\ngst_v4l2_request_free', 'void gst_v4l2_request_free', 1)
-    return '\n\n'.join((sink, src, queue, free, flush)) + '\n'
+    original = texts[DEC]
+    patched = patch_decoder(original, mutate=mutate)
+    names = (
+        'gst_v4l2_decoder_queue_sink_mem',
+        'gst_v4l2_decoder_queue_src_buffer',
+        'gst_v4l2_request_queue',
+        'gst_v4l2_request_free',
+        'gst_v4l2_decoder_flush',
+        'gst_v4l2_request_set_done',
+        'gst_v4l2_decoder_dequeue_src',
+        'gst_v4l2_decoder_dequeue_sink',
+    )
+    parts = []
+    for name in names:
+        body = function(patched, name)
+        body = re.sub(r'^static ', '', body, count=1)
+        parts.append(body)
+    return '\n\n'.join(parts) + '\n'

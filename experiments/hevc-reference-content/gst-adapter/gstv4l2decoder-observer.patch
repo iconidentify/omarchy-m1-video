@@ -1,0 +1,47 @@
+--- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
++++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
+@@ -24,6 +24,7 @@
+ #include "gstv4l2codecallocator.h"
+ #include "gstv4l2codecpool.h"
+ #include "gstv4l2decoder.h"
++#include "gst-observer.h"
+ #include "gstv4l2format.h"
+ #include "linux/drm_fourcc.h"
+ #include "linux/media.h"
+@@ -324,6 +325,8 @@
+ {
+   /* We ignore streamoff failure as it's not relevant, if we manage to
+    * streamon again, we are good. */
++  if (!gst_hevc_observer_admit_flush (self))
++    return FALSE;
+   gst_v4l2_decoder_streamoff (self, GST_PAD_SINK);
+   gst_v4l2_decoder_streamoff (self, GST_PAD_SRC);
+ 
+@@ -1385,6 +1388,8 @@
+ {
+   GstV4l2Decoder *decoder = request->decoder;
+ 
++  if (!gst_hevc_observer_admit_free (request))
++    return;
+   request->decoder = NULL;
+   close (request->fd);
+   gst_poll_free (request->poll);
+@@ -1446,6 +1451,8 @@
+   gint ret;
+   guint max_pending;
+ 
++  if (!gst_hevc_observer_admit_queue (request))
++    return FALSE;
+   GST_TRACE_OBJECT (decoder, "Queuing request %i.", request->fd);
+ 
+   /* this would lead to stalls if we tried to use this feature and it wasn't
+@@ -1480,6 +1487,9 @@
+     request->hold_pic_buf = TRUE;
+ 
+   request->pending = TRUE;
++  if (!gst_hevc_observer_record (request))
++    return FALSE;
++
+   gst_vec_deque_push_tail (decoder->pending_requests,
+       gst_v4l2_request_ref (request));
+ 
