@@ -1,0 +1,37 @@
+{
+  "ffmpeg": {
+    "tag": "n9.0.1",
+    "commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
+    "repository": "https://github.com/FFmpeg/FFmpeg.git",
+    "license": "LGPL-2.1-or-later (files touched: libavcodec/hevc/ps.c, ps.h, hevcdec.c, hevcdec.h, parser.c)"
+  },
+  "patch": {
+    "file": "ffmpeg-n9.0.1-hevc-pending-parameter-sets.patch",
+    "sha256": "a598cbf599060ff2bb105bb95a24c5dada122b58363ad9d24337cfb1f307f26b"
+  },
+  "vector": {
+    "name": "VPSSPSPPS_A_MainConcept_1",
+    "suite": "fluster/h.265/JCT-VC-HEVC_V1",
+    "source": "https://www.itu.int/wftp3/av-arch/jctvc-site/bitstream_exchange/draft_conformance/HEVC_v1/VPSSPSPPS_A_MainConcept_1.zip",
+    "source_md5": "2cc90bdc173c35610aceb82e53ec366f",
+    "input_file": "VPSSPSPPS_A_MainConcept_1.bin",
+    "sha256": "8501a5e5f0f191d3810a7aecab43aacac1fcc28f08cb3731158cc48a89501a27",
+    "reference_md5": "1ddf74263cb4953cfdfcf99c563d88ea",
+    "unpatched_md5": "ec9f5857591ac4c215d194deaf52167c",
+    "unpatched_frames": 2,
+    "dims": [
+      "176x144",
+      "320x240",
+      "352x288",
+      "640x480",
+      "704x576",
+      "1280x720"
+    ],
+    "terms": "download-on-demand-only; see libva-v4l2_request docs/CORPUS.md and tests/corpus/manifest.json. The vector is never committed or redistributed."
+  },
+  "suite": {
+    "fluster_commit": "f3ad284a9e6cac70dc01b02e0de71c2994181d34",
+    "file": "test_suites/h.265/JCT-VC-HEVC_V1.json",
+    "sha256": "778c3cf8724b7f3a9f9ad59d4633531f110e3d660d27f47721b96e148224d04f"
+  }
+}

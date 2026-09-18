@@ -1,0 +1,566 @@
+diff --git a/libavcodec/hevc/hevcdec.c b/libavcodec/hevc/hevcdec.c
+index 18e22f6..0c2c3ce 100644
+--- a/libavcodec/hevc/hevcdec.c
++++ b/libavcodec/hevc/hevcdec.c
+@@ -3517,6 +3517,32 @@ static int hevc_frame_end(HEVCContext *s, HEVCLayerContext *l)
+     return 0;
+ }
+ 
++/* At the first slice of a picture, parse the parameter sets that arrived
++ * before their dependencies and refuse a picture that would use stale ones.
++ * Pictures after a refused IRAP picture are refused until the next IRAP. */
++static int activate_parameter_sets(HEVCContext *s, const GetBitContext *slice_gb)
++{
++    GetBitContext gb = *slice_gb;
++    unsigned pps_id;
++    int ret;
++
++    if (!get_bits1(&gb)) // first_slice_segment_in_pic_flag
++        return 0;
++    if (IS_IRAP(s))
++        skip_bits1(&gb); // no_output_of_prior_pics_flag
++    pps_id = get_ue_golomb_long(&gb);
++
++    ret = ff_hevc_ps_activate(&s->ps, s->avctx, pps_id, IS_IRAP(s));
++    if (IS_IRAP(s)) {
++        s->ps_refused_irap = ret < 0;
++    } else if (ret >= 0 && s->ps_refused_irap) {
++        av_log(s->avctx, AV_LOG_ERROR,
++               "Skipping a picture that follows a refused IRAP picture\n");
++        ret = AVERROR_INVALIDDATA;
++    }
++    return ret;
++}
++
+ static int decode_slice(HEVCContext *s, unsigned nal_idx, GetBitContext *gb)
+ {
+     const int layer_idx = s->vps ? s->vps->layer_idx[s->nuh_layer_id] : 0;
+@@ -3530,6 +3556,10 @@ static int decode_slice(HEVCContext *s, unsigned nal_idx, GetBitContext *gb)
+         (s->nuh_layer_id > 0 && !(s->layers_active_decode & (1 << layer_idx))))
+         return 0;
+ 
++    ret = activate_parameter_sets(s, gb);
++    if (ret < 0)
++        return ret;
++
+     ret = hls_slice_header(&s->sh, s, gb);
+     // Once hls_slice_header has been called, the context is inconsistent with the slice header
+     // until the context is reinitialized according to the contents of the new slice header
+@@ -4041,6 +4071,13 @@ static int hevc_update_thread_context(AVCodecContext *dst,
+     for (int i = 0; i < FF_ARRAY_ELEMS(s->ps.pps_list); i++)
+         av_refstruct_replace(&s->ps.pps_list[i], s0->ps.pps_list[i]);
+ 
++    for (int i = 0; i < FF_ARRAY_ELEMS(s->ps.pending_sps); i++)
++        av_refstruct_replace(&s->ps.pending_sps[i], s0->ps.pending_sps[i]);
++
++    for (int i = 0; i < FF_ARRAY_ELEMS(s->ps.pending_pps); i++)
++        av_refstruct_replace(&s->ps.pending_pps[i], s0->ps.pending_pps[i]);
++    s->ps_refused_irap = s0->ps_refused_irap;
++
+     // PPS do not persist between frames
+     av_refstruct_unref(&s->pps);
+ 
+@@ -4192,6 +4229,7 @@ static av_cold void hevc_decode_flush(AVCodecContext *avctx)
+     ff_dovi_ctx_flush(&s->dovi_ctx);
+     av_buffer_unref(&s->rpu_buf);
+     s->eos = 1;
++    s->ps_refused_irap = 0;
+ 
+     if (FF_HW_HAS_CB(avctx, flush))
+         FF_HW_SIMPLE_CALL(avctx, flush);
+diff --git a/libavcodec/hevc/hevcdec.h b/libavcodec/hevc/hevcdec.h
+index 8394740..96aa2cb 100644
+--- a/libavcodec/hevc/hevcdec.h
++++ b/libavcodec/hevc/hevcdec.h
+@@ -530,6 +530,8 @@ typedef struct HEVCContext {
+ 
+     // NoRaslOutputFlag associated with the last IRAP frame
+     int no_rasl_output_flag;
++    /* the last IRAP picture was refused by ff_hevc_ps_activate() */
++    int ps_refused_irap;
+ 
+     HEVCPredContext hpc;
+     HEVCDSPContext hevcdsp;
+diff --git a/libavcodec/hevc/parser.c b/libavcodec/hevc/parser.c
+index 47a1ac7..934331e 100644
+--- a/libavcodec/hevc/parser.c
++++ b/libavcodec/hevc/parser.c
+@@ -78,6 +78,9 @@ static int hevc_parse_slice_header(AVCodecParserContext *s, H2645NAL *nal,
+     }
+ 
+     pps_id = get_ue_golomb(gb);
++    if (first_slice_in_pic_flag &&
++        ff_hevc_ps_activate(ps, avctx, pps_id, IS_IRAP_NAL(nal)) < 0)
++        return AVERROR_INVALIDDATA;
+     if (pps_id >= HEVC_MAX_PPS_COUNT || !ps->pps_list[pps_id]) {
+         av_log(avctx, AV_LOG_ERROR, "PPS id out of range: %d\n", pps_id);
+         return AVERROR_INVALIDDATA;
+diff --git a/libavcodec/hevc/ps.c b/libavcodec/hevc/ps.c
+index c303ae4..9f45ac4 100644
+--- a/libavcodec/hevc/ps.c
++++ b/libavcodec/hevc/ps.c
+@@ -86,14 +86,65 @@ static int read_window(HEVCWindow *window, GetBitContext *gb, int chroma_format_
+     return 0;
+ }
+ 
++static uint8_t *ps_data_alloc(const uint8_t *src, int size)
++{
++    uint8_t *data = av_refstruct_allocz(size + AV_INPUT_BUFFER_PADDING_SIZE);
++
++    if (data)
++        memcpy(data, src, size);
++    return data;
++}
++
++static void hevc_pending_ps_free(AVRefStructOpaque unused, void *obj)
++{
++    HEVCPendingPS *p = obj;
++
++    av_refstruct_unref(&p->data);
++    av_refstruct_unref(&p->failed_dep);
++}
++
++/* Replace *slot with an entry sharing data (a RefStruct buffer). */
++static int keep_pending(const HEVCPendingPS **slot, const uint8_t *data,
++                        int size_bits, int bit_start, unsigned dep_id,
++                        const void *failed_dep, unsigned nuh_layer_id,
++                        int apply_defdispwin)
++{
++    HEVCPendingPS *p = av_refstruct_alloc_ext(sizeof(*p), 0, NULL,
++                                              hevc_pending_ps_free);
++    if (!p)
++        return AVERROR(ENOMEM);
++
++    p->data             = av_refstruct_ref_c(data);
++    p->size_bits        = size_bits;
++    p->bit_start        = bit_start;
++    p->dep_id           = dep_id;
++    p->failed_dep       = failed_dep ? av_refstruct_ref_c(failed_dep) : NULL;
++    p->nuh_layer_id     = nuh_layer_id;
++    p->apply_defdispwin = apply_defdispwin;
++
++    av_refstruct_unref(slot);
++    *slot = p;
++    return 0;
++}
++
++/* A PPS is interpreted with whichever SPS holds its id when it is activated,
++ * so the PPSs of a replaced SPS stay pending for the replacement instead of
++ * being dropped. A pending PPS with the same id is newer and is kept. On
++ * allocation failure the PPS is dropped as before. */
+ static void remove_sps(HEVCParamSets *s, int id)
+ {
+     int i;
+     if (s->sps_list[id]) {
+-        /* drop all PPS that depend on this SPS */
+-        for (i = 0; i < FF_ARRAY_ELEMS(s->pps_list); i++)
+-            if (s->pps_list[i] && s->pps_list[i]->sps_id == id)
++        for (i = 0; i < FF_ARRAY_ELEMS(s->pps_list); i++) {
++            const HEVCPPS *pps = s->pps_list[i];
++
++            if (pps && pps->sps_id == id) {
++                if (!s->pending_pps[i])
++                    keep_pending(&s->pending_pps[i], pps->data, pps->data_size_bits,
++                                 pps->data_bit_start, id, NULL, 0, 0);
+                 av_refstruct_unref(&s->pps_list[i]);
++            }
++        }
+ 
+         av_refstruct_unref(&s->sps_list[id]);
+     }
+@@ -103,9 +154,17 @@ static void remove_vps(HEVCParamSets *s, int id)
+ {
+     int i;
+     if (s->vps_list[id]) {
+-        for (i = 0; i < FF_ARRAY_ELEMS(s->sps_list); i++)
+-            if (s->sps_list[i] && s->sps_list[i]->vps_id == id)
++        for (i = 0; i < FF_ARRAY_ELEMS(s->sps_list); i++) {
++            const HEVCSPS *sps = s->sps_list[i];
++
++            if (sps && sps->vps_id == id) {
++                if (!s->pending_sps[i])
++                    keep_pending(&s->pending_sps[i], sps->data, sps->data_size_bits,
++                                 sps->data_bit_start, id, NULL,
++                                 sps->nuh_layer_id, sps->apply_defdispwin);
+                 remove_sps(s, i);
++            }
++        }
+         av_refstruct_unref(&s->vps_list[id]);
+     }
+ }
+@@ -1723,7 +1782,7 @@ static void hevc_sps_free(AVRefStructOpaque opaque, void *obj)
+ 
+     av_refstruct_unref(&sps->vps);
+ 
+-    av_freep(&sps->data);
++    av_refstruct_unref(&sps->data);
+ }
+ 
+ static int compare_sps(const HEVCSPS *sps1, const HEVCSPS *sps2)
+@@ -1732,21 +1791,79 @@ static int compare_sps(const HEVCSPS *sps1, const HEVCSPS *sps2)
+            !memcmp(sps1->data, sps2->data, sps1->data_size);
+ }
+ 
++/* Read sps_video_parameter_set_id and sps_seq_parameter_set_id without
++ * needing the VPS and without logging. */
++static int sps_peek_ids(const GetBitContext *gb, unsigned *vps_id,
++                        unsigned *sps_id)
++{
++    GetBitContext gbc = *gb;
++    uint8_t profile_present[HEVC_MAX_SUB_LAYERS], level_present[HEVC_MAX_SUB_LAYERS];
++    int max_sub_layers;
++
++    *vps_id        = get_bits(&gbc, 4);
++    max_sub_layers = get_bits(&gbc, 3) + 1;
++    /* The layout of a multi-layer extension SPS comes from its VPS. */
++    if (max_sub_layers > HEVC_MAX_SUB_LAYERS)
++        return AVERROR_INVALIDDATA;
++    skip_bits1(&gbc);             // sps_temporal_id_nesting_flag
++    skip_bits_long(&gbc, 88 + 8); // general profile/tier and general_level_idc
++    for (int i = 0; i < max_sub_layers - 1; i++) {
++        profile_present[i] = get_bits1(&gbc);
++        level_present[i]   = get_bits1(&gbc);
++    }
++    if (max_sub_layers > 1)
++        skip_bits(&gbc, 2 * (8 - (max_sub_layers - 1)));
++    for (int i = 0; i < max_sub_layers - 1; i++)
++        skip_bits_long(&gbc, 88 * profile_present[i] + 8 * level_present[i]);
++
++    *sps_id = get_ue_golomb_long(&gbc);
++    if (*sps_id >= HEVC_MAX_SPS_COUNT || get_bits_left(&gbc) < 0)
++        return AVERROR_INVALIDDATA;
++    return 0;
++}
++
+ int ff_hevc_decode_nal_sps(GetBitContext *gb, AVCodecContext *avctx,
+                            HEVCParamSets *ps, unsigned nuh_layer_id,
+                            int apply_defdispwin)
+ {
+-    HEVCSPS *sps = av_refstruct_alloc_ext(sizeof(*sps), 0, NULL, hevc_sps_free);
+-    unsigned int sps_id;
++    const GetBitContext gb_start = *gb;
++    int size_bits = get_bits_count(gb) + get_bits_left(gb);
++    int bit_start = get_bits_count(gb);
++    unsigned int sps_id, vps_id;
++    HEVCSPS *sps;
+     int ret;
+ 
++    if (get_bits_left(gb) >= 4 && !ps->vps_list[show_bits(gb, 4)]) {
++        uint8_t *data;
++
++        if (sps_peek_ids(gb, &vps_id, &sps_id) < 0) {
++            av_log(avctx, AV_LOG_ERROR, "VPS %d does not exist\n", show_bits(gb, 4));
++            return AVERROR_INVALIDDATA;
++        }
++        av_log(avctx, AV_LOG_DEBUG,
++               "SPS %u refers to VPS %u, which is not available yet; deferring\n",
++               sps_id, vps_id);
++        data = ps_data_alloc(gb->buffer, get_bits_bytesize(gb, 1));
++        if (!data)
++            return AVERROR(ENOMEM);
++        ret = keep_pending(&ps->pending_sps[sps_id], data, size_bits, bit_start,
++                           vps_id, NULL, nuh_layer_id, apply_defdispwin);
++        av_refstruct_unref(&data);
++        return ret;
++    }
++
++    sps = av_refstruct_alloc_ext(sizeof(*sps), 0, NULL, hevc_sps_free);
+     if (!sps)
+         return AVERROR(ENOMEM);
+ 
+     av_log(avctx, AV_LOG_DEBUG, "Decoding SPS\n");
+ 
+-    sps->data_size = get_bits_bytesize(gb, 1);
+-    sps->data = av_memdup(gb->buffer, sps->data_size);
++    sps->data_size        = get_bits_bytesize(gb, 1);
++    sps->data_size_bits   = size_bits;
++    sps->data_bit_start   = bit_start;
++    sps->nuh_layer_id     = nuh_layer_id;
++    sps->apply_defdispwin = apply_defdispwin;
++    sps->data = ps_data_alloc(gb->buffer, sps->data_size);
+     if (!sps->data) {
+         ret = AVERROR(ENOMEM);
+         goto err;
+@@ -1770,7 +1887,8 @@ int ff_hevc_decode_nal_sps(GetBitContext *gb, AVCodecContext *avctx,
+ 
+     /* check if this is a repeat of an already parsed SPS, then keep the
+      * original one.
+-     * otherwise drop all PPSes that depend on it */
++     * otherwise the PPSes that depend on it wait for the new one */
++    av_refstruct_unref(&ps->pending_sps[sps_id]);
+     if (ps->sps_list[sps_id] &&
+         compare_sps(ps->sps_list[sps_id], sps)) {
+         av_refstruct_unref(&sps);
+@@ -1781,6 +1899,12 @@ int ff_hevc_decode_nal_sps(GetBitContext *gb, AVCodecContext *avctx,
+ 
+     return 0;
+ err:
++    /* The failure may come from the VPS present; keep the SPS pending so that a
++     * different VPS with that id can still make it valid. */
++    if (ret != AVERROR(ENOMEM) && sps->data &&
++        sps_peek_ids(&gb_start, &vps_id, &sps_id) >= 0)
++        keep_pending(&ps->pending_sps[sps_id], sps->data, size_bits, bit_start,
++                     vps_id, ps->vps_list[vps_id], nuh_layer_id, apply_defdispwin);
+     av_refstruct_unref(&sps);
+     return ret;
+ }
+@@ -1790,6 +1914,7 @@ static void hevc_pps_free(AVRefStructOpaque unused, void *obj)
+     HEVCPPS *pps = obj;
+ 
+     av_refstruct_unref(&pps->sps);
++    av_refstruct_unref(&pps->data);
+ 
+     av_freep(&pps->column_width);
+     av_freep(&pps->row_height);
+@@ -1801,7 +1926,6 @@ static void hevc_pps_free(AVRefStructOpaque unused, void *obj)
+     av_freep(&pps->tile_pos_rs);
+     av_freep(&pps->tile_id);
+     av_freep(&pps->min_tb_addr_zs_tab);
+-    av_freep(&pps->data);
+ }
+ 
+ static void colour_mapping_octants(GetBitContext *gb, HEVCPPS *pps, int inp_depth,
+@@ -2205,6 +2329,8 @@ int ff_hevc_decode_nal_pps(GetBitContext *gb, AVCodecContext *avctx,
+     const HEVCVPS *vps = NULL;
+     int i, ret = 0;
+     ptrdiff_t nal_size = get_bits_bytesize(gb, 1);
++    int size_bits = get_bits_count(gb) + get_bits_left(gb);
++    int bit_start = get_bits_count(gb);
+     unsigned int pps_id = get_ue_golomb_long(gb);
+     unsigned log2_parallel_merge_level_minus2;
+     HEVCPPS *pps;
+@@ -2219,16 +2345,20 @@ int ff_hevc_decode_nal_pps(GetBitContext *gb, AVCodecContext *avctx,
+     if (ps->pps_list[pps_id]) {
+         const HEVCPPS *pps1 = ps->pps_list[pps_id];
+         if (pps1->data_size == nal_size &&
+-            !memcmp(pps1->data, gb->buffer, pps1->data_size))
++            !memcmp(pps1->data, gb->buffer, pps1->data_size)) {
++            av_refstruct_unref(&ps->pending_pps[pps_id]);
+             return 0;
++        }
+     }
+ 
+     pps = av_refstruct_alloc_ext(sizeof(*pps), 0, NULL, hevc_pps_free);
+     if (!pps)
+         return AVERROR(ENOMEM);
+ 
+-    pps->data_size = nal_size;
+-    pps->data = av_memdup(gb->buffer, nal_size);
++    pps->data_size      = nal_size;
++    pps->data_size_bits = size_bits;
++    pps->data_bit_start = bit_start;
++    pps->data = ps_data_alloc(gb->buffer, nal_size);
+     if (!pps->data) {
+         ret = AVERROR_INVALIDDATA;
+         goto err;
+@@ -2253,9 +2383,13 @@ int ff_hevc_decode_nal_pps(GetBitContext *gb, AVCodecContext *avctx,
+         goto err;
+     }
+     if (!ps->sps_list[pps->sps_id]) {
+-        av_log(avctx, AV_LOG_ERROR, "SPS %u does not exist.\n", pps->sps_id);
+-        ret = AVERROR_INVALIDDATA;
+-        goto err;
++        av_log(avctx, AV_LOG_DEBUG,
++               "PPS %u refers to SPS %u, which is not available yet; deferring\n",
++               pps_id, pps->sps_id);
++        ret = keep_pending(&ps->pending_pps[pps_id], pps->data, size_bits,
++                           bit_start, pps->sps_id, NULL, 0, 0);
++        av_refstruct_unref(&pps);
++        return ret;
+     }
+     sps = ps->sps_list[pps->sps_id];
+     vps = ps->vps_list[sps->vps_id];
+@@ -2460,16 +2594,106 @@ int ff_hevc_decode_nal_pps(GetBitContext *gb, AVCodecContext *avctx,
+                "Overread PPS by %d bits\n", -get_bits_left(gb));
+     }
+ 
++    av_refstruct_unref(&ps->pending_pps[pps_id]);
+     av_refstruct_unref(&ps->pps_list[pps_id]);
+     ps->pps_list[pps_id] = pps;
+ 
+     return 0;
+ 
+ err:
++    /* The failure may come from the SPS present; keep the PPS pending so that a
++     * different SPS with that id can still make it valid. Some failures reach
++     * this point with ret 0. */
++    if (ret != AVERROR(ENOMEM) && sps)
++        keep_pending(&ps->pending_pps[pps_id], pps->data, size_bits, bit_start,
++                     pps->sps_id, sps, 0, 0);
+     av_refstruct_unref(&pps);
+     return ret;
+ }
+ 
++/* Parse a pending SPS unless it already failed against the VPS now holding its
++ * VPS id. Returns 1 while that VPS is absent. */
++static int resolve_pending_sps(HEVCParamSets *ps, AVCodecContext *avctx,
++                               unsigned sps_id)
++{
++    const HEVCPendingPS *p = ps->pending_sps[sps_id];
++    const HEVCVPS *vps;
++    GetBitContext gb;
++
++    if (!p)
++        return 0;
++    vps = ps->vps_list[p->dep_id];
++    if (!vps)
++        return 1;
++    if (p->failed_dep == vps)
++        return 0;
++
++    /* A successful parse releases the slot's reference. */
++    p = av_refstruct_ref_c(p);
++    if (init_get_bits(&gb, p->data, p->size_bits) >= 0) {
++        skip_bits_long(&gb, p->bit_start);
++        ff_hevc_decode_nal_sps(&gb, avctx, ps, p->nuh_layer_id, p->apply_defdispwin);
++    }
++    av_refstruct_unref(&p);
++    return 0;
++}
++
++/* Same as resolve_pending_sps() for a PPS and its SPS. */
++static int resolve_pending_pps(HEVCParamSets *ps, AVCodecContext *avctx,
++                               unsigned pps_id)
++{
++    const HEVCPendingPS *p = ps->pending_pps[pps_id];
++    const HEVCSPS *sps;
++    GetBitContext gb;
++
++    if (!p)
++        return 0;
++    sps = ps->sps_list[p->dep_id];
++    if (!sps)
++        return 1;
++    if (p->failed_dep == sps)
++        return 0;
++
++    p = av_refstruct_ref_c(p);
++    if (init_get_bits(&gb, p->data, p->size_bits) >= 0) {
++        skip_bits_long(&gb, p->bit_start);
++        ff_hevc_decode_nal_pps(&gb, avctx, ps);
++    }
++    av_refstruct_unref(&p);
++    return 0;
++}
++
++int ff_hevc_ps_activate(HEVCParamSets *ps, AVCodecContext *avctx,
++                        unsigned pps_id, int irap)
++{
++    const HEVCPendingPS *p;
++    const HEVCPPS *pps;
++    unsigned sps_id;
++
++    if (pps_id >= HEVC_MAX_PPS_COUNT)
++        return 0;
++
++    p      = ps->pending_pps[pps_id];
++    pps    = ps->pps_list[pps_id];
++    sps_id = p ? p->dep_id : pps ? pps->sps_id : HEVC_MAX_SPS_COUNT;
++
++    /* The SPS first: resolving it can move the stored PPS to pending. */
++    if (sps_id < HEVC_MAX_SPS_COUNT &&
++        resolve_pending_sps(ps, avctx, sps_id) && irap) {
++        av_log(avctx, AV_LOG_ERROR,
++               "SPS %u was replaced by an SPS still waiting for VPS %u\n",
++               sps_id, ps->pending_sps[sps_id]->dep_id);
++        return AVERROR_INVALIDDATA;
++    }
++    if (resolve_pending_pps(ps, avctx, pps_id)) {
++        av_log(avctx, AV_LOG_ERROR,
++               "PPS %u was replaced by a PPS still waiting for SPS %u\n",
++               pps_id, ps->pending_pps[pps_id]->dep_id);
++        return AVERROR_INVALIDDATA;
++    }
++    return 0;
++}
++
+ void ff_hevc_ps_uninit(HEVCParamSets *ps)
+ {
+     int i;
+@@ -2480,6 +2704,10 @@ void ff_hevc_ps_uninit(HEVCParamSets *ps)
+         av_refstruct_unref(&ps->sps_list[i]);
+     for (i = 0; i < FF_ARRAY_ELEMS(ps->pps_list); i++)
+         av_refstruct_unref(&ps->pps_list[i]);
++    for (i = 0; i < FF_ARRAY_ELEMS(ps->pending_sps); i++)
++        av_refstruct_unref(&ps->pending_sps[i]);
++    for (i = 0; i < FF_ARRAY_ELEMS(ps->pending_pps); i++)
++        av_refstruct_unref(&ps->pending_pps[i]);
+ }
+ 
+ int ff_hevc_compute_poc2(unsigned log2_max_poc_lsb, int pocTid0, int poc_lsb, int nal_unit_type)
+diff --git a/libavcodec/hevc/ps.h b/libavcodec/hevc/ps.h
+index f5c5f81..644aa89 100644
+--- a/libavcodec/hevc/ps.h
++++ b/libavcodec/hevc/ps.h
+@@ -362,8 +362,12 @@ typedef struct HEVCSPS {
+ 
+     int qp_bd_offset;
+ 
+-    uint8_t *data;
++    uint8_t *data;          ///< RefStruct reference, with input padding
+     int data_size;
++    int data_size_bits;     ///< bit length the SPS was parsed with
++    int data_bit_start;     ///< bit position of sps_video_parameter_set_id in data
++    unsigned nuh_layer_id;  ///< parse inputs kept to parse the SPS again
++    int apply_defdispwin;
+ 
+     const HEVCVPS *vps; ///< RefStruct reference
+ } HEVCSPS;
+@@ -499,16 +503,36 @@ typedef struct HEVCPPS {
+     int *min_tb_addr_zs;    ///< MinTbAddrZS
+     int *min_tb_addr_zs_tab;///< MinTbAddrZS
+ 
+-    uint8_t *data;
++    uint8_t *data;          ///< RefStruct reference, with input padding
+     int data_size;
++    int data_size_bits;     ///< bit length the PPS was parsed with
++    int data_bit_start;     ///< bit position of pps_pic_parameter_set_id in data
+ 
+     const HEVCSPS *sps;     ///< RefStruct reference
+ } HEVCPPS;
+ 
++/**
++ * An SPS or PPS kept until the parameter set it refers to is available, parsed
++ * by ff_hevc_ps_activate(). At most one entry exists per id, and entries are
++ * never modified after publication, so frame threads can share them.
++ */
++typedef struct HEVCPendingPS {
++    const uint8_t *data;        ///< RefStruct reference shared with the NAL copy
++    int size_bits;
++    int bit_start;
++    unsigned dep_id;            ///< VPS id (for an SPS) or SPS id (for a PPS)
++    const void *failed_dep;     ///< RefStruct reference to the VPS/SPS it failed against, or NULL
++    unsigned nuh_layer_id;      ///< SPS only
++    int apply_defdispwin;       ///< SPS only
++} HEVCPendingPS;
++
+ typedef struct HEVCParamSets {
+     const HEVCVPS *vps_list[HEVC_MAX_VPS_COUNT]; ///< RefStruct references
+     const HEVCSPS *sps_list[HEVC_MAX_SPS_COUNT]; ///< RefStruct references
+     const HEVCPPS *pps_list[HEVC_MAX_PPS_COUNT]; ///< RefStruct references
++
++    const HEVCPendingPS *pending_sps[HEVC_MAX_SPS_COUNT]; ///< RefStruct references
++    const HEVCPendingPS *pending_pps[HEVC_MAX_PPS_COUNT]; ///< RefStruct references
+ } HEVCParamSets;
+ 
+ /**
+@@ -534,6 +558,19 @@ int ff_hevc_decode_nal_pps(GetBitContext *gb, AVCodecContext *avctx,
+ 
+ void ff_hevc_ps_uninit(HEVCParamSets *ps);
+ 
++/**
++ * Prepare the parameter sets for a picture whose first slice refers to pps_id:
++ * parse pending parameter sets that it needs, and refuse the picture when a
++ * newer parameter set it would activate is still waiting for its dependency.
++ *
++ * An SPS can only change at an IRAP picture, so a pending SPS refuses only IRAP
++ * pictures; a PPS can change at any picture.
++ *
++ * @return 0 if the stored parameter sets may be used, a negative error otherwise
++ */
++int ff_hevc_ps_activate(HEVCParamSets *ps, AVCodecContext *avctx,
++                        unsigned pps_id, int irap);
++
+ int ff_hevc_decode_short_term_rps(GetBitContext *gb, AVCodecContext *avctx,
+                                   ShortTermRPS *rps, const HEVCSPS *sps, int is_slice_header);
+ 
