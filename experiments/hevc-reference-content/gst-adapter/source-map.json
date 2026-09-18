@@ -1,0 +1,18 @@
+{
+  "schema": "omarchy-m1-video.hevc-gst-adapter-sources/1",
+  "ticket": "https://github.com/iconidentify/omarchy-m1-video/issues/96",
+  "parent": "https://github.com/iconidentify/omarchy-m1-video/issues/82",
+  "driver_parent": "https://github.com/iconidentify/libva-v4l2_request/issues/42",
+  "gstreamer_revision": "070125524a8422e29d3b69a372ed4f62fd343ffa",
+  "client": "v4l2slh265dec / gst-plugins-bad v4l2codecs (direct V4L2, not VA-API)",
+  "files": {
+    "subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c": {
+      "url": "https://raw.githubusercontent.com/GStreamer/gstreamer/070125524a8422e29d3b69a372ed4f62fd343ffa/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c",
+      "sha256": "513af0c2f3a8b6015e5c97b0c502c8e186781b9a355bb3e7cdc35f2d24a4e4ce"
+    },
+    "subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c": {
+      "url": "https://raw.githubusercontent.com/GStreamer/gstreamer/070125524a8422e29d3b69a372ed4f62fd343ffa/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c",
+      "sha256": "06f1c1151c6cd1617dcb20fc59b8fc25e51744afdb044a71d224d4718e581384"
+    }
+  }
+}
