@@ -106,3 +106,5 @@ assertion, never count a timeout/compiler/sanitizer error as detection.
 
 See [REVIEW.md](REVIEW.md) for the review record and remaining evidence, and
 [VALIDATION.md](VALIDATION.md) for the successful offline run and artifact hashes.
+Those are the historical one-shot records. The scheduling extension has its own
+[review](SCHEDULING-REVIEW.md) and [validation](SCHEDULING-VALIDATION.md).
