@@ -126,5 +126,6 @@ int main(int argc,char **argv) {
     assert(v4l2r_observer_close(&va,&session)==VA_STATUS_SUCCESS);
     teardown();assert(!__real_close(capture_file));
     for(int i=0;i<evidence_count;i++) assert(evidence_fds[i]==-1);
+    if(!strcmp(mode,"copy")) printf("model device-link calls=%u fortified=%u\n",model_links,model_fortified_links);
     printf("PASS actual VA content %s\n",mode);return 0;
 }

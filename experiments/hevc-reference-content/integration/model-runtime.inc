@@ -10,7 +10,7 @@ static void *content_mapping;
 static bool fail_unmap;
 static uint64_t clock_jump;
 static char model_self_id[129], model_peer_id[129];
-static unsigned model_stats, model_directories, model_links;
+static unsigned model_stats, model_directories, model_links, model_fortified_links;
 static int last_stat_fd;
 static unsigned last_stat_mode;
 static char last_evidence[256];
@@ -114,5 +114,5 @@ static void diagnose_refusal(const struct hevc_content_pool *p) {
 
 /* Fortified glibc can route a known-size buffer through this entry point. */
 __attribute__((visibility("default"))) ssize_t __wrap___readlink_chk(const char *name,char *data,size_t length,size_t capacity) {
-    assert(length<=capacity);return __wrap_readlink(name,data,length);
+    model_fortified_links++;assert(length<=capacity);return __wrap_readlink(name,data,length);
 }

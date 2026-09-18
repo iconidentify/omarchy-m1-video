@@ -3,8 +3,9 @@
 AI-generated test record. No hardware, device leases, installation, shipped patch
 changes or module operations. Base `69815eacb0aac6501d87b75b94d2603df9b8178a`.
 Tool versions, source revisions and exact local artifact hashes are in
-[evidence.json](evidence.json). Those binaries precede only final SPDX-comment and
-documentation edits; hosted checks build the submitted source. The GLib generator
+[evidence.json](evidence.json). Those binaries record the initial locally passing candidate, before final SPDX/
+documentation edits and fixture-only glibc portability diagnostics. Hosted checks
+build and exercise the submitted source, including the fortified syscall wrapper. The GLib generator
 tools missing from the host were extracted to a temporary directory from a
 signature-verified Arch Linux ARM package; no package was installed.
 
@@ -49,3 +50,12 @@ production client hooks, same-run kernel command/reference collection, deploymen
 manifest approval and full hardware codec suites. These require the missing
 integration/review gates and a separate guarded hardware scope. Raw model bytes
 are checked inside tests and are not published as hardware observations.
+
+
+The first Ubuntu/x86 hosted integration run refused its positive copy while both
+ARM runs passed. The diagnostic counters placed refusal after manifest/device stat
+checks and before the ordinary wrapped device-link call. Extending the synthetic
+syscall boundary to glibc's `__readlink_chk` made the VA hosted suite pass without
+changing production admission or expected results. The model also logs fortified
+call counts so the emitted path is visible in subsequent hosted runs. This is a
+fixture-portability correction; initial red checks are retained in PR history.

@@ -96,5 +96,6 @@ int main(int argc,char **argv) {
     if(!strcmp(mode,"foreign-lease")) receipt.lease--;
     if(!ended) end();assert(!content_mapping);assert(gst_hevc_observer_close(decoder,&session));teardown();
     for(int i=0;i<evidence_count;i++)assert(evidence_fds[i]==-1);
+    if(!strcmp(mode,"copy")) printf("model device-link calls=%u fortified=%u\n",model_links,model_fortified_links);
     printf("PASS actual Gst content %s\n",mode);return 0;
 }

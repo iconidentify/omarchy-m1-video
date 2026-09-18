@@ -1,5 +1,5 @@
 {
-  "scope": "Synthetic syscalls, no hardware; candidate before SPDX-comment/documentation-only edits",
+  "scope": "Initial locally passing candidate, synthetic syscalls and no hardware; before final SPDX/docs and fixture-only glibc portability diagnostics. Hosted checks build the submitted revision.",
   "base": "69815eacb0aac6501d87b75b94d2603df9b8178a",
   "va_revision": "c77e7b566f7baf9c7a2aad797e62c9aa578d9687",
   "gst_revision": "070125524a8422e29d3b69a372ed4f62fd343ffa",

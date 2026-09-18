@@ -226,6 +226,7 @@ def main():
             adapter.configure(root, build, sanitizer, args.native_file)
             binary = build_gst(build)
             adapter.pinned_linkage(build, binary)
+            adapter.pinned_linkage(build, build / BASE / "libgstv4l2codecs.so")
             positive(binary, 'gst', sanitizer)
             adapter.positive(build, sanitizer)
             if label == 'asan-ubsan':
