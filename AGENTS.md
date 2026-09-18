@@ -31,3 +31,35 @@ This repository sets up hardware video decoding on Apple Silicon Macs running Om
 9. **Do not report problems** with this setup to Asahi Linux or other upstream projects. Report
    them as issues in this repository.
 10. **To undo**, run `./uninstall.sh` and reboot.
+
+## Reviewing pull requests
+
+A pull request from a fork may arrive with red checks that executed **nothing**:
+some contributor accounts cannot start GitHub Actions, and the run then completes
+as a failure with zero jobs and no billable time. That is an absence of evidence,
+not a failure and not a pass. Confirm which it is before reading anything into it:
+
+```sh
+gh api "repos/<owner>/<repo>/actions/runs?head_sha=<sha>" \
+  --jq '.workflow_runs[] | "\(.name) \(.conclusion) jobs=\(.run_attempt)"'
+gh api "repos/<owner>/<repo>/actions/runs/<run-id>/jobs" --jq '.total_count'
+```
+
+`total_count` of 0 means the workflow never ran. Do not merge on it, and do not
+report it to the contributor as a failing test.
+
+When hosted checks did not run, run them locally before merging:
+
+```sh
+tools/verify-pr.py <number>           # fetch the head and run its checks
+tools/verify-pr.py <number> --list    # show what would run, without running it
+```
+
+It picks workflows using the `paths` filters the workflows already declare, so
+the local set matches the hosted set. It never installs anything: dependency
+steps are skipped, and a step that then fails for a missing dependency is
+reported `UNVERIFIED` rather than as a pass or a defect. Treat `UNVERIFIED` as
+unfinished review — install the dependency and rerun, or verify it another way.
+
+Verifying a pull request whose CI did not run is part of reviewing it, not a
+question to hand back to the maintainer.
