@@ -20,11 +20,11 @@ git diff --check
 
 Results:
 
-- 49/49 controller tests passed.
-- Nine semantic mutations were detected by their named test: selector domain,
+- 51/51 controller tests passed.
+- Ten semantic mutations were detected by their named test: selector domain,
   Gst publication boundary, parameter input window, paired off/on selectors,
-  VA thread count, VA application owner, finish-before-close, fatal cleanup and
-  execution refusal.
+  VA thread count, VA application owner, finish-before-close, fatal cleanup,
+  JSON no-authorization and execution refusal.
 - Python compilation, repository rebuild/shell syntax and whitespace checks
   passed.
 

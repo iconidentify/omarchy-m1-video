@@ -286,9 +286,20 @@ class Contracts(unittest.TestCase):
         second = good_plan().to_json()
         self.assertEqual(first, second)
         document = json.loads(first)
+        self.assertTrue(document["valid"])
+        self.assertEqual(document["problems"], [])
+        self.assertFalse(document["execution_authorized"])
         by_name = {item["name"]: item for item in document["workloads"]}
         self.assertEqual(by_name["E-va-on"]["selector_domain"], c.VA_SELECTOR)
         self.assertEqual(by_name["E-gst-on"]["selector_domain"], c.GST_SELECTOR)
+
+    def test_invalid_json_carries_reasons_and_never_authorizes(self):
+        plan = good_plan()
+        plan.va.decoder_threads = 2
+        document = json.loads(plan.to_json())
+        self.assertFalse(document["valid"])
+        self.assertTrue(any("decoder_threads=1" in item for item in document["problems"]))
+        self.assertIs(document["execution_authorized"], False)
 
 
 class Preconditions(unittest.TestCase):
@@ -383,6 +394,17 @@ class Cli(unittest.TestCase):
         document = json.loads(result.stdout.split("\n\n")[0])
         self.assertEqual(len(document["workloads"]), 8)
         self.assertTrue(all("client_contract" in item for item in document["workloads"]))
+
+    def test_rejected_json_is_machine_readable_and_marks_invalid(self):
+        arguments = self._valid()
+        arguments[1] = "4"
+        result = self._run(*arguments, "--json")
+        self.assertEqual(result.returncode, 1)
+        document = json.loads(result.stdout.split("\n\n")[0])
+        self.assertFalse(document["valid"])
+        self.assertFalse(document["execution_authorized"])
+        self.assertTrue(any("publication boundary" in item
+                            for item in document["problems"]))
 
     def test_ambiguous_legacy_cli_is_rejected(self):
         result = self._run("--pool-size", "16", "--e-frames", "2", "5", "9",

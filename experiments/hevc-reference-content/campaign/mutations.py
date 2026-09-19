@@ -46,6 +46,10 @@ MUTATIONS = (
      "if not plan.va.fatal_cleanup_is_failure:",
      "if False:",
      "VAProperties.test_fatal_cleanup_guard"),
+    ("json-authorization",
+     '"execution_authorized": False,',
+     '"execution_authorized": True,',
+     "Contracts.test_invalid_json_carries_reasons_and_never_authorizes"),
     ("execution-refusal",
      """        raise AuthorizationError(
             "campaign execution is not implemented and is not authorized by this leaf: "

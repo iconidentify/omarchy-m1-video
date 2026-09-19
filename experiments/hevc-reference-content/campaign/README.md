@@ -61,7 +61,9 @@ For VA it emits the private `threads`, `va_observer_outputs` and
 `va_observer_copy` option values, required owner operations and fatal-quarantine
 policy. For Gst it emits the internal arm API, selector values, copy mode and
 publication bound. These are inputs for a later runner, not evidence that one
-ran.
+ran. The top level always includes `valid`, every rejection reason and
+`execution_authorized: false`; an invalid document cannot look like an authorized
+runner input merely because a consumer ignored the CLI exit status.
 
 ## Why execution still refuses
 
@@ -77,11 +79,11 @@ mint or verify those external facts.
 
 ## Evidence and limits
 
-The offline suite has 49 tests. Nine semantic source mutations remove the
+The offline suite has 51 tests. Ten semantic source mutations remove the
 selector-domain, Gst publication-boundary, parameter-input-window, paired-control,
-VA thread, VA owner, finish-before-close, fatal-cleanup or execution-refusal
-gate; each must fail its named assertion. A compiler error, timeout or unrelated
-failure is not accepted as mutation detection.
+VA thread, VA owner, finish-before-close, fatal-cleanup, JSON no-authorization or
+execution-refusal gate; each must fail its named assertion. A compiler error,
+timeout or unrelated failure is not accepted as mutation detection.
 
 This leaf does not drive a decoder, choose real campaign targets, verify the
 declared output counts/input windows, collect evidence, compare off/on outputs or

@@ -104,8 +104,12 @@ class Plan:
     va: VARequirements = field(default_factory=VARequirements)
 
     def to_json(self) -> str:
+        problems = validate_plan(self)
         document = {
             "run_id": self.run_id,
+            "valid": not problems,
+            "problems": problems,
+            "execution_authorized": False,
             "client_requirements": {"gst": asdict(self.gst), "va": asdict(self.va)},
             "workloads": [asdict(workload) | {
                 "name": workload.name,

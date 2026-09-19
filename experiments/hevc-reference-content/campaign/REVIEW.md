@@ -19,7 +19,7 @@
 | 7 Hardware | Inapplicable to execution. No AVD/V4L2/DMA operation ran; hardware, loaded-build and same-run association claims remain external gates. |
 | 8 Consolidation | Three pre-existing planner defects shared one root: client coordinates and control semantics were collapsed into a Gst-only `frames` model. They are fixed together, not papered over with aliases. |
 | 9 Conflict resolution | CAMPAIGN.md says copy-off/on both retain/drain/map and differ only in copies; the old "copy-off selects nothing" behavior contradicted that text. The campaign contract controls. |
-| 10 Verification | 49 tests, nine source-level semantic mutations, Python compilation, repository rebuild/shell baseline and whitespace checks pass. Mutation detection requires the named test failure. |
+| 10 Verification | 51 tests, ten source-level semantic mutations, Python compilation, repository rebuild/shell baseline and whitespace checks pass. Mutation detection requires the named test failure. |
 | 11 Decision | Ready for exact-head hosted validation. Parent #82/#42 gates remain; merging this leaf does not authorize or execute a campaign. |
 
 ## Findings
@@ -39,6 +39,12 @@
   indices with an explicit per-client last-required-input window. A regression
   places a change after the VA ordinal but inside its input window; the
   `parameter-input-window` mutation must miss it and fail that named test.
+- **R4, confirmed and fixed, P1/high confidence, introduced in this leaf:** an
+  invalid plan still emitted clean-looking per-workload JSON, leaving rejection
+  only in trailing prose and process status. A later consumer that ignored the
+  exit status could treat it as runner input. JSON now carries `valid`, all
+  rejection reasons and an invariant `execution_authorized: false`; a semantic
+  mutation that flips the bit fails the named contract test.
 - **D1, dismissed:** counting paired controls creates sixteen observations and
   appears to violate the eight-snapshot budget. Copy-off maps but retains no
   copied content; the byte budget counts the eight copy-on targets. Each fresh
