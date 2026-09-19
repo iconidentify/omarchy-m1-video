@@ -47,7 +47,13 @@ builds. Normal and semantic-mutant runs may not pass through a sanitizer error.
 
 The original `parser-test.py` remains dispatch/parameter-parser coverage: its
 slice queue is still substituted and it does not register an end_frame/issue
-callback. **`slice-queue-test.py` is the parser-to-issue follow-up.** It extracts
+callback. It now also drives actual `decode_nal_units` with a fake non-VA
+(`AV_PIX_FMT_CUDA`) hwaccel whose `hwaccel_priv_data` is a canary: DPA, aux,
+extension and an accepted-prefix+DPA suffix must leave that canary unchanged
+and keep original skip semantics (`ret == n`, no VA sticky). A fifth semantic
+mutation that treats any hwaccel as VA fails `canary_intact()`.
+
+**`slice-queue-test.py` is the parser-to-issue follow-up.** It extracts
 and executes actual `h264_decode_frame`, `h264_slice_header_parse`, `ff_h264_queue_decode_slice`,
 `ff_h264_execute_decode_slices`, `ff_h264_field_end`, `vaapi_h264_end_frame` and
 `ff_h264_flush_change` against encoder-generated SPS/PPS/IDR NALs. Issue/cancel
@@ -57,11 +63,14 @@ patched `decode_nal_units` error path. Consecutive real frame calls also cover
 CHUNKS pending-picture cleanup: malformed Annex-B/AVCC input, a rejected next
 chunk, seek flush and EOF cancel once without issuing; repeated rejection or
 cleanup does not cancel again. Decoder `ff_h264_flush_change` retains sticky
-rejection. Nine semantic mutations remove header parsing, field-end's callback,
-error cancellation, split cancellation, cancellation-state retirement, flush
-cancellation, EOF cancellation, the actual frame's chunk-completion condition,
-or the real frame-thread gate's SPS/PPS branch (below).
-Each must fail a semantic assertion without a sanitizer error.
+rejection. The same fake non-VA canary is exercised through actual
+`decode_nal_units` for DPA/aux/extension and prefix+DPA; those paths must not
+issue, cancel, or write VA sticky into foreign priv_data. Ten semantic mutations
+remove header parsing, field-end's callback, error cancellation, split
+cancellation, cancellation-state retirement, flush cancellation, EOF
+cancellation, the actual frame's chunk-completion condition, the real
+frame-thread gate's SPS/PPS branch (below), or the VA pix_fmt backend
+predicate (any-hwaccel). Each must fail a semantic assertion without a sanitizer error.
 
 The harness also extracts and executes the real `get_last_needed_nal` and calls
 the real `decode_nal_units` gate for `ff_thread_finish_setup`
@@ -132,9 +141,12 @@ the separate PR80 guard tests remain preserved.
 ## Implemented boundary and remaining gaps
 
 Private VAAPI state is accessed only after checking the selected backend. Other
-backends retain the original parser error policy. Once VAAPI is selected, selected
-parser/slice errors become sticky, unsupported NAL types stop, and end requires a
-started picture with at least one admitted slice. The actual end callback cancels
+backends retain the original parser error policy. Helper-level CUDA canaries
+remain in `glue-fixture.c`; actual `decode_nal_units` now repeats that isolation
+with a fake non-VA hwaccel on the VA-enabled build, alongside the existing
+`hwaccel=NULL` software path. Once VAAPI is selected, selected parser/slice
+errors become sticky, unsupported NAL types stop, and end requires a started
+picture with at least one admitted slice. The actual end callback cancels
 instead of issuing on rejection. A successful end clears its picture/count state.
 
 Remap stays disabled. Baseline/Extended are not added to `vaapi_profile_map`, and
@@ -159,7 +171,9 @@ In particular #79 still requires:
   device-bound via `alloc_picture` → `ff_get_buffer` → `av_hwframe_get_buffer`
   for `AV_PIX_FMT_VAAPI`, not merely unattempted.
 - Complete SPS/PPS/slice feature and profile/configuration binding; unchanged
-  supported Main/High/High10 negotiation and software/other-backend behavior.
+  supported Main/High/High10 negotiation. Software and fake-non-VA dispatch
+  isolation for DPA/aux/extension is now tested; that is not a real other
+  backend and does not bind a VA configuration.
 - A reviewed stop/remap decision from that evidence, then separate guarded hardware
   qualification if appropriate. No hardware run is authorized by this experiment.
 

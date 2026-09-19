@@ -34,6 +34,8 @@ class Patch(unittest.TestCase):
         harness = (HERE / 'parser-harness.c').read_text()
         self.assertIn('decode_nal.inc', harness)
         self.assertNotIn('h264_va_on_nal', harness)
+        self.assertIn('canary_intact', harness)
+        self.assertIn('AV_PIX_FMT_CUDA', harness)
         patch = (HERE / 'ffmpeg-n9.0.1-h264-vaapi-admission.patch').read_text()
         self.assertIn('ff_h264_vaapi_admit_nal', patch)
         self.assertIn('#include "config_components.h"', harness)
@@ -52,11 +54,16 @@ class Patch(unittest.TestCase):
         self.assertNotIn(
             'static int get_last_needed_nal(H264Context *h) { (void)h; return 0; }',
             harness)
+        self.assertIn('canary_intact', harness)
+        self.assertIn('AV_PIX_FMT_CUDA', harness)
+        self.assertIn('ext_nal', (HERE / 'slice-fixtures.inc').read_text())
         patch = (HERE / 'ffmpeg-n9.0.1-h264-vaapi-admission.patch').read_text()
         self.assertIn('FF_HW_SIMPLE_CALL(avctx, end_frame)', patch)
         readme = (HERE / 'README.md').read_text().lower()
         self.assertIn('config/thread', readme)
         self.assertIn('remap stays disabled', readme)
+        self.assertIn('canary', readme)
+        self.assertIn('non-va', readme)
 
     def test_rejected_pr74_reproductions_still_block(self):
         for script in ('tests.py', 'actual-gate-test.py'):
