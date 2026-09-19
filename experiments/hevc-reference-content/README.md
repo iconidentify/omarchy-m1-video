@@ -11,13 +11,13 @@ call sites remain additive experiments.
 
 Additive production-boundary Gst and FFmpeg/VA output call sites and
 selected-writer scheduling are merged. A [campaign controller](campaign/README.md)
-plans the eight workloads while refusing to run them; it still needs the new
-VA-specific output-ordinal and owner/thread constraints before it can become a
-runner.
+plans the eight workloads while refusing to run them. It now keeps Gst frame
+numbers, VA output ordinals and input windows distinct, enforces each client's
+ownership/cleanup rules and emits machine-readable adapter contracts.
 
-Remaining gates: full client/dependency/corpus identities, actual same-run kernel
-command/reference association, VA campaign-controller adaptation, approved
-loaded builds and the separately guarded [campaign](CAMPAIGN.md) itself. #82 and
+Remaining gates: a client runner, full client/dependency/corpus identities,
+actual same-run kernel command/reference association, approved loaded builds and
+the separately guarded [campaign](CAMPAIGN.md) itself. #82 and
 driver #42 stay
 open. Existing synthetic, source-audit and helper evidence is preserved below as
 historical partial work; its statements about missing APIs describe that earlier

@@ -1,30 +1,23 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""Campaign controller for the bounded HEVC reference-content observation.
-
-Plans and validates the eight guarded workloads described in CAMPAIGN.md and
-refuses to execute any of them without explicit authorization it cannot mint
-itself. Planning and validation are offline and side-effect free; this module
-opens no device, acquires no lease, loads no module and starts no client.
-
-The constraints encoded here are the documented properties of the merged call
-site (gst-callsite/README.md "Known limits for a controller" and SCHEDULING.md),
-not invented policy. Where a limit is a property of the experiment rather than a
-defect, the check names it so a plan fails review instead of failing on hardware.
-"""
+"""Offline, fail-closed planner for the bounded HEVC observation campaign."""
 from __future__ import annotations
 
 import argparse
 import json
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 
 VECTORS = ("B", "E")
 CLIENTS = ("va", "gst")
 MODES = (False, True)          # observer copy off / on
 
-# CAMPAIGN.md budgets. Bytes are exact; times are the external deadlines that
-# bound acceptance of a result, not interruptions of a stuck memory access.
+GST_SELECTOR = "system_frame_number"
+VA_SELECTOR = "output_ordinal"
+VA_OWNER_OPERATIONS = ("send", "receive", "flush", "result", "finish", "close")
+
+# CAMPAIGN.md budgets. Copy-off traverses the same selected observations but
+# spends no snapshot-byte budget; the eight copied targets are the copy-on rows.
 SNAPSHOT_BYTES = 184320
 MAX_SNAPSHOTS = 8
 TOTAL_BYTES = 1474560
@@ -34,11 +27,7 @@ DRAIN_DEADLINE_S = 2
 RUN_DEADLINE_S = 120
 CAMPAIGN_DEADLINE_S = 20 * 60
 
-# gst-callsite.h: 1..8 distinct system_frame_numbers per arm.
 MIN_SELECTION, MAX_SELECTION = 1, 8
-
-# CAMPAIGN.md initial slots: three selected E writers and one B control per
-# client, eight slots in total across both clients.
 E_SLOTS_PER_CLIENT = 3
 B_SLOTS_PER_CLIENT = 1
 
@@ -53,13 +42,7 @@ class AuthorizationError(Exception):
 
 @dataclass(frozen=True)
 class Authorization:
-    """Externally granted permission to run one campaign.
-
-    Every field is supplied by a person or by the guard. The controller never
-    constructs this itself, and `execute()` is unreachable without one. An
-    instance is not a manifest, a lease or a hardware approval on its own: it
-    records that each of those exists and names it for the evidence record.
-    """
+    """Names external approvals; it does not grant or verify them."""
 
     operator: str
     guard_lease_id: str
@@ -68,7 +51,7 @@ class Authorization:
     hardware_window: str
 
     def check(self) -> None:
-        missing = [k for k, v in asdict(self).items() if not v]
+        missing = [key for key, value in asdict(self).items() if not value]
         if missing:
             raise AuthorizationError(f"authorization incomplete: {', '.join(sorted(missing))}")
         if len(self.approved_manifest_sha256) != 64:
@@ -76,13 +59,37 @@ class Authorization:
 
 
 @dataclass
+class GstRequirements:
+    fresh_element_per_observation: bool = True
+    arm_on_streaming_owner: bool = True
+    treat_flow_error_as_failure: bool = True
+    finish_before_lifecycle_ops: bool = True
+
+
+@dataclass
+class VARequirements:
+    fresh_decoder_per_observation: bool = True
+    decoder_threads: int = 1
+    active_thread_type: int = 0
+    single_application_owner: bool = True
+    owner_operations: tuple[str, ...] = VA_OWNER_OPERATIONS
+    finish_before_close: bool = True
+    fatal_cleanup_is_failure: bool = True
+    sticky_failure_invalidates_result: bool = True
+
+
+@dataclass
 class Workload:
-    vector: str                 # "B" or "E"
-    client: str                 # "va" or "gst"
-    copy: bool                  # observer copy on/off
-    frames: tuple[int, ...] = ()        # selected system_frame_numbers
-    pool_size: int = 0                  # publication boundary for this client
-    parameter_set_changes: tuple[int, ...] = ()   # frame numbers of in-band changes
+    vector: str
+    client: str
+    copy: bool
+    selector_domain: str
+    selectors: tuple[int, ...]
+    arm_input_index: int
+    last_required_input_index: int
+    parameter_set_change_inputs: tuple[int, ...] = ()
+    gst_pool_size: int | None = None
+    va_output_count: int | None = None
 
     @property
     def name(self) -> str:
@@ -93,125 +100,206 @@ class Workload:
 class Plan:
     run_id: str
     workloads: list[Workload] = field(default_factory=list)
-    fresh_element_per_observation: bool = True
-    arm_on_streaming_owner: bool = True
-    treat_flow_error_as_failure: bool = True
-    finish_before_lifecycle_ops: bool = True
+    gst: GstRequirements = field(default_factory=GstRequirements)
+    va: VARequirements = field(default_factory=VARequirements)
 
     def to_json(self) -> str:
-        return json.dumps(
-            {"run_id": self.run_id,
-             "fresh_element_per_observation": self.fresh_element_per_observation,
-             "arm_on_streaming_owner": self.arm_on_streaming_owner,
-             "treat_flow_error_as_failure": self.treat_flow_error_as_failure,
-             "finish_before_lifecycle_ops": self.finish_before_lifecycle_ops,
-             "workloads": [asdict(w) | {"name": w.name} for w in self.workloads]},
-            indent=2, sort_keys=True)
+        document = {
+            "run_id": self.run_id,
+            "client_requirements": {"gst": asdict(self.gst), "va": asdict(self.va)},
+            "workloads": [asdict(workload) | {
+                "name": workload.name,
+                "client_contract": client_contract(self, workload),
+            } for workload in self.workloads],
+        }
+        return json.dumps(document, indent=2, sort_keys=True)
 
 
-def build_plan(pool_size: int, frames_by_client: dict[str, dict[str, tuple[int, ...]]],
-               parameter_set_changes: dict[str, tuple[int, ...]] | None = None,
+def client_contract(plan: Plan, workload: Workload) -> dict[str, object]:
+    """Return the deterministic adapter contract for a later runner."""
+    selector = {"domain": workload.selector_domain, "values": list(workload.selectors)}
+    input_window = {
+        "arm_input_index": workload.arm_input_index,
+        "last_required_input_index": workload.last_required_input_index,
+    }
+    if workload.client == "gst":
+        return {
+            "arm_api": "gst_hevc_callsite_arm_frames",
+            "copy": workload.copy,
+            "selector": selector,
+            "input_window": input_window,
+            "publication_pool_size": workload.gst_pool_size,
+            "requirements": asdict(plan.gst),
+        }
+    if workload.client == "va":
+        return {
+            "private_options": {
+                "threads": plan.va.decoder_threads,
+                "va_observer_outputs": ",".join(map(str, workload.selectors)),
+                "va_observer_copy": int(workload.copy),
+            },
+            "selector": selector,
+            "input_window": input_window,
+            "decoded_output_count": workload.va_output_count,
+            "requirements": asdict(plan.va),
+            "persistent_end_failure": "fatal_quarantine",
+        }
+    raise ValueError(f"unknown client: {workload.client}")
+
+
+def build_plan(*, gst_pool_size: int, va_output_count: int,
+               gst_frames: dict[str, tuple[int, ...]],
+               va_outputs: dict[str, tuple[int, ...]],
+               last_required_inputs: dict[str, dict[str, int]],
+               parameter_set_change_inputs: dict[str, tuple[int, ...]] | None = None,
                run_id: str | None = None) -> Plan:
-    """Build the eight-workload matrix. Does not validate; call validate_plan."""
-    changes = parameter_set_changes or {}
-    workloads = []
+    """Build the paired eight-workload matrix; call validate_plan before use."""
+    changes = parameter_set_change_inputs or {}
+    workloads: list[Workload] = []
     for vector in VECTORS:
         for client in CLIENTS:
+            selectors = gst_frames.get(vector, ()) if client == "gst" else va_outputs.get(vector, ())
+            domain = GST_SELECTOR if client == "gst" else VA_SELECTOR
+            last_input = last_required_inputs.get(client, {}).get(vector, -1)
             for copy in MODES:
-                # Only the copy-on workloads select. Off and on perform the same
-                # pause/drain, retention, mapping and preallocation; they differ
-                # only in the copy, so a control that selected frames would not
-                # be the control CAMPAIGN.md specifies.
-                selected = frames_by_client.get(client, {}).get(vector, ()) if copy else ()
+                # Paired off/on rows select the same outputs and execute the same
+                # observer path. Only the bounded memcpy operations differ.
                 workloads.append(Workload(
-                    vector=vector, client=client, copy=copy,
-                    frames=tuple(selected),
-                    pool_size=pool_size,
-                    parameter_set_changes=tuple(changes.get(vector, ())),
+                    vector=vector,
+                    client=client,
+                    copy=copy,
+                    selector_domain=domain,
+                    selectors=tuple(selectors),
+                    arm_input_index=0,
+                    last_required_input_index=last_input,
+                    parameter_set_change_inputs=tuple(changes.get(vector, ())),
+                    gst_pool_size=gst_pool_size if client == "gst" else None,
+                    va_output_count=va_output_count if client == "va" else None,
                 ))
     return Plan(run_id=run_id or uuid.uuid4().hex, workloads=workloads)
 
 
 def validate_plan(plan: Plan) -> list[str]:
-    """Return every reason this plan must not reach hardware, or an empty list.
-
-    Collects all reasons rather than raising on the first: a campaign review
-    should see the whole set, and a plan fixed one error at a time wastes a
-    hardware window per attempt.
-    """
+    """Return every reason this plan must not reach hardware."""
     problems: list[str] = []
-    names = [w.name for w in plan.workloads]
-
-    expected = {f"{v}-{c}-{'on' if m else 'off'}"
-                for v in VECTORS for c in CLIENTS for m in MODES}
+    names = [workload.name for workload in plan.workloads]
+    expected = {f"{vector}-{client}-{'on' if copy else 'off'}"
+                for vector in VECTORS for client in CLIENTS for copy in MODES}
     if set(names) != expected:
         problems.append(f"workload set is not the eight {{B,E}}x{{VA,Gst}}x{{off,on}} runs: "
                         f"missing {sorted(expected - set(names))}, extra {sorted(set(names) - expected)}")
     if len(names) != len(set(names)):
         problems.append("duplicate workloads in plan")
 
-    # Properties the merged call site requires of any controller.
-    if not plan.fresh_element_per_observation:
-        problems.append("one observation per decoder element: a fresh element per observation "
-                        "is required because observer_submitted is never reset")
-    if not plan.arm_on_streaming_owner:
-        problems.append("arm() must happen on the streaming owner thread; arming elsewhere "
-                        "turns every output into a dropped frame")
-    if not plan.treat_flow_error_as_failure:
-        problems.append("refusals are opaque: any GST_FLOW_ERROR in an armed window must be "
-                        "treated as observation failure")
-    if not plan.finish_before_lifecycle_ops:
-        problems.append("lifecycle operations are reported as refused, not prevented: finish "
-                        "the arm before flush or a state change")
+    if not plan.gst.fresh_element_per_observation:
+        problems.append("Gst requires a fresh decoder element per observation")
+    if not plan.gst.arm_on_streaming_owner:
+        problems.append("Gst arm() must happen on the streaming owner thread")
+    if not plan.gst.treat_flow_error_as_failure:
+        problems.append("Gst GST_FLOW_ERROR in an armed window must fail the observation")
+    if not plan.gst.finish_before_lifecycle_ops:
+        problems.append("Gst must finish before flush or a state change")
 
-    total_selected = 0
-    for w in plan.workloads:
-        if w.copy and not w.frames:
-            problems.append(f"{w.name}: copy-on workload selects no frames")
-        if not w.copy and w.frames:
-            problems.append(f"{w.name}: copy-off control must select no frames; off and on "
-                            "differ only in the copy itself")
-        if w.frames:
-            if not (MIN_SELECTION <= len(w.frames) <= MAX_SELECTION):
-                problems.append(f"{w.name}: {len(w.frames)} selections outside 1..{MAX_SELECTION}")
-            if len(set(w.frames)) != len(w.frames):
-                problems.append(f"{w.name}: selections must be distinct system_frame_numbers")
-            if any(f < 0 for f in w.frames):
-                problems.append(f"{w.name}: negative system_frame_number")
-            # Publication boundary: a hint only succeeds on an allocation that
-            # has never been published, so it must land within roughly the
-            # first pool-size outputs.
-            if w.pool_size <= 0:
-                problems.append(f"{w.name}: pool_size must be known to check the publication boundary")
+    if not plan.va.fresh_decoder_per_observation:
+        problems.append("VA requires a fresh decoder per observation")
+    if plan.va.decoder_threads != 1:
+        problems.append("VA armed decoding requires decoder_threads=1")
+    if plan.va.active_thread_type != 0:
+        problems.append("VA armed decoding requires active_thread_type=0")
+    if not plan.va.single_application_owner:
+        problems.append("VA send/receive/flush/result/finish/close require one application owner")
+    if tuple(plan.va.owner_operations) != VA_OWNER_OPERATIONS:
+        problems.append("VA owner_operations must cover send/receive/flush/result/finish/close exactly")
+    if not plan.va.finish_before_close:
+        problems.append("VA observer finish must succeed before avcodec_free_context/close")
+    if not plan.va.fatal_cleanup_is_failure:
+        problems.append("VA persistent native-end failure must be a fatal quarantined run")
+    if not plan.va.sticky_failure_invalidates_result:
+        problems.append("VA sticky output failure must invalidate result and repeated finish")
+
+    copied_targets = 0
+    for workload in plan.workloads:
+        expected_domain = VA_SELECTOR if workload.client == "va" else GST_SELECTOR
+        if workload.selector_domain != expected_domain:
+            problems.append(f"{workload.name}: selector domain {workload.selector_domain!r} is not "
+                            f"{expected_domain!r}")
+        if not workload.selectors:
+            problems.append(f"{workload.name}: paired copy mode selects no outputs")
+            continue
+        if not (MIN_SELECTION <= len(workload.selectors) <= MAX_SELECTION):
+            problems.append(f"{workload.name}: {len(workload.selectors)} selections outside "
+                            f"1..{MAX_SELECTION}")
+        if len(set(workload.selectors)) != len(workload.selectors):
+            problems.append(f"{workload.name}: selectors must be distinct {expected_domain}s")
+        if any(value < 0 for value in workload.selectors):
+            problems.append(f"{workload.name}: negative {expected_domain}")
+
+        if workload.client == "gst":
+            if workload.va_output_count is not None:
+                problems.append(f"{workload.name}: VA output count attached to a Gst workload")
+            if workload.gst_pool_size is None or workload.gst_pool_size <= 0:
+                problems.append(f"{workload.name}: Gst pool size must be known")
             else:
-                late = [f for f in w.frames if f >= w.pool_size]
+                late = [value for value in workload.selectors if value >= workload.gst_pool_size]
                 if late:
-                    problems.append(f"{w.name}: selections {sorted(late)} fall outside the "
-                                    f"publication boundary (pool_size={w.pool_size})")
-            # An in-band parameter-set change inside the armed window is a hard
-            # stream error, not a recoverable refusal.
-            window_end = max(w.frames)
-            inside = [c for c in w.parameter_set_changes if 0 <= c <= window_end]
-            if inside:
-                problems.append(f"{w.name}: parameter-set change at {sorted(inside)} falls inside "
-                                f"the armed window (ends at frame {window_end})")
-            total_selected += len(w.frames)
+                    problems.append(f"{workload.name}: system_frame_numbers {sorted(late)} fall "
+                                    f"outside the publication boundary "
+                                    f"(pool_size={workload.gst_pool_size})")
+        elif workload.client == "va":
+            if workload.gst_pool_size is not None:
+                problems.append(f"{workload.name}: Gst pool size attached to a VA workload")
+            if workload.va_output_count is None or workload.va_output_count <= 0:
+                problems.append(f"{workload.name}: VA decoded output count must be known")
+            else:
+                late = [value for value in workload.selectors if value >= workload.va_output_count]
+                if late:
+                    problems.append(f"{workload.name}: output ordinals {sorted(late)} exceed decoded "
+                                    f"output count {workload.va_output_count}")
 
-    if total_selected > MAX_SNAPSHOTS:
-        problems.append(f"{total_selected} selected snapshots exceeds the budget of {MAX_SNAPSHOTS}")
-    if total_selected * SNAPSHOT_BYTES > TOTAL_BYTES:
-        problems.append(f"{total_selected * SNAPSHOT_BYTES} bytes exceeds the total budget "
-                        f"of {TOTAL_BYTES}")
+        if workload.arm_input_index < 0:
+            problems.append(f"{workload.name}: negative arm input index")
+        if workload.last_required_input_index < workload.arm_input_index:
+            problems.append(f"{workload.name}: invalid input window "
+                            f"{workload.arm_input_index}..{workload.last_required_input_index}")
+        negative_changes = [value for value in workload.parameter_set_change_inputs if value < 0]
+        if negative_changes:
+            problems.append(f"{workload.name}: negative parameter-set input indices "
+                            f"{sorted(negative_changes)}")
+        inside = [value for value in workload.parameter_set_change_inputs
+                  if workload.arm_input_index <= value <= workload.last_required_input_index]
+        if inside:
+            problems.append(f"{workload.name}: parameter-set change input {sorted(inside)} falls "
+                            f"inside armed input window {workload.arm_input_index}.."
+                            f"{workload.last_required_input_index}")
+        if workload.copy:
+            copied_targets += len(workload.selectors)
 
-    # Slot shape: three selected E writers and one B control per client.
     for client in CLIENTS:
-        for vector, want in (("E", E_SLOTS_PER_CLIENT), ("B", B_SLOTS_PER_CLIENT)):
-            on = [w for w in plan.workloads
-                  if w.client == client and w.vector == vector and w.copy]
-            got = sum(len(w.frames) for w in on)
-            if got != want:
-                problems.append(f"{vector}/{client}: {got} selected slots, expected {want}")
+        for vector, wanted in (("E", E_SLOTS_PER_CLIENT), ("B", B_SLOTS_PER_CLIENT)):
+            pair = {workload.copy: workload for workload in plan.workloads
+                    if workload.client == client and workload.vector == vector}
+            if set(pair) != set(MODES):
+                continue
+            off, on = pair[False], pair[True]
+            if off.selectors != on.selectors:
+                problems.append(f"{vector}/{client}: copy-off/on selectors differ")
+            if (off.arm_input_index, off.last_required_input_index) != \
+                    (on.arm_input_index, on.last_required_input_index):
+                problems.append(f"{vector}/{client}: copy-off/on input windows differ")
+            if off.parameter_set_change_inputs != on.parameter_set_change_inputs:
+                problems.append(f"{vector}/{client}: copy-off/on stream-change inputs differ")
+            if (off.gst_pool_size, off.va_output_count) != \
+                    (on.gst_pool_size, on.va_output_count):
+                problems.append(f"{vector}/{client}: copy-off/on selector limits differ")
+            if len(on.selectors) != wanted:
+                problems.append(f"{vector}/{client}: {len(on.selectors)} selected slots, "
+                                f"expected {wanted}")
 
+    if copied_targets > MAX_SNAPSHOTS:
+        problems.append(f"{copied_targets} copied snapshots exceeds the budget of {MAX_SNAPSHOTS}")
+    if copied_targets * SNAPSHOT_BYTES > TOTAL_BYTES:
+        problems.append(f"{copied_targets * SNAPSHOT_BYTES} copied bytes exceeds the total budget "
+                        f"of {TOTAL_BYTES}")
     return problems
 
 
@@ -226,7 +314,7 @@ class Preconditions:
     decoder_refcount: int
 
     def problems(self) -> list[str]:
-        out = []
+        out: list[str] = []
         if not self.healthy_idle:
             out.append("decoder is not in a healthy idle state")
         if not self.foreign_client_absent:
@@ -241,13 +329,7 @@ class Preconditions:
 
 
 class Controller:
-    """Plans a campaign offline; executes only under external authorization.
-
-    `execute` is deliberately not implemented. The campaign needs a reviewed
-    deployment manifest, a same-run kernel command/reference join and separate
-    hardware authorization, none of which exist. Raising here keeps the refusal
-    in code rather than in a comment that a later caller can miss.
-    """
+    """Reviews offline plans; execution remains deliberately unavailable."""
 
     def __init__(self, plan: Plan) -> None:
         self.plan = plan
@@ -269,31 +351,47 @@ class Controller:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--pool-size", type=int, required=True,
-                        help="capture pool size, that is the publication boundary")
-    parser.add_argument("--e-frames", type=int, nargs="+", required=True,
-                        help=f"{E_SLOTS_PER_CLIENT} selected E system_frame_numbers per client")
-    parser.add_argument("--b-frames", type=int, nargs="+", required=True,
-                        help=f"{B_SLOTS_PER_CLIENT} selected B control system_frame_number per client")
-    parser.add_argument("--parameter-set-change", type=int, nargs="*", default=[],
-                        help="frame numbers of in-band parameter-set changes, if any")
+    parser.add_argument("--gst-pool-size", type=int, required=True)
+    parser.add_argument("--va-output-count", type=int, required=True)
+    parser.add_argument("--gst-e-frames", type=int, nargs="+", required=True)
+    parser.add_argument("--gst-b-frames", type=int, nargs="+", required=True)
+    parser.add_argument("--va-e-outputs", type=int, nargs="+", required=True)
+    parser.add_argument("--va-b-outputs", type=int, nargs="+", required=True)
+    for client in CLIENTS:
+        for vector in ("e", "b"):
+            parser.add_argument(f"--{client}-{vector}-last-input", type=int, required=True)
+    parser.add_argument("--e-parameter-set-change-input", type=int, nargs="*", default=[])
+    parser.add_argument("--b-parameter-set-change-input", type=int, nargs="*", default=[])
     parser.add_argument("--json", action="store_true", help="print the plan as JSON")
     args = parser.parse_args()
 
-    frames = {c: {"E": tuple(args.e_frames), "B": tuple(args.b_frames)} for c in CLIENTS}
-    changes = {v: tuple(args.parameter_set_change) for v in VECTORS}
-    plan = build_plan(args.pool_size, frames, changes)
+    plan = build_plan(
+        gst_pool_size=args.gst_pool_size,
+        va_output_count=args.va_output_count,
+        gst_frames={"E": tuple(args.gst_e_frames), "B": tuple(args.gst_b_frames)},
+        va_outputs={"E": tuple(args.va_e_outputs), "B": tuple(args.va_b_outputs)},
+        last_required_inputs={
+            "gst": {"E": args.gst_e_last_input, "B": args.gst_b_last_input},
+            "va": {"E": args.va_e_last_input, "B": args.va_b_last_input},
+        },
+        parameter_set_change_inputs={
+            "E": tuple(args.e_parameter_set_change_input),
+            "B": tuple(args.b_parameter_set_change_input),
+        },
+    )
     problems = validate_plan(plan)
-
     if args.json:
         print(plan.to_json())
     else:
-        for w in plan.workloads:
-            print(f"  {w.name:12} frames={list(w.frames) or '-'}")
+        for workload in plan.workloads:
+            print(f"  {workload.name:12} {workload.selector_domain}="
+                  f"{list(workload.selectors)} copy={int(workload.copy)} "
+                  f"input_window={workload.arm_input_index}.."
+                  f"{workload.last_required_input_index}")
     if problems:
         print("\nPLAN REJECTED:")
-        for p in problems:
-            print(f"  - {p}")
+        for problem in problems:
+            print(f"  - {problem}")
         return 1
     print("\nPlan is internally consistent. It is NOT authorized to run: the campaign "
           "requires a reviewed manifest, a same-run kernel command/reference join and "
