@@ -98,6 +98,20 @@ The strict serial HEVC suite passes 144/147 after the AVD-specific DPB ordering 
 mapping and failed-picture sanitizer regressions, including unused unavailable references
 around random-access points. All 22 Meson cases pass.
 
+## HEVC delayed-parameter-set client qualification (selected local FFmpeg)
+
+A local VA-enabled FFmpeg n9.0.1 build at
+`bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa`, with the pending-parameter-set patch
+SHA-256 `a598cbf599060ff2bb105bb95a24c5dada122b58363ad9d24337cfb1f307f26b`, passes
+all six hardware frames of `VPSSPSPPS_A_MainConcept_1` at native dimensions. The
+complete guarded HEVC suite passes 145/147 with no lost r11 pass. The exact unpatched
+local build reproduces the prior two-frame checksum mismatch.
+
+This is a selected-client result, not a package result: neither local build was installed,
+and the driver and installed FFmpeg packages are unchanged. See
+[the issue #15 qualification record](evidence/issue15/hevc-parameter-sets-2026-09-19/README.md)
+for identities, guard run IDs, compact suite output and tests not run.
+
 Run `sh tests/h264-high10.sh /path/to/build/src` from the driver checkout through the lab
 guard. It compares 144 hardware frames with software and checks stable early-export storage
 across six High 10 coding/quantizer combinations. See [codec status](CODEC_STATUS.md) and

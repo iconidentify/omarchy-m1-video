@@ -22,7 +22,11 @@ The real concurrent worker and selected M1 qualification are now accepted throug
 keep model overlap, real teardown, strict suites, boot and support claims distinct.
 Allocator/startup candidate [selected runtime qualification](https://github.com/iconidentify/omarchy-m1-video/pull/91)
 is also complete with the original module restored; shipping remains separate.
-No support-count gain follows from these checks. The live GitHub roadmap controls
+Delayed HEVC parameter-set [parent #15](https://github.com/iconidentify/omarchy-m1-video/issues/15)
+now has [selected-client M1 evidence](evidence/issue15/hevc-parameter-sets-2026-09-19/README.md):
+the exact local FFmpeg patch raises the strict suite from 144/147 to 145/147 with no lost pass.
+That client is not packaged, installed or upstream, so distribution remains separate.
+The live GitHub roadmap controls
 ownership and status; historical r11 figures below are a starting snapshot.
 
 ## Agent entry point

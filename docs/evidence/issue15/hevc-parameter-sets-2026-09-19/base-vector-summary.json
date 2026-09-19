@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0.0",
+  "kind": "conformance-suite-result",
+  "suite": "JCT-VC-HEVC_V1",
+  "suite_key": "hevc",
+  "mode": "hardware",
+  "complete": true,
+  "abort": null,
+  "passed": 0,
+  "total": 1,
+  "passing_frames": 0,
+  "high10": "off",
+  "profile_mismatch": false,
+  "subset": {
+    "rationale": "explicit --vectors selection; not a full-suite total",
+    "selected": [
+      "VPSSPSPPS_A_MainConcept_1"
+    ]
+  },
+  "provenance": {
+    "source_commit": "7109f7eeeba7e16c1bc5d1d5dcd96eb214d6482f",
+    "driver": "<redacted>"
+  },
+  "command": {
+    "redacted": true,
+    "argv": [
+      "conformance.py",
+      "JCT-VC-HEVC_V1",
+      "<resources>",
+      "vaapi"
+    ]
+  },
+  "vectors": [
+    {
+      "name": "VPSSPSPPS_A_MainConcept_1",
+      "success": false,
+      "category": "checksum_mismatch",
+      "expected_md5": "1ddf74263cb4953cfdfcf99c563d88ea",
+      "actual_md5": "ec9f5857591ac4c215d194deaf52167c",
+      "frames": 2,
+      "native_sizes": [
+        "352x288",
+        "1280x720"
+      ],
+      "first_differing_frame": {
+        "vector": "VPSSPSPPS_A_MainConcept_1",
+        "reason": "stream_md5",
+        "expected_md5": "1ddf74263cb4953cfdfcf99c563d88ea",
+        "candidate_md5": "ec9f5857591ac4c215d194deaf52167c",
+        "index": 0,
+        "candidate": {
+          "index": 0,
+          "width": 352,
+          "height": 288,
+          "md5": "c814e40e0f9b130f44f1abd9cbf10ae6",
+          "format": "yuv420p"
+        }
+      },
+      "returncode": 0
+    }
+  ]
+}

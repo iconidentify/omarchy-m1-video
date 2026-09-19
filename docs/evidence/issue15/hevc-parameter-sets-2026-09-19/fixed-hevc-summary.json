@@ -1,0 +1,1811 @@
+{
+  "schema_version": "1.0.0",
+  "kind": "conformance-suite-result",
+  "suite": "JCT-VC-HEVC_V1",
+  "suite_key": "hevc",
+  "mode": "hardware",
+  "complete": true,
+  "abort": null,
+  "passed": 145,
+  "total": 147,
+  "passing_frames": 8895,
+  "high10": "off",
+  "profile_mismatch": false,
+  "subset": null,
+  "provenance": {
+    "source_commit": "7109f7eeeba7e16c1bc5d1d5dcd96eb214d6482f",
+    "driver": "<redacted>"
+  },
+  "command": {
+    "redacted": true,
+    "argv": [
+      "conformance.py",
+      "JCT-VC-HEVC_V1",
+      "<resources>",
+      "vaapi"
+    ]
+  },
+  "vectors": [
+    {
+      "name": "AMP_A_Samsung_7",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "93a5875d58072db5539c04e1e943ed9d",
+      "actual_md5": "93a5875d58072db5539c04e1e943ed9d",
+      "frames": 17,
+      "native_sizes": [
+        "2560x1600"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "AMP_B_Samsung_7",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "4e051fad4145d5127e16ac2999500069",
+      "actual_md5": "4e051fad4145d5127e16ac2999500069",
+      "frames": 17,
+      "native_sizes": [
+        "2560x1600"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "AMP_D_Hisilicon_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "277006085088cf68b9cafbbba0c19443",
+      "actual_md5": "277006085088cf68b9cafbbba0c19443",
+      "frames": 100,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "AMP_E_Hisilicon_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "1a301e997917128420e3c33e6c14693a",
+      "actual_md5": "1a301e997917128420e3c33e6c14693a",
+      "frames": 100,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "AMP_F_Hisilicon_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "6be6b5fb49a9514914f4ea812f737076",
+      "actual_md5": "6be6b5fb49a9514914f4ea812f737076",
+      "frames": 100,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "AMVP_A_MTK_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "5dd1b1099391ad659225fbf94965a6c7",
+      "actual_md5": "5dd1b1099391ad659225fbf94965a6c7",
+      "frames": 30,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "AMVP_B_MTK_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "7fecb4fe8ee4d4838f4a9873b062b819",
+      "actual_md5": "7fecb4fe8ee4d4838f4a9873b062b819",
+      "frames": 41,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "AMVP_C_Samsung_7",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "75155ad034919a2846bbdcba13b5f733",
+      "actual_md5": "75155ad034919a2846bbdcba13b5f733",
+      "frames": 60,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "BUMPING_A_ericsson_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "64f213eb1cf45614f0eeb50fd1b725bf",
+      "actual_md5": "64f213eb1cf45614f0eeb50fd1b725bf",
+      "frames": 49,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "CAINIT_A_SHARP_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "550c5a918fecda6a284aa5f44c0e2f33",
+      "actual_md5": "550c5a918fecda6a284aa5f44c0e2f33",
+      "frames": 50,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "CAINIT_B_SHARP_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "0c633f8ee5a4c5779cff48ca86273685",
+      "actual_md5": "0c633f8ee5a4c5779cff48ca86273685",
+      "frames": 50,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "CAINIT_C_SHARP_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "9c6c5363724a8bad54e2869b655fbf3b",
+      "actual_md5": "9c6c5363724a8bad54e2869b655fbf3b",
+      "frames": 50,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "CAINIT_D_SHARP_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "0231e327044e45971fc30a43a1bd8275",
+      "actual_md5": "0231e327044e45971fc30a43a1bd8275",
+      "frames": 50,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "CAINIT_E_SHARP_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "55af76d5527af999d12ccc37b1f6b7ae",
+      "actual_md5": "55af76d5527af999d12ccc37b1f6b7ae",
+      "frames": 50,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "CAINIT_F_SHARP_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "88d8cd2d303b662f0a92a25256957b69",
+      "actual_md5": "88d8cd2d303b662f0a92a25256957b69",
+      "frames": 50,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "CAINIT_G_SHARP_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "a7036eac7798f6e8691f0975786d6811",
+      "actual_md5": "a7036eac7798f6e8691f0975786d6811",
+      "frames": 50,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "CAINIT_H_SHARP_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "cfdd3ce0f4cf1eafd012dcb266311d06",
+      "actual_md5": "cfdd3ce0f4cf1eafd012dcb266311d06",
+      "frames": 50,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "CIP_A_Panasonic_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "4cbf601ba98d63f642defab5eaa12c8d",
+      "actual_md5": "4cbf601ba98d63f642defab5eaa12c8d",
+      "frames": 2,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "cip_B_NEC_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "1315714c7b3f3237b469259f66d9b7aa",
+      "actual_md5": "1315714c7b3f3237b469259f66d9b7aa",
+      "frames": 5,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "CIP_C_Panasonic_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "ed985932fef2aa8a74ded970070bdab2",
+      "actual_md5": "ed985932fef2aa8a74ded970070bdab2",
+      "frames": 2,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "CONFWIN_A_Sony_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "a3ce3f936ff69ff1ec2621a622dd37ac",
+      "actual_md5": "a3ce3f936ff69ff1ec2621a622dd37ac",
+      "frames": 60,
+      "native_sizes": [
+        "412x236"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DBLK_A_MAIN10_VIXS_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "c4594956bb9e8303f1662f9eb1bcdf50",
+      "actual_md5": "c4594956bb9e8303f1662f9eb1bcdf50",
+      "frames": 8,
+      "native_sizes": [
+        "176x144"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DBLK_A_SONY_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "42486a48ea12d5ab6cd98ed2e2807cfe",
+      "actual_md5": "42486a48ea12d5ab6cd98ed2e2807cfe",
+      "frames": 30,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DBLK_B_SONY_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "cf5de25a94a33e2d4237b8d1c773db06",
+      "actual_md5": "cf5de25a94a33e2d4237b8d1c773db06",
+      "frames": 30,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DBLK_C_SONY_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "41f89edc63b1175ffc1fae909f4fed82",
+      "actual_md5": "41f89edc63b1175ffc1fae909f4fed82",
+      "frames": 30,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DBLK_D_VIXS_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "f6f3075edca573f5dfe4e352d26170f1",
+      "actual_md5": "f6f3075edca573f5dfe4e352d26170f1",
+      "frames": 8,
+      "native_sizes": [
+        "1280x720"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DBLK_E_VIXS_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "1f94d56d9e462967cad73284ed0f43f9",
+      "actual_md5": "1f94d56d9e462967cad73284ed0f43f9",
+      "frames": 8,
+      "native_sizes": [
+        "1280x720"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DBLK_F_VIXS_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "c94d0c0d80c93a2edd372a1fd12f93a1",
+      "actual_md5": "c94d0c0d80c93a2edd372a1fd12f93a1",
+      "frames": 8,
+      "native_sizes": [
+        "1280x720"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DBLK_G_VIXS_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "1f94d56d9e462967cad73284ed0f43f9",
+      "actual_md5": "1f94d56d9e462967cad73284ed0f43f9",
+      "frames": 8,
+      "native_sizes": [
+        "1280x720"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DELTAQP_A_BRCM_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "1ceef83183197fd1f21472c17b53cbff",
+      "actual_md5": "1ceef83183197fd1f21472c17b53cbff",
+      "frames": 96,
+      "native_sizes": [
+        "1920x1088"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DELTAQP_B_SONY_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "f02fa96633c63bd5e1ce0f103447d1ed",
+      "actual_md5": "f02fa96633c63bd5e1ce0f103447d1ed",
+      "frames": 30,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DELTAQP_C_SONY_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "1c2be685b1ae953787e0e93c656ee502",
+      "actual_md5": "1c2be685b1ae953787e0e93c656ee502",
+      "frames": 30,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DSLICE_A_HHI_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "c7caf3164b0a316549ac7244f66f1294",
+      "actual_md5": "c7caf3164b0a316549ac7244f66f1294",
+      "frames": 50,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DSLICE_B_HHI_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "2e072130f116a4d0f7fc69fa76cfcdfb",
+      "actual_md5": "2e072130f116a4d0f7fc69fa76cfcdfb",
+      "frames": 50,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "DSLICE_C_HHI_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "505a47c5ce4bc66ef5661aeb778b0f1f",
+      "actual_md5": "505a47c5ce4bc66ef5661aeb778b0f1f",
+      "frames": 50,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "ENTP_A_QUALCOMM_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "25f3c7facf9e7b75e81247206b4fc60d",
+      "actual_md5": "25f3c7facf9e7b75e81247206b4fc60d",
+      "frames": 24,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "ENTP_B_Qualcomm_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "6577f102b93577eb899e0bff1a20a401",
+      "actual_md5": "6577f102b93577eb899e0bff1a20a401",
+      "frames": 24,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "ENTP_C_Qualcomm_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "0b607e6e7946e6e8d0f92a1a294d135d",
+      "actual_md5": "0b607e6e7946e6e8d0f92a1a294d135d",
+      "frames": 24,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "EXT_A_ericsson_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "5797b3114fe12daf1ce522ed70ce4078",
+      "actual_md5": "5797b3114fe12daf1ce522ed70ce4078",
+      "frames": 3,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "FILLER_A_Sony_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "f92a928770a41b63e7cfc89ea198790f",
+      "actual_md5": "f92a928770a41b63e7cfc89ea198790f",
+      "frames": 60,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "HRD_A_Fujitsu_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "f6d04dba2ef09bcadbea7b8ab5c8c917",
+      "actual_md5": "f6d04dba2ef09bcadbea7b8ab5c8c917",
+      "frames": 96,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "INITQP_A_Sony_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "2716af552e71ef61221b86130ad3d444",
+      "actual_md5": "2716af552e71ef61221b86130ad3d444",
+      "frames": 60,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "INITQP_B_Main10_Sony_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "f63c71e5f6b9c6ddf2b080524f9f14b1",
+      "actual_md5": "f63c71e5f6b9c6ddf2b080524f9f14b1",
+      "frames": 90,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "ipcm_A_NEC_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "8049988c383486e076ea2494edda3831",
+      "actual_md5": "8049988c383486e076ea2494edda3831",
+      "frames": 1,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "ipcm_B_NEC_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "23a3b7024fd9bc64b946b9961ab0f51e",
+      "actual_md5": "23a3b7024fd9bc64b946b9961ab0f51e",
+      "frames": 1,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "ipcm_C_NEC_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "c3e74c399b73a5ab2dbd20523f583464",
+      "actual_md5": "c3e74c399b73a5ab2dbd20523f583464",
+      "frames": 1,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "ipcm_D_NEC_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "aa64a16240064bc2a90fadf979a62a7b",
+      "actual_md5": "aa64a16240064bc2a90fadf979a62a7b",
+      "frames": 1,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "ipcm_E_NEC_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "e1cd7a16d3f6a342855044ccba3e41f5",
+      "actual_md5": "e1cd7a16d3f6a342855044ccba3e41f5",
+      "frames": 1,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "IPRED_A_docomo_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "0e4e9bd00b74e30e400de46ee7ad8023",
+      "actual_md5": "0e4e9bd00b74e30e400de46ee7ad8023",
+      "frames": 20,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "IPRED_B_Nokia_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "ec3bcad4f9174404e52d132206b6617b",
+      "actual_md5": "ec3bcad4f9174404e52d132206b6617b",
+      "frames": 1,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "IPRED_C_Mitsubishi_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "6043c04fecc60ee88f4247aaca96441f",
+      "actual_md5": "6043c04fecc60ee88f4247aaca96441f",
+      "frames": 4,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "LS_A_Orange_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "e14f82958f87a87be73a6f51e76ffdab",
+      "actual_md5": "e14f82958f87a87be73a6f51e76ffdab",
+      "frames": 9,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "LS_B_Orange_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "05ac9b36977c98001cc6c5a45e363662",
+      "actual_md5": "05ac9b36977c98001cc6c5a45e363662",
+      "frames": 25,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "LTRPSPS_A_Qualcomm_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "e925d467c20180090c09c02d02c3aa25",
+      "actual_md5": "e925d467c20180090c09c02d02c3aa25",
+      "frames": 500,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MAXBINS_A_TI_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "1386fb149ddc11bd5a1d9111879acfa4",
+      "actual_md5": "1386fb149ddc11bd5a1d9111879acfa4",
+      "frames": 2,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MAXBINS_B_TI_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "21d6910760ea4963eab28b26709471fe",
+      "actual_md5": "21d6910760ea4963eab28b26709471fe",
+      "frames": 3,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MAXBINS_C_TI_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "7a7e51fdd40c57d70af418f5082416fa",
+      "actual_md5": "7a7e51fdd40c57d70af418f5082416fa",
+      "frames": 3,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MERGE_A_TI_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "3a15886a0158ef1aaf557869b2e9c522",
+      "actual_md5": "3a15886a0158ef1aaf557869b2e9c522",
+      "frames": 8,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MERGE_B_TI_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "83b4dc9f229a8fba3777d9f4f87ce144",
+      "actual_md5": "83b4dc9f229a8fba3777d9f4f87ce144",
+      "frames": 8,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MERGE_C_TI_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "216f0cc869e3989c8fb2cf261243160b",
+      "actual_md5": "216f0cc869e3989c8fb2cf261243160b",
+      "frames": 8,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MERGE_D_TI_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "104cccf2b8441862624777955d6ecdc4",
+      "actual_md5": "104cccf2b8441862624777955d6ecdc4",
+      "frames": 8,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MERGE_E_TI_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "6e74dbd450123246c22bf01b389bbe11",
+      "actual_md5": "6e74dbd450123246c22bf01b389bbe11",
+      "frames": 8,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MERGE_F_MTK_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "a8f0982f026dfda1c02b4d4d3eb88132",
+      "actual_md5": "a8f0982f026dfda1c02b4d4d3eb88132",
+      "frames": 41,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MERGE_G_HHI_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "c82f4c88d9b2c73fabbeac8944da35a1",
+      "actual_md5": "c82f4c88d9b2c73fabbeac8944da35a1",
+      "frames": 2,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MVCLIP_A_qualcomm_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "78b398c201089b6b17bcbda2bbccf3ae",
+      "actual_md5": "78b398c201089b6b17bcbda2bbccf3ae",
+      "frames": 5,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MVDL1ZERO_A_docomo_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "593d1936f6fc2e1775ea2a691a601c34",
+      "actual_md5": "593d1936f6fc2e1775ea2a691a601c34",
+      "frames": 500,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "MVEDGE_A_qualcomm_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "101c5bfe16ff1739909161794af29a2d",
+      "actual_md5": "101c5bfe16ff1739909161794af29a2d",
+      "frames": 17,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "NoOutPrior_A_Qualcomm_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "1c5f20a08ab8dfa0f44d9a0ca23d174d",
+      "actual_md5": "1c5f20a08ab8dfa0f44d9a0ca23d174d",
+      "frames": 40,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "NoOutPrior_B_Qualcomm_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "048bca0ec216a3f88cf9fbb4bb5a61ac",
+      "actual_md5": "048bca0ec216a3f88cf9fbb4bb5a61ac",
+      "frames": 47,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "NUT_A_ericsson_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "9dbe33badd0cc6dfcd1b53e546968fbd",
+      "actual_md5": "9dbe33badd0cc6dfcd1b53e546968fbd",
+      "frames": 34,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "OPFLAG_A_Qualcomm_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "35eeeca175938ee262f72b7485146f94",
+      "actual_md5": "35eeeca175938ee262f72b7485146f94",
+      "frames": 500,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "OPFLAG_B_Qualcomm_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "516811eeff3ae5ee056dda290dcf2735",
+      "actual_md5": "516811eeff3ae5ee056dda290dcf2735",
+      "frames": 98,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "OPFLAG_C_Qualcomm_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "a82c4f6ee843150067bba60b9342fc50",
+      "actual_md5": "a82c4f6ee843150067bba60b9342fc50",
+      "frames": 96,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "PICSIZE_A_Bossen_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "910ff0e6b3739af0b4aba4f6aa6704f8",
+      "actual_md5": "910ff0e6b3739af0b4aba4f6aa6704f8",
+      "frames": 10,
+      "native_sizes": [
+        "1056x8440"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "PICSIZE_B_Bossen_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "e5c4c20a8871aa446a344efb1755bcf9",
+      "actual_md5": "e5c4c20a8871aa446a344efb1755bcf9",
+      "frames": 10,
+      "native_sizes": [
+        "8440x1056"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "PICSIZE_C_Bossen_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "674f9f11eb956257d86782949ec00399",
+      "actual_md5": "674f9f11eb956257d86782949ec00399",
+      "frames": 10,
+      "native_sizes": [
+        "528x4216"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "PICSIZE_D_Bossen_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "5b76e0591618f5affe8b15b03d9c0bef",
+      "actual_md5": "5b76e0591618f5affe8b15b03d9c0bef",
+      "frames": 10,
+      "native_sizes": [
+        "4216x528"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "PMERGE_A_TI_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "6e74dbd450123246c22bf01b389bbe11",
+      "actual_md5": "6e74dbd450123246c22bf01b389bbe11",
+      "frames": 8,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "PMERGE_B_TI_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "7d0e57ebdbbc6633c972083a17d97550",
+      "actual_md5": "7d0e57ebdbbc6633c972083a17d97550",
+      "frames": 8,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "PMERGE_C_TI_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "7e23d874b198ec7a9f6086a20de0db76",
+      "actual_md5": "7e23d874b198ec7a9f6086a20de0db76",
+      "frames": 8,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "PMERGE_D_TI_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "9771b8c8a71e41547f14032e07be7d61",
+      "actual_md5": "9771b8c8a71e41547f14032e07be7d61",
+      "frames": 8,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "PMERGE_E_TI_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "26aed56afdb6cb7011fd5c3303379a9d",
+      "actual_md5": "26aed56afdb6cb7011fd5c3303379a9d",
+      "frames": 8,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "POC_A_Bossen_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "faf33bec64d3e58c426ed2772903a0bf",
+      "actual_md5": "faf33bec64d3e58c426ed2772903a0bf",
+      "frames": 5,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "PPS_A_qualcomm_7",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "bccf29fab6744215fe007ea3a5d6da42",
+      "actual_md5": "bccf29fab6744215fe007ea3a5d6da42",
+      "frames": 81,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "PS_B_VIDYO_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "eb85521ee103333eac61a8253637eac4",
+      "actual_md5": "eb85521ee103333eac61a8253637eac4",
+      "frames": 25,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RAP_A_docomo_6",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "8a536a80ed42b37b1ac5810bc046f82a",
+      "actual_md5": "8a536a80ed42b37b1ac5810bc046f82a",
+      "frames": 86,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RAP_B_Bossen_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "f38befcc280f2fd0d23f48f807f843c2",
+      "actual_md5": "f38befcc280f2fd0d23f48f807f843c2",
+      "frames": 80,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RPLM_A_qualcomm_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "011794872709c341880ee42ade036ed3",
+      "actual_md5": "011794872709c341880ee42ade036ed3",
+      "frames": 300,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RPLM_B_qualcomm_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "653ac7c46fa7b9d7d966e3db317eb938",
+      "actual_md5": "653ac7c46fa7b9d7d966e3db317eb938",
+      "frames": 300,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RPS_A_docomo_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "7f4ad6c6b3de54558b0db59629b87db9",
+      "actual_md5": "7f4ad6c6b3de54558b0db59629b87db9",
+      "frames": 44,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RPS_B_qualcomm_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "6d1ed392b067050ebd3a24a37281da03",
+      "actual_md5": "6d1ed392b067050ebd3a24a37281da03",
+      "frames": 300,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RPS_C_ericsson_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "0306b9e3ec365115ccb7060c0a437b32",
+      "actual_md5": "0306b9e3ec365115ccb7060c0a437b32",
+      "frames": 40,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RPS_D_ericsson_6",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "d0fcd71e6266b1ae1f66b9cb1802ea03",
+      "actual_md5": "d0fcd71e6266b1ae1f66b9cb1802ea03",
+      "frames": 68,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RPS_E_qualcomm_5",
+      "success": false,
+      "category": "checksum_mismatch",
+      "expected_md5": "c30d38bbd7ea483dc7ffe81325118e16",
+      "actual_md5": "b09ac8e0bd31a96d8354505d7c2ebdd5",
+      "frames": 300,
+      "native_sizes": [
+        "416x240"
+      ],
+      "first_differing_frame": {
+        "vector": "RPS_E_qualcomm_5",
+        "reason": "stream_md5",
+        "expected_md5": "c30d38bbd7ea483dc7ffe81325118e16",
+        "candidate_md5": "b09ac8e0bd31a96d8354505d7c2ebdd5",
+        "index": 0,
+        "candidate": {
+          "index": 0,
+          "width": 416,
+          "height": 240,
+          "md5": "50cc4e6dd7d70f7908b9c3da2500320d",
+          "format": "yuv420p"
+        }
+      },
+      "returncode": 0
+    },
+    {
+      "name": "RPS_F_docomo_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "fd6e6d973d39622d197dbdf4543643f2",
+      "actual_md5": "fd6e6d973d39622d197dbdf4543643f2",
+      "frames": 50,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RQT_A_HHI_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "aa7f6ef07bf76ebddd52f7e528cd6ab8",
+      "actual_md5": "aa7f6ef07bf76ebddd52f7e528cd6ab8",
+      "frames": 2,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RQT_B_HHI_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "a63f4f4e966e77a5eb4e65dcdcc488a4",
+      "actual_md5": "a63f4f4e966e77a5eb4e65dcdcc488a4",
+      "frames": 2,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RQT_C_HHI_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "c82f4c88d9b2c73fabbeac8944da35a1",
+      "actual_md5": "c82f4c88d9b2c73fabbeac8944da35a1",
+      "frames": 2,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RQT_D_HHI_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "33b58b954fa82753526fda9e9e6bc8cb",
+      "actual_md5": "33b58b954fa82753526fda9e9e6bc8cb",
+      "frames": 2,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RQT_E_HHI_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "65f22431d0eb149e04c327f881ce6581",
+      "actual_md5": "65f22431d0eb149e04c327f881ce6581",
+      "frames": 2,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RQT_F_HHI_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "56ba354d919d06a33b44862dd18e9437",
+      "actual_md5": "56ba354d919d06a33b44862dd18e9437",
+      "frames": 2,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "RQT_G_HHI_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "2fb67256014a6840b69ca6dad2426304",
+      "actual_md5": "2fb67256014a6840b69ca6dad2426304",
+      "frames": 2,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SAO_A_MediaTek_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "272e694a2262a2b34f6248f787a4431d",
+      "actual_md5": "272e694a2262a2b34f6248f787a4431d",
+      "frames": 60,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SAO_B_MediaTek_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "90cc57237e3ce47eb3b4c901e200112d",
+      "actual_md5": "90cc57237e3ce47eb3b4c901e200112d",
+      "frames": 60,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SAO_C_Samsung_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "962290491f2f1a1e70ab7aa63d2264bc",
+      "actual_md5": "962290491f2f1a1e70ab7aa63d2264bc",
+      "frames": 5,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SAO_D_Samsung_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "6db9575a7737816b1d7a3a3bf3ba126c",
+      "actual_md5": "6db9575a7737816b1d7a3a3bf3ba126c",
+      "frames": 5,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SAO_E_Canon_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "0b04a1378274a6ffbb8f6121e027290c",
+      "actual_md5": "0b04a1378274a6ffbb8f6121e027290c",
+      "frames": 16,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SAO_F_Canon_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "5c295ecba132d1e68a12dd8209e86a02",
+      "actual_md5": "5c295ecba132d1e68a12dd8209e86a02",
+      "frames": 16,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SAO_G_Canon_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "1f743a3e28617b8bae3e348096edcf76",
+      "actual_md5": "1f743a3e28617b8bae3e348096edcf76",
+      "frames": 16,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SAO_H_Parabola_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "7e23c16898b14831b25d7857b69a9a9a",
+      "actual_md5": "7e23c16898b14831b25d7857b69a9a9a",
+      "frames": 4,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SAODBLK_A_MainConcept_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "b9c98937bcb6be445348fdc89c208f1e",
+      "actual_md5": "b9c98937bcb6be445348fdc89c208f1e",
+      "frames": 500,
+      "native_sizes": [
+        "1016x760"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SAODBLK_B_MainConcept_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "031043495e9b9f4ce120afa316aa5705",
+      "actual_md5": "031043495e9b9f4ce120afa316aa5705",
+      "frames": 500,
+      "native_sizes": [
+        "1016x760"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SDH_A_Orange_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "0a1a6a76a86dbdc7ca479e4235f5b822",
+      "actual_md5": "0a1a6a76a86dbdc7ca479e4235f5b822",
+      "frames": 2,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SLICES_A_Rovi_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "c2d63a4d145a5713afecd822032ec271",
+      "actual_md5": "c2d63a4d145a5713afecd822032ec271",
+      "frames": 9,
+      "native_sizes": [
+        "640x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SLIST_A_Sony_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "b00bc5362e6fad1a0e704aad8e69b863",
+      "actual_md5": "b00bc5362e6fad1a0e704aad8e69b863",
+      "frames": 65,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SLIST_B_Sony_9",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "312b4ebb3e885587d5e12b78aa95977a",
+      "actual_md5": "312b4ebb3e885587d5e12b78aa95977a",
+      "frames": 65,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SLIST_C_Sony_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "61024c25cbd60e9bf86dbe3bc5b9b48b",
+      "actual_md5": "61024c25cbd60e9bf86dbe3bc5b9b48b",
+      "frames": 65,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SLIST_D_Sony_9",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "8d38ce43b17627ff1f86e526bfb7ffc4",
+      "actual_md5": "8d38ce43b17627ff1f86e526bfb7ffc4",
+      "frames": 65,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "SLPPLP_A_VIDYO_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "99e13916ede2bc9b77718787579104a9",
+      "actual_md5": "99e13916ede2bc9b77718787579104a9",
+      "frames": 33,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "STRUCT_A_Samsung_7",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "02f02cc9a67222004ae18ee6bebd475a",
+      "actual_md5": "02f02cc9a67222004ae18ee6bebd475a",
+      "frames": 60,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "STRUCT_B_Samsung_7",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "1f472e014aff120681e8482c8a04ef93",
+      "actual_md5": "1f472e014aff120681e8482c8a04ef93",
+      "frames": 60,
+      "native_sizes": [
+        "832x480"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "TILES_A_Cisco_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "946f0771fa87d49f684f96871c9c3c88",
+      "actual_md5": "946f0771fa87d49f684f96871c9c3c88",
+      "frames": 100,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "TILES_B_Cisco_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "3382291f2b19ee2d760647d4cc756e95",
+      "actual_md5": "3382291f2b19ee2d760647d4cc756e95",
+      "frames": 100,
+      "native_sizes": [
+        "1920x1080"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "TMVP_A_MS_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "168f8096e56b8a8c1aa03fa5fffdfd23",
+      "actual_md5": "168f8096e56b8a8c1aa03fa5fffdfd23",
+      "frames": 17,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "TSCL_A_VIDYO_5",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "27cbe23eabe1b174d745c286cc2ed8ff",
+      "actual_md5": "27cbe23eabe1b174d745c286cc2ed8ff",
+      "frames": 73,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "TSCL_B_VIDYO_4",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "95e7910b85c08a01e2e9ce72c92d7d62",
+      "actual_md5": "95e7910b85c08a01e2e9ce72c92d7d62",
+      "frames": 73,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "TSKIP_A_MS_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "4280cb848219176f4fcad51f3290210d",
+      "actual_md5": "4280cb848219176f4fcad51f3290210d",
+      "frames": 17,
+      "native_sizes": [
+        "1280x720"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "TSUNEQBD_A_MAIN10_Technicolor_2",
+      "success": false,
+      "category": "decode_error",
+      "expected_md5": "1bed23df7253170eeb8efc3fd1b740a3",
+      "actual_md5": null,
+      "frames": 0,
+      "native_sizes": [],
+      "returncode": 1
+    },
+    {
+      "name": "TUSIZE_A_Samsung_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "5e6c198c852e92cdcca0e137fc2610c4",
+      "actual_md5": "5e6c198c852e92cdcca0e137fc2610c4",
+      "frames": 5,
+      "native_sizes": [
+        "2560x1600"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "VPSID_A_VIDYO_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "99e13916ede2bc9b77718787579104a9",
+      "actual_md5": "99e13916ede2bc9b77718787579104a9",
+      "frames": 33,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "VPSSPSPPS_A_MainConcept_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "1ddf74263cb4953cfdfcf99c563d88ea",
+      "actual_md5": "1ddf74263cb4953cfdfcf99c563d88ea",
+      "frames": 6,
+      "native_sizes": [
+        "176x144",
+        "320x240",
+        "352x288",
+        "640x480",
+        "704x576",
+        "1280x720"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WP_A_MAIN10_Toshiba_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "c48e853010a234786dc87790d053b03a",
+      "actual_md5": "c48e853010a234786dc87790d053b03a",
+      "frames": 256,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WP_A_Toshiba_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "127b99d0c11c930b6f248750b5848a0b",
+      "actual_md5": "127b99d0c11c930b6f248750b5848a0b",
+      "frames": 256,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WP_B_Toshiba_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "82d39f8cd09e532b8fa9d35894c96258",
+      "actual_md5": "82d39f8cd09e532b8fa9d35894c96258",
+      "frames": 256,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WP_MAIN10_B_Toshiba_3",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "ed891c60a17f5cbc64e1848f0ea9cf45",
+      "actual_md5": "ed891c60a17f5cbc64e1848f0ea9cf45",
+      "frames": 256,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WPP_A_ericsson_MAIN10_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "e68b9d75ff9cf1d9486e964051351f69",
+      "actual_md5": "e68b9d75ff9cf1d9486e964051351f69",
+      "frames": 48,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WPP_A_ericsson_MAIN_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "cd7e815eb47e8138fec2185d4de84304",
+      "actual_md5": "cd7e815eb47e8138fec2185d4de84304",
+      "frames": 48,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WPP_B_ericsson_MAIN10_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "d8290fc1eec3a196aa796c92e71a779b",
+      "actual_md5": "d8290fc1eec3a196aa796c92e71a779b",
+      "frames": 48,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WPP_B_ericsson_MAIN_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "e37c7e561a1226640a7bf98e81df78b1",
+      "actual_md5": "e37c7e561a1226640a7bf98e81df78b1",
+      "frames": 48,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WPP_C_ericsson_MAIN10_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "aadac4d468d5950551d606c1016abc9c",
+      "actual_md5": "aadac4d468d5950551d606c1016abc9c",
+      "frames": 48,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WPP_C_ericsson_MAIN_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "e067aa3a6a12cd5743849ded793c8d3f",
+      "actual_md5": "e067aa3a6a12cd5743849ded793c8d3f",
+      "frames": 48,
+      "native_sizes": [
+        "416x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WPP_D_ericsson_MAIN10_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "dde9aa65b78a8ca5602d834f234655d4",
+      "actual_md5": "dde9aa65b78a8ca5602d834f234655d4",
+      "frames": 48,
+      "native_sizes": [
+        "64x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WPP_D_ericsson_MAIN_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "f710612103f386c415be3e6300693451",
+      "actual_md5": "f710612103f386c415be3e6300693451",
+      "frames": 48,
+      "native_sizes": [
+        "64x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WPP_E_ericsson_MAIN10_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "f12e746306c59544d6162de0b62c4649",
+      "actual_md5": "f12e746306c59544d6162de0b62c4649",
+      "frames": 48,
+      "native_sizes": [
+        "128x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WPP_E_ericsson_MAIN_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "485798dbf95ad61232075df2f294aa3f",
+      "actual_md5": "485798dbf95ad61232075df2f294aa3f",
+      "frames": 48,
+      "native_sizes": [
+        "128x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WPP_F_ericsson_MAIN10_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "210055a33d7d912fda6a3c40764b0482",
+      "actual_md5": "210055a33d7d912fda6a3c40764b0482",
+      "frames": 48,
+      "native_sizes": [
+        "192x240"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "WPP_F_ericsson_MAIN_2",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "2aaf16274fe8e799d72fa08a4963850d",
+      "actual_md5": "2aaf16274fe8e799d72fa08a4963850d",
+      "frames": 48,
+      "native_sizes": [
+        "192x240"
+      ],
+      "returncode": 0
+    }
+  ]
+}

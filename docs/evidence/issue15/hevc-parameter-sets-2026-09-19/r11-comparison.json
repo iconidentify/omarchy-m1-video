@@ -1,0 +1,43 @@
+{
+  "ok": true,
+  "baseline_suite": "JCT-VC-HEVC_V1",
+  "candidate_suite": "JCT-VC-HEVC_V1",
+  "baseline_total": "144/147",
+  "candidate_total": "145/147",
+  "lost_passes": [],
+  "new_passes": [
+    "VPSSPSPPS_A_MainConcept_1"
+  ],
+  "missing_vectors": [],
+  "extra_vectors": [],
+  "category_changes": [
+    {
+      "vector": "RPS_E_qualcomm_5",
+      "baseline": "decode_error",
+      "candidate": "checksum_mismatch"
+    },
+    {
+      "vector": "VPSSPSPPS_A_MainConcept_1",
+      "baseline": "decode_error",
+      "candidate": "hardware_pass"
+    }
+  ],
+  "first_differing_frames": [
+    {
+      "vector": "RPS_E_qualcomm_5",
+      "reason": "stream_md5",
+      "expected_md5": "c30d38bbd7ea483dc7ffe81325118e16",
+      "baseline_md5": null,
+      "candidate_md5": "b09ac8e0bd31a96d8354505d7c2ebdd5",
+      "index": 0,
+      "candidate": {
+        "index": 0,
+        "width": 416,
+        "height": 240,
+        "md5": "50cc4e6dd7d70f7908b9c3da2500320d",
+        "format": "yuv420p"
+      }
+    }
+  ],
+  "errors": []
+}

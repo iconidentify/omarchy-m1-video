@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0.0",
+  "kind": "conformance-suite-result",
+  "suite": "JCT-VC-HEVC_V1",
+  "suite_key": "hevc",
+  "mode": "hardware",
+  "complete": true,
+  "abort": null,
+  "passed": 1,
+  "total": 1,
+  "passing_frames": 6,
+  "high10": "off",
+  "profile_mismatch": false,
+  "subset": {
+    "rationale": "explicit --vectors selection; not a full-suite total",
+    "selected": [
+      "VPSSPSPPS_A_MainConcept_1"
+    ]
+  },
+  "provenance": {
+    "source_commit": "7109f7eeeba7e16c1bc5d1d5dcd96eb214d6482f",
+    "driver": "<redacted>"
+  },
+  "command": {
+    "redacted": true,
+    "argv": [
+      "conformance.py",
+      "JCT-VC-HEVC_V1",
+      "<resources>",
+      "vaapi"
+    ]
+  },
+  "vectors": [
+    {
+      "name": "VPSSPSPPS_A_MainConcept_1",
+      "success": true,
+      "category": "hardware_pass",
+      "expected_md5": "1ddf74263cb4953cfdfcf99c563d88ea",
+      "actual_md5": "1ddf74263cb4953cfdfcf99c563d88ea",
+      "frames": 6,
+      "native_sizes": [
+        "176x144",
+        "320x240",
+        "352x288",
+        "640x480",
+        "704x576",
+        "1280x720"
+      ],
+      "returncode": 0
+    }
+  ]
+}
