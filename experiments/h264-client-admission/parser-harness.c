@@ -65,12 +65,44 @@ static const FFHWAccel va = {
     .start_frame = start_frame,
     .decode_slice = decode_slice,
 };
+static int other_starts, other_slices;
+static int other_start_frame(AVCodecContext *avctx, const AVBufferRef *ref,
+                             const uint8_t *buf, uint32_t size)
+{
+    (void)avctx; (void)ref; (void)buf; (void)size;
+    ++other_starts;
+    return 0;
+}
+static int other_decode_slice(AVCodecContext *avctx, const uint8_t *buf, uint32_t size)
+{
+    (void)avctx; (void)buf; (void)size;
+    ++other_slices;
+    return 0;
+}
+static const FFHWAccel other = {
+    .p = { .pix_fmt = AV_PIX_FMT_CUDA },
+    .start_frame = other_start_frame,
+    .decode_slice = other_decode_slice,
+};
 static AVCodecContext avctx;
 static AVCodecInternal internal;
 static VAAPIDecodeContext ctx;
 static H264Context h;
 static H264SliceContext sl;
 static H264Picture picture;
+static unsigned char canary[sizeof(VAAPIDecodeContext)];
+static unsigned char canary_before[sizeof(canary)];
+static void arm_other(void)
+{
+    memset(canary, 0xa5, sizeof(canary));
+    memcpy(canary_before, canary, sizeof(canary));
+    internal.hwaccel_priv_data = canary;
+    avctx.hwaccel = &other.p;
+}
+static int canary_intact(void)
+{
+    return memcmp(canary, canary_before, sizeof(canary)) == 0;
+}
 
 static void cleanup(void)
 {
@@ -91,7 +123,7 @@ static void reset(int avcc, int explode)
     h.picture_structure=PICT_FRAME;
     h.is_avc=avcc; h.nal_length_size=avcc ? 4 : 0;
     owned_pic=&picture;
-    starts=slices=executes=0;
+    starts=slices=executes=other_starts=other_slices=0;
 }
 static int nal(uint8_t *dst, int avcc, const uint8_t *data, int size)
 {
@@ -111,6 +143,7 @@ static int cases(int avcc,int explode)
     const uint8_t idr[]={0x65,0x80,0x11,0x22};
     const uint8_t dpa[]={0x62,0x80,0x11,0x22};
     const uint8_t aux[]={0x73,0x80,0x11,0x22};
+    const uint8_t ext[]={0x74,0x80,0x11,0x22};
     const uint8_t bad_sps[]={0x67,0x80};
     const uint8_t bad_pps[]={0x68,0x00};
     int failed=0,n,ret;
@@ -157,6 +190,37 @@ static int cases(int avcc,int explode)
     n=nal(buf,avcc,dpa,sizeof(dpa));
     ret=decode_nal_units(&h,NULL,buf,n);
     CHECK(ret==n && starts==0 && slices==0 && ctx.h264_admit_sticky==0);
+
+    /* Actual dispatch, not helper-only: a fake non-VA hwaccel keeps its
+     * private bytes and original skip semantics. VA sticky/reject must not
+     * fire. Mutating is_active to any-hwaccel fails canary_intact(). */
+    reset(avcc,explode); memset(buf,0,sizeof(buf)); arm_other();
+    n=nal(buf,avcc,dpa,sizeof(dpa));
+    ret=decode_nal_units(&h,NULL,buf,n);
+    CHECK(canary_intact());
+    CHECK(ret==n && starts==0 && slices==0 && other_starts==0);
+
+    reset(avcc,explode); memset(buf,0,sizeof(buf)); arm_other();
+    n=nal(buf,avcc,aux,sizeof(aux));
+    ret=decode_nal_units(&h,NULL,buf,n);
+    CHECK(canary_intact());
+    CHECK(ret==n && starts==0 && slices==0 && other_starts==0);
+
+    reset(avcc,explode); memset(buf,0,sizeof(buf)); arm_other();
+    n=nal(buf,avcc,ext,sizeof(ext));
+    ret=decode_nal_units(&h,NULL,buf,n);
+    CHECK(canary_intact());
+    CHECK(ret==n && starts==0 && slices==0 && other_starts==0);
+
+    reset(avcc,explode); memset(buf,0,sizeof(buf)); arm_other(); n=0;
+    n+=nal(buf+n,avcc,sps_nal,sizeof(sps_nal));
+    n+=nal(buf+n,avcc,pps_nal,sizeof(pps_nal));
+    n+=nal(buf+n,avcc,idr,sizeof(idr));
+    n+=nal(buf+n,avcc,dpa,sizeof(dpa));
+    ret=decode_nal_units(&h,NULL,buf,n);
+    CHECK(canary_intact());
+    CHECK(ret==n && starts==0 && slices==0);
+    CHECK(other_starts==1 && other_slices==1);
 done:
     cleanup();
     return failed;
@@ -166,6 +230,6 @@ int main(void)
     for(int avcc=0;avcc<2;avcc++)
         for(int explode=0;explode<2;explode++)
             if(cases(avcc,explode)) return 1;
-    puts("PASS actual NAL dispatch/splitter/SPS/PPS: Annex-B/AVCC, both error modes; slice queue and hardware callbacks mocked; no issue-timing proof");
+    puts("PASS actual NAL dispatch/splitter/SPS/PPS: Annex-B/AVCC, both error modes; non-VA canary intact through actual dispatch; slice queue and hardware callbacks mocked; no issue-timing proof");
     return 0;
 }
