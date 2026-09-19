@@ -53,15 +53,18 @@ observations spend no copied-byte budget.
 | One VA owner for send/receive/flush/result/finish/close | FFmpeg/VA call site |
 | VA finish before free/close; persistent end failure is fatal quarantine | FFmpeg/VA call site |
 | Any sticky VA output failure invalidates result and repeated finish | PR #115 final-head fix |
+| VA worker publishes one bounded normalized record to an exclusive path before free; collector also requires process exit zero | #118 FFmpeg result path |
 | Parameter-set changes stay outside the explicit input window | Both client call sites |
 | Healthy idle, no foreign client, journal boundary, module loaded, refcount 0 | CAMPAIGN.md |
 
 `Plan.to_json()` includes a deterministic `client_contract` for every workload.
 For VA it emits the private `threads`, `va_observer_outputs` and
-`va_observer_copy` option values, required owner operations and fatal-quarantine
-policy. For Gst it emits the internal arm API, selector values, copy mode and
-publication bound. These are inputs for a later runner, not evidence that one
-ran. The top level always includes `valid`, every rejection reason and
+`va_observer_copy` option values, the required runner-supplied
+`va_observer_report` destination contract, required owner operations and
+fatal-quarantine policy. For Gst it emits the internal arm API, selector values,
+copy mode and publication bound. These are inputs for a later runner, not
+evidence that one ran. The top level always includes `valid`, every rejection
+reason and
 `execution_authorized: false`; an invalid document cannot look like an authorized
 runner input merely because a consumer ignored the CLI exit status.
 

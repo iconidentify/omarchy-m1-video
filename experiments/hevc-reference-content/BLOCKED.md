@@ -10,9 +10,11 @@ provenance. Additive Gst and FFmpeg/VA output call sites now exist, but no appro
 live manifest or enabled/shipped activation ships.
 
 Remaining gates: full client/dependency/corpus identities, actual same-run kernel
-command/reference association, a client runner consuming the controller's
-distinct Gst/VA contracts, approved loaded builds and the separately guarded
-[campaign](CAMPAIGN.md). #82 and driver #42 stay
+command/reference association, the Gst client runner and a guarded supervisor
+consuming both distinct contracts, approved loaded builds and the separately
+guarded [campaign](CAMPAIGN.md). The VA call site now has an offline-tested real
+FFmpeg decoder-worker result path and strict normalized collector; that is not a
+hardware run. #82 and driver #42 stay
 open. Existing synthetic, source-audit and helper evidence is preserved below as
 historical partial work; its statements about missing APIs describe that earlier
 stage and the unchanged Python `real_client_adapter`, not the newer C patches.

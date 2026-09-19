@@ -95,5 +95,5 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential pkg-config libva-dev libdrm-dev
-      - name: Pinned FFmpeg HEVC output hook, binding and cleanup (no device)
+      - name: Pinned FFmpeg HEVC output, result publication and cleanup (no device)
         run: python3 experiments/hevc-reference-content/va-callsite/tests.py --keep "$RUNNER_TEMP/va-callsite"

@@ -5,15 +5,20 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
 from pathlib import Path
 import re
 import shlex
 import signal
 import subprocess
+import sys
 import tarfile
 import tempfile
 import urllib.request
+
+from collector import (OUTPUT_KEYS, ReportError, collect_report, load_report,
+                       parse_report)
 
 HERE = Path(__file__).resolve().parent
 PIN = "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa"
@@ -24,6 +29,11 @@ CASES = (
     "foreign-owner", "wrong-surface", "receipt-mismatch", "end-retry",
     "snapshot-failure", "flush-retry", "uninit-retry", "incomplete",
     "post-finish-output", "close-retry",
+)
+REPORT_FAILURE_CASES = (
+    "report-default-off", "report-incomplete", "report-sticky",
+    "report-end-persistent", "report-close-failure", "report-write-failure",
+    "foreign-report",
 )
 ENV = os.environ | {
     "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
@@ -76,18 +86,23 @@ def configure_and_build(tree: Path, root: Path, sanitizer: str) -> Path:
     build.mkdir()
     flags = sanitizer_flags(sanitizer)
     run([
-        tree / "configure", "--disable-programs", "--disable-doc",
+        tree / "configure", "--disable-doc",
         "--disable-network", "--disable-autodetect", "--disable-everything",
         "--disable-x86asm",
-        "--enable-avcodec", "--enable-avutil", "--enable-decoder=hevc",
+        "--enable-ffmpeg", "--enable-avcodec", "--enable-avformat",
+        "--enable-avfilter", "--enable-avutil", "--enable-swscale",
+        "--enable-swresample", "--enable-decoder=hevc",
         "--enable-parser=hevc", "--enable-vaapi",
         "--enable-hwaccel=hevc_vaapi", "--enable-libdrm",
         "--enable-pthreads", "--enable-pic", "--disable-stripping",
         "--disable-optimizations", "--enable-debug=3",
         "--extra-cflags=" + flags, "--extra-ldflags=" + flags,
     ], cwd=build)
-    run(["make", "-j", "2", "libavcodec/libavcodec.a",
+    run(["make", "-j", "2", "ffmpeg", "libavcodec/libavcodec.a",
          "libavutil/libavutil.a"], cwd=build)
+    version = run([build / "ffmpeg", "-hide_banner", "-version"], cwd=build)
+    if "ffmpeg version 9.0.1" not in version:
+        raise RuntimeError("built ffmpeg does not report the pinned release identity")
     return build
 
 
@@ -117,8 +132,11 @@ def build_fixture(tree: Path, build: Path, sanitizer: str,
     return fake, binary
 
 
-def execute(binary: Path, fake: Path, case: str):
-    return subprocess.run([str(binary), str(fake), case], env=ENV,
+def execute(binary: Path, fake: Path, case: str, report: Path | None = None):
+    command = [str(binary), str(fake), case]
+    if report is not None:
+        command.append(str(report))
+    return subprocess.run(command, env=ENV,
                           text=True, capture_output=True, timeout=30)
 
 
@@ -131,6 +149,117 @@ def positive(fake: Path, binary: Path, sanitizer: str) -> None:
                 f"PASS FFmpeg VA callsite {case}" not in result.stdout):
             raise RuntimeError(f"{sanitizer} {case}\n{diagnostic}")
         print(sanitizer, result.stdout.strip(), flush=True)
+
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        records: dict[str, bytes] = {}
+        for case, copied in (("report-off", False), ("report-on", True)):
+            report = root / (case + ".json")
+            result = execute(binary, fake, case, report)
+            diagnostic = result.stdout + result.stderr
+            if (result.returncode or "Sanitizer" in diagnostic or
+                    "runtime error:" in diagnostic or
+                    f"PASS FFmpeg VA callsite {case}" not in result.stdout):
+                raise RuntimeError(f"{sanitizer} {case}\n{diagnostic}")
+            document = collect_report(report, process_exit_code=result.returncode,
+                                      expected_outputs=(1, 3),
+                                      expected_copy=copied)
+            if any(set(output) != OUTPUT_KEYS for output in document["outputs"]):
+                raise AssertionError("collector accepted a non-normalized output")
+            records[case] = report.read_bytes()
+            print(sanitizer, result.stdout.strip(), flush=True)
+
+            try:
+                collect_report(report, process_exit_code=1,
+                               expected_outputs=(1, 3), expected_copy=copied)
+            except ReportError:
+                print(sanitizer, "PASS collector rejects failed process", flush=True)
+            else:
+                raise RuntimeError("collector accepted a failed FFmpeg process")
+
+        symlink = root / "report-link.json"
+        symlink.symlink_to(root / "report-on.json")
+        try:
+            load_report(symlink, expected_outputs=(1, 3), expected_copy=True)
+        except ReportError:
+            print(sanitizer, "PASS collector rejects symlink", flush=True)
+        else:
+            raise RuntimeError("collector accepted a symlink report")
+
+        cli_output = run([
+            sys.executable, HERE / "collector.py", root / "report-on.json",
+            "--outputs", "1,3", "--copy", "on",
+            "--process-exit-code", "0",
+        ], timeout=30)
+        if json.loads(cli_output) != json.loads(records["report-on"]):
+            raise RuntimeError("collector CLI changed the normalized record")
+        print(sanitizer, "PASS collector CLI", flush=True)
+
+        repeat = root / "report-off-repeat.json"
+        result = execute(binary, fake, "report-off", repeat)
+        if result.returncode or repeat.read_bytes() != records["report-off"]:
+            raise RuntimeError(f"{sanitizer} report is not deterministic\n" +
+                               result.stdout + result.stderr)
+        print(sanitizer, "PASS deterministic normalized report", flush=True)
+
+        for case in REPORT_FAILURE_CASES:
+            report = root / (case + ".json")
+            result = execute(binary, fake, case, report)
+            diagnostic = result.stdout + result.stderr
+            if (result.returncode or report.exists() or
+                    "Sanitizer" in diagnostic or "runtime error:" in diagnostic or
+                    f"PASS FFmpeg VA callsite {case}" not in result.stdout):
+                raise RuntimeError(f"{sanitizer} {case}\n{diagnostic}")
+            print(sanitizer, result.stdout.strip(), flush=True)
+
+        preexisting = root / "report-preexisting.json"
+        preexisting.write_text("sentinel\n")
+        result = execute(binary, fake, "report-preexisting", preexisting)
+        if (result.returncode or preexisting.read_text() != "sentinel\n" or
+                "PASS FFmpeg VA callsite report-preexisting" not in result.stdout):
+            raise RuntimeError(f"{sanitizer} report-preexisting\n" +
+                               result.stdout + result.stderr)
+        print(sanitizer, result.stdout.strip(), flush=True)
+        collector_negative_tests(records["report-on"])
+
+
+def collector_negative_tests(valid: bytes) -> None:
+    checks = []
+
+    raw = json.loads(valid)
+    raw["outputs"][0]["raw_bytes"] = "00"
+    checks.append(("raw-field", raw))
+
+    digest = json.loads(valid)
+    digest["outputs"][0]["sha256"] = None
+    checks.append(("missing-digest", digest))
+
+    duplicate = json.loads(valid)
+    duplicate["outputs"][1]["output_ordinal"] = duplicate["outputs"][0]["output_ordinal"]
+    checks.append(("duplicate-ordinal", duplicate))
+
+    mixed_session = json.loads(valid)
+    session = mixed_session["outputs"][1]["session"]
+    mixed_session["outputs"][1]["session"] = (
+        ("0" if session[0] != "0" else "1") + session[1:])
+    checks.append(("mixed-session", mixed_session))
+
+    for label, value in checks:
+        encoded = (json.dumps(value, separators=(",", ":")) + "\n").encode()
+        try:
+            parse_report(encoded)
+        except ReportError:
+            print("PASS collector rejection", label, flush=True)
+        else:
+            raise RuntimeError("collector accepted " + label)
+
+    duplicate_key = valid.replace(b'"count":2', b'"count":2,"count":2', 1)
+    try:
+        parse_report(duplicate_key)
+    except ReportError:
+        print("PASS collector rejection duplicate-key", flush=True)
+    else:
+        raise RuntimeError("collector accepted a duplicate JSON key")
 
 
 def replace_once(text: str, old: str, new: str) -> str:
@@ -155,6 +284,37 @@ def assert_actual_callsites(tree: Path) -> None:
     surface = start.index("pic->pic.output_surface", function)
     if not (function < arm < surface):
         raise AssertionError("observer session is not armed before first VA submission")
+
+    decoder = (tree / "fftools/ffmpeg_dec.c").read_text()
+    worker = decoder.index("static int decoder_thread")
+    report = decoder.index("ff_vaapi_decode_observer_write_report(dp->dec_ctx", worker)
+    finish = decoder.index("\nfinish:", report)
+    free = decoder.index("avcodec_free_context(&dp->dec_ctx)", finish)
+    if not (worker < report < finish < free):
+        raise AssertionError("decoder worker does not publish before codec-context free")
+    declaration = decoder.index("static int dec_open")
+    open_function = decoder.index("static int dec_open", declaration + 1)
+    pair = decoder.index("!!observer_outputs != !!o->va_observer_report", open_function)
+    codec_open = decoder.index("avcodec_open2", open_function)
+    if not (open_function < pair < codec_open):
+        raise AssertionError("FFmpeg does not fail closed on unpaired report options")
+
+    demux = (tree / "fftools/ffmpeg_demux.c").read_text()
+    option = (tree / "fftools/ffmpeg_opt.c").read_text()
+    if ("&o->va_observer_reports" not in demux or
+            '"va_observer_report"' not in option):
+        raise AssertionError("per-stream report option is not wired to DecoderOpts")
+
+    implementation = (tree / "libavcodec/vaapi_decode.c").read_text()
+    serializer = implementation.index("static int vaapi_observer_report_json")
+    writer = implementation.index("static int vaapi_observer_write_all", serializer)
+    body = implementation[serializer:writer]
+    if "state->pool" in body or "->bytes" in body or "receipt" in body:
+        raise AssertionError("report serializer can reach non-normalized observer storage")
+    if ("mkostemp" not in implementation or "renameat2(" not in implementation or
+            "RENAME_NOREPLACE" not in implementation or
+            "unlink(temporary)" not in implementation):
+        raise AssertionError("report publication is not exclusive and atomic")
 
 
 def mutations(tree: Path, build: Path) -> None:
@@ -243,6 +403,107 @@ def mutations(tree: Path, build: Path) -> None:
     finally:
         receive_path.write_text(receive)
 
+    report_mutations(tree, build)
+
+
+def report_mutations(tree: Path, build: Path) -> None:
+    path = tree / "libavcodec/vaapi_decode.c"
+    original = path.read_text()
+
+    try:
+        path.write_text(replace_once(
+            original,
+            '"{\\"schema\\":\\"omarchy.hevc.va-observer-result/v1\\","',
+            '"{\\"schema\\":\\"omarchy.hevc.va-observer-result/v1\\",'
+            '\\"raw_bytes\\":\\"00\\","'))
+        run(["make", "-j", "2", "libavcodec/libavcodec.a"], cwd=build)
+        fake, binary = build_fixture(tree, build, "address,undefined",
+                                     "mutation-normalized-only")
+        with tempfile.TemporaryDirectory() as temporary:
+            report = Path(temporary) / "report.json"
+            result = execute(binary, fake, "report-off", report)
+            if result.returncode:
+                raise RuntimeError("normalized-only mutation failed for unrelated reason\n" +
+                                   result.stdout + result.stderr)
+            try:
+                load_report(report, expected_outputs=(1, 3), expected_copy=False)
+            except ReportError:
+                print("PASS semantic FFmpeg mutation normalized-only", flush=True)
+            else:
+                raise RuntimeError("normalized-only mutation was not distinguished")
+    finally:
+        path.write_text(original)
+        run(["make", "-j", "2", "libavcodec/libavcodec.a"], cwd=build)
+
+    try:
+        path.write_text(replace_once(
+            original,
+            "if (renameat2(AT_FDCWD, temporary, AT_FDCWD, path,\n"
+            "                  RENAME_NOREPLACE) < 0)",
+            "if (false)"))
+        run(["make", "-j", "2", "libavcodec/libavcodec.a"], cwd=build)
+        fake, binary = build_fixture(tree, build, "address,undefined",
+                                     "mutation-exclusive-publish")
+        with tempfile.TemporaryDirectory() as temporary:
+            report = Path(temporary) / "report.json"
+            report.write_text("sentinel\n")
+            result = execute(binary, fake, "report-preexisting", report)
+            diagnostic = result.stdout + result.stderr
+            assertion = "ff_vaapi_decode_observer_write_report(&f.avctx, report) < 0"
+            if (result.returncode != -signal.SIGABRT or assertion not in diagnostic or
+                    "Sanitizer" in diagnostic or "runtime error:" in diagnostic):
+                raise RuntimeError("exclusive-publish mutation not distinguished\n" +
+                                   diagnostic)
+        print("PASS semantic FFmpeg mutation exclusive-publish", flush=True)
+    finally:
+        path.write_text(original)
+        run(["make", "-j", "2", "libavcodec/libavcodec.a"], cwd=build)
+
+    try:
+        owner_mutation = replace_once(
+            original,
+            "    if (!pthread_equal(state->owner, pthread_self()))\n"
+            "        return AVERROR(EPERM);",
+            "    if (false)\n"
+            "        return AVERROR(EPERM);")
+        owner_mutation = replace_once(
+            owner_mutation,
+            "        !pthread_equal(state->owner, pthread_self()))",
+            "        false)")
+        path.write_text(owner_mutation)
+        run(["make", "-j", "2", "libavcodec/libavcodec.a"], cwd=build)
+        fake, binary = build_fixture(tree, build, "address,undefined",
+                                     "mutation-report-owner")
+        with tempfile.TemporaryDirectory() as temporary:
+            report = Path(temporary) / "report.json"
+            result = execute(binary, fake, "foreign-report", report)
+            diagnostic = result.stdout + result.stderr
+            if (result.returncode != -signal.SIGABRT or "call.ret < 0" not in diagnostic or
+                    "Sanitizer" in diagnostic or "runtime error:" in diagnostic):
+                raise RuntimeError("report-owner mutation not distinguished\n" + diagnostic)
+        print("PASS semantic FFmpeg mutation report-owner", flush=True)
+    finally:
+        path.write_text(original)
+        run(["make", "-j", "2", "libavcodec/libavcodec.a"], cwd=build)
+
+    worker_path = tree / "fftools/ffmpeg_dec.c"
+    worker = worker_path.read_text()
+    try:
+        worker_path.write_text(replace_once(
+            worker,
+            "        ret = ff_vaapi_decode_observer_write_report(dp->dec_ctx,\n"
+            "                                                     dp->va_observer_report);",
+            "        /* mutation: free without publishing the observer result */\n"
+            "        ret = 0;"))
+        try:
+            assert_actual_callsites(tree)
+        except (AssertionError, ValueError):
+            print("PASS semantic FFmpeg mutation worker-before-free", flush=True)
+        else:
+            raise RuntimeError("worker-before-free mutation was not distinguished")
+    finally:
+        worker_path.write_text(worker)
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -260,7 +521,7 @@ def main() -> None:
             raise ValueError("build/evidence directory must be empty")
         tree = fetch_tree(root, args.archive)
         assert_actual_callsites(tree)
-        print("PASS actual FFmpeg init/output publication call sites", flush=True)
+        print("PASS actual FFmpeg init/output/report-before-free call sites", flush=True)
 
         sanitizers = ["address,undefined"]
         if not args.skip_tsan:
@@ -272,6 +533,8 @@ def main() -> None:
             fake, binary = build_fixture(tree, build, sanitizer)
             print(sanitizer, "ffmpeg_vaapi_object_sha256",
                   sha((build / "libavcodec/vaapi_decode.o").read_bytes()), flush=True)
+            print(sanitizer, "ffmpeg_program_sha256",
+                  sha((build / "ffmpeg").read_bytes()), flush=True)
             print(sanitizer, "fixture_sha256", sha(binary.read_bytes()), flush=True)
             positive(fake, binary, sanitizer)
         mutations(tree, builds["address,undefined"])

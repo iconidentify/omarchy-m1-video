@@ -270,6 +270,14 @@ class Contracts(unittest.TestCase):
         self.assertEqual(on["private_options"]["va_observer_copy"], 1)
         self.assertEqual(on["private_options"]["threads"], 1)
         self.assertEqual(on["persistent_end_failure"], "fatal_quarantine")
+        self.assertEqual(on["result_report"], {
+            "private_option": "va_observer_report",
+            "destination": "runner_allocated_exclusive_path",
+            "schema": "omarchy.hevc.va-observer-result/v1",
+            "publication": "renameat2(RENAME_NOREPLACE)",
+            "max_bytes": 8192,
+            "require_process_exit_zero": True,
+        })
         self.assertEqual(tuple(on["requirements"]["owner_operations"]),
                          c.VA_OWNER_OPERATIONS)
 
