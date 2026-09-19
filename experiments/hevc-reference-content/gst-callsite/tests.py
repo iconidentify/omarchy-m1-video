@@ -17,7 +17,7 @@ wrong-frame missing-manifest mmap-failure munmap-failure decode-error timeout
 published flush changed-proof slow-copy lifecycle schedule-copy schedule-control
 schedule-incomplete schedule-duplicate schedule-invalid schedule-frame-mismatch
 schedule-munmap schedule-mid-failure schedule-budget schedule-reuse
-schedule-mutable-plan schedule-cancel schedule-reader-reorder'''.split()
+schedule-mutable-plan schedule-cancel schedule-reader-reorder flush-armed'''.split()
 
 
 def module(name, path):
@@ -99,6 +99,10 @@ def mutations(root, build):
          'gst_v4l2_codec_h265_dec_close (GstVideoDecoder * decoder)\n{\n  GST_HEVC_OBSERVER_LOCK;\n  GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);\n  if (self->content_callsite || gst_hevc_observer_busy (self->decoder))',
          'gst_v4l2_codec_h265_dec_close (GstVideoDecoder * decoder)\n{\n  GST_HEVC_OBSERVER_LOCK;\n  GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);\n  if (gst_hevc_observer_busy (self->decoder))',
          'lifecycle', '!gst_v4l2_codec_h265_dec_close(GST_VIDEO_DECODER(client))'),
+        ('armed-flush-recovery', 'gstv4l2codech265dec.c',
+         '    gst_v4l2_codec_h265_dec_set_flushing (self, FALSE);\n    return FALSE;',
+         '    return FALSE;', 'flush-armed',
+         'gst_v4l2_codec_allocator_wait_for_buffer(client->src_allocator)'),
         ('schedule-immutable', 'gst-callsite.inc',
          'memcpy (state->frames, frames, count * sizeof (*frames));',
          'memset (state->frames, 0, count * sizeof (*frames));',

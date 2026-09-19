@@ -94,15 +94,26 @@
    ret = gst_v4l2_request_set_done (request);
    if (ret == 0) {
      g_clear_pointer (&observer_locker, g_rec_mutex_locker_free);
-@@ -1729,7 +1745,7 @@
+@@ -1729,9 +1745,17 @@
  {
    GST_HEVC_OBSERVER_LOCK;
    GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);
 -  if (gst_hevc_observer_busy (self->decoder))
-+  if (self->content_callsite || gst_hevc_observer_busy (self->decoder))
-     return FALSE;
+-    return FALSE;
++  if (self->content_callsite || gst_hevc_observer_busy (self->decoder)) {
++    /* GstVideoDecoder discards this return value and resets the decoder
++     * regardless, so refusing cannot stop the flush. Undo the flushing state
++     * FLUSH_START set anyway: skipping it strands both allocators flushing
++     * for the element's remaining life, and no later finish clears it. The
++     * native decoder flush and the parent DPB flush stay skipped while a
++     * lease is retained. */
++    gst_v4l2_codec_h265_dec_set_flushing (self, FALSE);
++    return FALSE;
++  }
  
    GST_DEBUG_OBJECT (self, "Flushing decoder state.");
+ 
+   gst_v4l2_decoder_flush (self->decoder);
 --- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
 +++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2decoder.c
 @@ -2031,3 +2031,6 @@

@@ -93,6 +93,45 @@ static void check_lifecycle(void)
   gst_v4l2_codec_h265_dec_reset_allocation(client);
   assert(ioctls==before && client->streaming && client->src_allocator && client->sink_allocator);
 }
+static gboolean flush_peer_event(GstPad *pad,GstObject *parent,GstEvent *event)
+{
+  (void)pad;(void)parent;gst_event_unref(event);return TRUE;
+}
+/* Drive a real FLUSH_START/FLUSH_STOP pair through the framework while armed.
+ * check_lifecycle() calls the vfuncs directly, so it cannot see what the base
+ * class does with their return values: GstVideoDecoder discards flush()'s and
+ * resets regardless. The refusal therefore cannot stop the flush, and it must
+ * not strand the allocators FLUSH_START set flushing either. No request is
+ * created in this mode, so both pools are full and the wait cannot block. */
+static void check_armed_flush(void)
+{
+  GstVideoDecoder *base=GST_VIDEO_DECODER(client);
+  assert(GST_VIDEO_DECODER_CLASS(parent_class)->start(base));
+  GstPad *peer=gst_pad_new("model-peer",GST_PAD_SINK);
+  gst_pad_set_event_function(peer,flush_peer_event);
+  assert(gst_pad_set_active(peer,TRUE));assert(gst_pad_set_active(base->srcpad,TRUE));
+  assert(gst_pad_link(base->srcpad,peer)==GST_PAD_LINK_OK);
+  gst_segment_init(&base->input_segment,GST_FORMAT_TIME);
+  gst_segment_init(&base->output_segment,GST_FORMAT_TIME);
+  assert(client->content_callsite);
+  assert(!gst_v4l2_codec_h265_dec_flush(base)); /* still reports refusal */
+  assert(GST_VIDEO_DECODER_GET_CLASS(client)->sink_event(base,gst_event_new_flush_start()));
+  assert(GST_VIDEO_DECODER_GET_CLASS(client)->sink_event(base,gst_event_new_flush_stop(TRUE)));
+  /* The framework reset the decoder anyway; the arm and its session survive. */
+  assert(client->content_callsite && client->streaming);
+  assert(client->src_allocator && client->sink_allocator);
+  /* Regression: both allocators must be usable again. Without clearing the
+   * flushing state the element can never acquire a capture buffer again, and
+   * no later finish recovers it. */
+  assert(gst_v4l2_codec_allocator_wait_for_buffer(client->src_allocator));
+  assert(gst_v4l2_codec_allocator_wait_for_buffer(client->sink_allocator));
+  assert(gst_hevc_callsite_finish(GST_H265_DECODER(client)));
+  assert(!client->content_callsite);
+  assert(gst_v4l2_codec_allocator_wait_for_buffer(client->src_allocator));
+  gst_pad_unlink(base->srcpad,peer);gst_pad_set_active(peer,FALSE);
+  gst_pad_set_active(base->srcpad,FALSE);gst_object_unref(peer);
+  assert(GST_VIDEO_DECODER_CLASS(parent_class)->stop(base));
+}
 static void schedule_release_request(void)
 {
   g_clear_pointer(&request,gst_v4l2_request_unref);
@@ -239,6 +278,14 @@ int main(int argc,char **argv)
   GST_DEBUG_CATEGORY_INIT(gstv4l2codecs_debug,"v4l2codecs",0,"model plugin log");
   GST_DEBUG_CATEGORY_INIT(v4l2_h265dec_debug,"v4l2codecs-h265dec",0,"model client log");
   setup();
+  if(!strcmp(mode,"flush-armed")) {
+    assert(gst_hevc_callsite_arm(GST_H265_DECODER(client),TRUE));
+    check_armed_flush();
+    teardown();
+    for(int i=0;i<evidence_count;i++)assert(evidence_fds[i]==-1);
+    printf("PASS actual Gst callsite %s (synthetic V4L2/runtime; no device)\n",mode);
+    return 0;
+  }
   if(g_str_has_prefix(mode,"schedule-")) {
     schedule_tests();
     for(int i=0;i<evidence_count;i++)assert(evidence_fds[i]==-1);
