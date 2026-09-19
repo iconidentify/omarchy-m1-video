@@ -14,11 +14,17 @@ retains every executed case, original suite total, mutation and binary hash.
 
 | Checks | ASan/UBSan | TSan |
 | --- | ---: | ---: |
-| Actual registered output callback modes | 19 | 19 |
+| Actual registered output callback modes | 20 | 20 |
 | Preceding retained-copy modes on modified sources | 25 | 25 |
 | Preceding native observer modes on modified sources | 29 | 29 |
-| Named call-site semantic mutations | 8 | Not repeated |
+| Named call-site semantic mutations | 9 | Not repeated |
 | Original HEVC parser/bitwriter/parser-element checks | 48 (17 + 1 + 5 + 25) | Not repeated |
+
+The twentieth callback mode and the ninth mutation were added by the adversarial
+review below. `flush-armed` drives a real FLUSH_START/FLUSH_STOP pair through the
+framework while an arm exists and requires both allocators to be usable again;
+`armed-flush-recovery` removes the fix and requires that assertion to fire, so
+the regression is demonstrated able to fail rather than only to pass.
 
 Both builds include the complete configured plugin; `ldd` checks establish that
 GStreamer dependencies resolve inside that pinned build. Mutation detection

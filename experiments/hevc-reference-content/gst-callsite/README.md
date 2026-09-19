@@ -42,9 +42,18 @@ request and allocation stay retained. Finish must run on the same owner to retry
 end; only a successful end allows the stored frame/picture to be dropped and the
 session closed. A failed finish retains the exact state for another explicit
 retry; it does not loop or discard the cleanup token. The client's stop/flush/close,
-streamoff and allocation reset refuse while an arm exists, including before begin
-and after a successful copy. Otherwise close could invalidate the session needed
-by finish. Finish the arm before those lifecycle operations. The arm pointer is
+streamoff and allocation reset all report refusal while an arm exists, including
+before begin and after a successful copy, but only `close` actually prevents its
+caller: `GstVideoDecoder` checks `close()` before closing, resets the decoder
+before it looks at `stop()`, and discards `flush()`'s return value entirely, and
+`streamoff`/`reset_allocation` are void. A flush or a PAUSED_TO_READY transition
+during an arm therefore still resets segments and clears the frame queue; the
+state change additionally fails. The refusal keeps the observer session, lease
+and allocators intact for finish, and the flush path clears the flushing state
+FLUSH_START set so the allocators do not stay flushing for the element's
+remaining life. Finish the arm before those lifecycle operations; they are
+reported as refused, not prevented. Otherwise close could invalidate the session
+needed by finish. The arm pointer is
 published/removed under both stream and observer locks, matching the lifecycle
 callbacks' observer-lock reads. New-sequence handling also refuses before
 changing dimensions, controls or entering renegotiation; simply refusing its
@@ -64,6 +73,41 @@ not identify which B/E writer the campaign should sample. No kernel command or
 reference collector is joined here. No approved live manifest, full client/corpus
 attestation, hardware DMA visibility result, or campaign authorization ships.
 VA production call-site wiring remains separate. #82 and driver #42 stay open.
+
+## Known limits for a controller
+
+These are properties of this experiment, not defects to work around silently.
+
+- **One observation per decoder instance, not per session.**
+  `gst_hevc_callsite_open_before_queue()` requires `observer_submitted == 0`,
+  and `observer_submitted`/`observer_failed`/`observer_content_count` are never
+  reset. After a successful `finish()` the same element can never be armed
+  again, and after any failed observation `begin()` refuses for the element's
+  remaining life. Use a fresh element per observation.
+- **Refusals are opaque to the pipeline.** Owner mismatch, callback reentry, a
+  retained lease, a buffer/frame mismatch and a failed select/begin/snapshot all
+  return `GST_FLOW_ERROR` without posting `GST_ELEMENT_ERROR` or a warning, so
+  upstream sees a generic streaming failure with no attributable reason. The
+  most likely trigger is the owner check: `arm()` only requires `self->streaming`,
+  which another thread can observe after negotiation, but the vfunc runs on the
+  streaming thread, so arming from any other thread turns every output into a
+  dropped frame. A controller should arm on the streaming owner and treat any
+  `GST_FLOW_ERROR` during an armed window as an observation failure.
+- **Process-wide stall window.** The callback holds the global observer mutex
+  across the native drain, up to the two-second deadline, and the copy.
+  `gst_v4l2_codec_allocator_release()` takes the same mutex, so any other thread
+  returning a pool buffer, including a sink on its own thread or a second
+  decoder instance, blocks for that duration. There is no deadlock: the drain
+  waits on the kernel, not on userspace. A campaign should budget for it.
+- **Lifecycle operations are reported as refused, not prevented.** See the
+  ownership section: only `close()` is checked by its caller before acting. A
+  flush or a PAUSED_TO_READY transition during an arm still resets the decoder,
+  and the state change additionally fails. Finish the arm first.
+- **An in-band parameter-set change inside the armed window is a hard stream
+  error.** `new_sequence` returns `GST_FLOW_NOT_NEGOTIATED` before the DPB
+  pictures still pending output are delivered. Stream selection for a campaign
+  must not place a parameter-set change between arm and the last selected
+  output.
 
 ## Offline reproduction
 

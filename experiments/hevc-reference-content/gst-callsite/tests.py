@@ -14,7 +14,7 @@ PARENT = HERE.parent
 BASE = Path('subprojects/gst-plugins-bad/sys/v4l2codecs')
 MODES = '''copy control padded disabled cancel-arm late-arm readers wrong-buffer
 wrong-frame missing-manifest mmap-failure munmap-failure decode-error timeout
-published flush changed-proof slow-copy lifecycle'''.split()
+published flush changed-proof slow-copy lifecycle flush-armed'''.split()
 
 
 def module(name, path):
@@ -85,6 +85,10 @@ def mutations(root, build):
          'state->in_callback = TRUE;\n  *active = state;\n  if (state->attempted)\n    return state->success;',
          'if (state->attempted)\n    return state->success;\n  state->in_callback = TRUE;\n  *active = state;',
          'copy', '!gst_hevc_callsite_finish(GST_H265_DECODER(client))'),
+        ('armed-flush-recovery', 'gstv4l2codech265dec.c',
+         '    gst_v4l2_codec_h265_dec_set_flushing (self, FALSE);\n    return FALSE;',
+         '    return FALSE;', 'flush-armed',
+         'gst_v4l2_codec_allocator_wait_for_buffer(client->src_allocator)'),
         ('armed-lifecycle', 'gstv4l2codech265dec.c',
          'gst_v4l2_codec_h265_dec_close (GstVideoDecoder * decoder)\n{\n  GST_HEVC_OBSERVER_LOCK;\n  GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);\n  if (self->content_callsite || gst_hevc_observer_busy (self->decoder))',
          'gst_v4l2_codec_h265_dec_close (GstVideoDecoder * decoder)\n{\n  GST_HEVC_OBSERVER_LOCK;\n  GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);\n  if (gst_hevc_observer_busy (self->decoder))',
