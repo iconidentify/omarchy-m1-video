@@ -60,7 +60,7 @@ idle. The resets were therefore not kernel panics and produced no kernel-visible
 This characterises the events; it does not identify a cause, rule the module in or out, or
 make the boot path safe. Zero new boots were attempted for that analysis either.
 
-## Proposed comparison — not approved or run
+## Comparison — first pass executed 2026-09-19
 
 The first campaign should use the affected M1 if available. An M2 campaign would produce
 additional-device evidence, not reproduce the original M1 result. Keep device results separate.
@@ -72,10 +72,18 @@ first new reset, freeze, panic, AVD fault or unexpected recovery requirement.
 
 | Cell | Boot transition | Decoder configuration | Planned attempts | Executed |
 | --- | --- | --- | --- | --- |
-| C1 | Graceful shutdown, 30 seconds powered off, power on | Verified blacklisted control; decoder absent | 2 | 0 — not run |
-| C2 | Graceful warm reboot | Same verified blacklisted control | 2 | 0 — not run |
-| P1 | Same cold transition as C1 | Exact proposed patched build loading at boot, pending approval | 2 | 0 — not run |
-| P2 | Same warm transition as C2 | Same proposed patched build, pending approval | 2 | 0 — not run |
+| C1 | Graceful shutdown, 30 seconds powered off, power on | Verified blacklisted control; decoder absent | 2 | 1 — clean |
+| C2 | Graceful warm reboot | Same verified blacklisted control | 2 | 1 — clean |
+| P1 | Same cold transition as C1 | Patched build loading at boot | 2 | 1 — clean |
+| P2 | Same warm transition as C2 | Same patched build | 2 | 1 — clean |
+
+The [first-pass record](evidence/issue13/m1-boot-matrix-20260919.md) covers one
+attempt per cell, run with the owner at the console on 2026-09-19. Four of the eight
+planned attempts were not run. No reset, freeze, panic or AVD fault occurred, and no
+attempt recorded a PMU boot error. That is a clean screening pass, not evidence that
+the boot path is reliable, and it neither closes #13 nor unblocks #17. Note that no
+attempt observed the sub-90-second interval in which both original resets occurred;
+see that record for why and for what covers it instead.
 
 These operational definitions of cold/warm do not prove any particular firmware or power-rail
 reset state. Record the actual transition and any departure from the definition.
