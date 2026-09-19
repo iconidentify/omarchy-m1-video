@@ -25,7 +25,7 @@ Command:
 
 ```sh
 python3 experiments/hevc-reference-content/va-callsite/tests.py \
-  --keep /home/chrisk/src/video-114-work-20260919/runner-final4
+  --keep /home/chrisk/src/video-114-work-20260919/runner-final5
 ```
 
 The runner configured and built the complete selected FFmpeg libraries twice,
@@ -38,8 +38,8 @@ All 34 executions passed without a sanitizer diagnostic.
 
 | Build | `vaapi_decode.o` SHA-256 | Fixture SHA-256 |
 | --- | --- | --- |
-| ASan/UBSan | `da9f54c123d899da17832c9d5f94382a50ce00fcd4e6e111575bbcc52e226722` | `88cc58ebb37656a096c930b8d74fde32042a7f4e7b7f9f1dd600faa675257470` |
-| TSan | `2fca91d51c3d815462f56848b337a27ccd8227f84c6d359875b59b0ed09a9ae7` | `f98cb5be2f298d1b2ee03722fd2b1e01284b74dd30b864264af5f418aea591de` |
+| ASan/UBSan | `05755e51fe6f3b23f251c2f5c1e2ad443e04568bca6dd2a075c609b2a8c75957` | `71f54fcd1c6b9515cdd3a1fe72b25892bd04715a73987151309ca147465578d3` |
+| TSan | `a0756903c3209a734ab26a04cd2a6c832093c1888e70792323aa0b62d4f332cd` | `084f217abc68e14e8de0bbf5fe0f6265d7483e9f094b8d8ee0089e10fd68588a` |
 
 Nine semantic mutations were distinguished by named behavioral assertions:
 driver-DSO origin, private ABI, open-before-submit, single-thread ownership,

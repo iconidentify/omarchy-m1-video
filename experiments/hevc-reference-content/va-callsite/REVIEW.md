@@ -48,6 +48,11 @@
   decoder-produced frame merely because the callback returned an error. Both
   failure branches now unref before returning. The structural call-site check
   requires dequeue → observer → failed-frame cleanup → publication ordering.
+- **T1, hosted-test integration fixed:** the first Ubuntu/x86 job stopped in
+  FFmpeg configure because NASM was absent. The selected observer path does not
+  require x86 assembly; the hermetic runner now passes `--disable-x86asm` instead
+  of adding an unrelated assembler dependency. That stopped configure supplied
+  no execution evidence; the rerun is required at the new head.
 - **D1, dismissed:** symbol lookup could accidentally bind libva or another
   driver's global symbol. The handle is `RTLD_NOLOAD` on the DSO containing the
   real backend vtable entry, and each resolved symbol's `dli_fbase` must equal

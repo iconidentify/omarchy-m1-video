@@ -77,6 +77,7 @@ def configure_and_build(tree: Path, root: Path, sanitizer: str) -> Path:
     run([
         tree / "configure", "--disable-programs", "--disable-doc",
         "--disable-network", "--disable-autodetect", "--disable-everything",
+        "--disable-x86asm",
         "--enable-avcodec", "--enable-avutil", "--enable-decoder=hevc",
         "--enable-parser=hevc", "--enable-vaapi",
         "--enable-hwaccel=hevc_vaapi", "--enable-libdrm",
