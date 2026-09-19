@@ -147,6 +147,14 @@ def client_contract(plan: Plan, workload: Workload) -> dict[str, object]:
             "decoded_output_count": workload.va_output_count,
             "requirements": asdict(plan.va),
             "persistent_end_failure": "fatal_quarantine",
+            "result_report": {
+                "private_option": "va_observer_report",
+                "destination": "runner_allocated_exclusive_path",
+                "schema": "omarchy.hevc.va-observer-result/v1",
+                "publication": "renameat2(RENAME_NOREPLACE)",
+                "max_bytes": 8192,
+                "require_process_exit_zero": True,
+            },
         }
     raise ValueError(f"unknown client: {workload.client}")
 

@@ -13,9 +13,12 @@ eight workloads against the shared budgets and distinct Gst/VA call-site limits,
 and refuses to execute them. Gst `system_frame_number`s, VA output ordinals and
 parameter-set input windows are separate coordinates. The planner enforces the
 VA client's `threads=1`, one-application-owner, finish-before-close and fatal
-quarantine contracts and emits deterministic per-workload adapter inputs. There
-is still no executable hardware campaign command. Remaining: implement the
-runner and same-run command/reference association, exact loaded
+quarantine contracts and emits deterministic per-workload adapter inputs. The
+VA call site now has a real decoder-worker result path and strict normalized
+collector; its exclusive report destination and whole-process-success rule are
+part of the emitted contract. There is still no executable hardware campaign
+command. Remaining: implement the Gst runner and guarded supervisor, plus
+same-run command/reference association, exact loaded
 build/client/tool/corpus evidence, and an approved deployment manifest. Re-review
 this plan against that exact head. The manifest verifier alone covers the
 observer object, kernel, AVD and modular vb2 components; it does not cover the
@@ -68,6 +71,9 @@ The following is a plan, not a run result or an installer recipe.
    ordinals on a fresh `threads=1` decoder and keep send/receive/finish/close on one
    application owner; do not pass Gst `system_frame_number` selections through as
    VA ordinals. Missing/lost/ambiguous joins block entry.
+   Give each VA workload a new exclusive `va_observer_report` path, accept only
+   the fixed normalized schema after the whole FFmpeg process exits zero, and
+   reject a pre-existing path or any collector mismatch.
 3. Verify the original B/E corpus lock and every input hash. Create a fresh root for
    each of the eight workloads, retaining exact argv/environment, monotonic/journal
    boundaries, tool identities and zero-loss trace accounting. Repeat the same

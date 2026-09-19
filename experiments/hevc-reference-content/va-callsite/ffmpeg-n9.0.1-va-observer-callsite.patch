@@ -84,21 +84,28 @@ index 4ac2df5..b17d255 100644
  /*
   * This file is part of FFmpeg.
   *
-@@ -18,10 +21,22 @@
+@@ -18,10 +21,29 @@
  
  #include "config_components.h"
  
 +#include <dlfcn.h>
 +#include <errno.h>
++#include <fcntl.h>
++#include <inttypes.h>
 +#include <linux/videodev2.h>
 +#include <pthread.h>
 +#include <stdbool.h>
 +#include <stdint.h>
++#include <stdio.h>
 +#include <stdlib.h>
 +#include <string.h>
++#include <sys/stat.h>
++#include <unistd.h>
 +#include <va/va_backend.h>
 +
  #include "libavutil/avassert.h"
++#include "libavutil/avstring.h"
++#include "libavutil/bprint.h"
  #include "libavutil/common.h"
 +#include "libavutil/error.h"
  #include "libavutil/mem.h"
@@ -107,7 +114,7 @@ index 4ac2df5..b17d255 100644
  
  #include "avcodec.h"
  #include "codec_desc.h"
-@@ -31,6 +46,482 @@
+@@ -31,6 +53,621 @@
  #include "vaapi_hevc.h"
  
  
@@ -115,6 +122,7 @@ index 4ac2df5..b17d255 100644
 +#define VA_OBSERVER_BYTES 184320
 +#define VA_OBSERVER_PLANES VIDEO_MAX_PLANES
 +#define VA_OBSERVER_ABI UINT64_C(0x7634726f62730001)
++#define VA_OBSERVER_REPORT_BYTES 8192
 +
 +struct VAObserverSession {
 +    uint64_t run[2], context_generation, nonce;
@@ -577,6 +585,144 @@ index 4ac2df5..b17d255 100644
 +    return 0;
 +}
 +
++static int vaapi_observer_report_json(const VAAPIObserverResult *result,
++                                      char **json, size_t *json_size)
++{
++    AVBPrint bp;
++    int err;
++
++    av_bprint_init(&bp, 1024, VA_OBSERVER_REPORT_BYTES);
++    av_bprintf(&bp,
++               "{\"schema\":\"omarchy.hevc.va-observer-result/v1\","
++               "\"count\":%u,\"outputs\":[",
++               result->count);
++    for (unsigned i = 0; i < result->count; i++) {
++        const VAAPIObserverResultSlot *slot = &result->slot[i];
++
++        av_bprintf(&bp,
++                   "%s{\"output_ordinal\":%" PRIu64 ","
++                   "\"surface\":%u,"
++                   "\"run\":[\"%016" PRIx64 "\",\"%016" PRIx64 "\"],"
++                   "\"context_generation\":\"%016" PRIx64 "\","
++                   "\"session\":\"%016" PRIx64 "\","
++                   "\"allocation_generation\":\"%016" PRIx64 "\","
++                   "\"writer\":\"%016" PRIx64 "\","
++                   "\"submitted\":\"%016" PRIx64 "\","
++                   "\"completed\":\"%016" PRIx64 "\","
++                   "\"capture_index\":%u,\"copied\":%s,\"sha256\":",
++                   i ? "," : "", slot->output_index, slot->surface,
++                   slot->run[0], slot->run[1], slot->context_generation,
++                   slot->session, slot->allocation_generation, slot->writer,
++                   slot->submitted, slot->completed, slot->capture_index,
++                   slot->copied ? "true" : "false");
++        if (slot->copied) {
++            av_bprintf(&bp, "\"");
++            for (unsigned j = 0; j < sizeof(slot->sha256); j++)
++                av_bprintf(&bp, "%02x", slot->sha256[j]);
++            av_bprintf(&bp, "\"");
++        } else {
++            av_bprintf(&bp, "null");
++        }
++        av_bprintf(&bp, "}");
++    }
++    av_bprintf(&bp, "]}\n");
++    if (!av_bprint_is_complete(&bp)) {
++        av_bprint_finalize(&bp, NULL);
++        return AVERROR(ENOMEM);
++    }
++    *json_size = bp.len;
++    err = av_bprint_finalize(&bp, json);
++    return err < 0 ? err : 0;
++}
++
++static int vaapi_observer_write_all(int fd, const char *data, size_t size)
++{
++    while (size) {
++        ssize_t written = write(fd, data, size);
++
++        if (written < 0) {
++            if (errno == EINTR)
++                continue;
++            return AVERROR(errno);
++        }
++        if (!written)
++            return AVERROR(EIO);
++        data += written;
++        size -= written;
++    }
++    return 0;
++}
++
++static int vaapi_observer_publish_report(const char *path,
++                                         const char *json, size_t json_size)
++{
++    char *temporary = NULL;
++    int fd = -1, err = 0;
++
++    if (!path || !*path)
++        return AVERROR(EINVAL);
++    temporary = av_asprintf("%s.tmp.XXXXXX", path);
++    if (!temporary)
++        return AVERROR(ENOMEM);
++    fd = mkostemp(temporary, O_CLOEXEC);
++    if (fd < 0) {
++        err = AVERROR(errno);
++        goto out;
++    }
++    if (fchmod(fd, S_IRUSR | S_IWUSR) < 0) {
++        err = AVERROR(errno);
++        goto out;
++    }
++    err = vaapi_observer_write_all(fd, json, json_size);
++    if (err < 0)
++        goto out;
++    if (fsync(fd) < 0) {
++        err = AVERROR(errno);
++        goto out;
++    }
++    if (close(fd) < 0) {
++        err = AVERROR(errno);
++        fd = -1;
++        goto out;
++    }
++    fd = -1;
++    if (renameat2(AT_FDCWD, temporary, AT_FDCWD, path,
++                  RENAME_NOREPLACE) < 0) {
++        err = AVERROR(errno);
++        goto out;
++    }
++
++out:
++    if (fd >= 0 && close(fd) < 0 && !err)
++        err = AVERROR(errno);
++    if (temporary && unlink(temporary) < 0 && errno != ENOENT && !err)
++        err = AVERROR(errno);
++    av_free(temporary);
++    return err;
++}
++
++int ff_vaapi_decode_observer_write_report(AVCodecContext *avctx,
++                                          const char *path)
++{
++    VAAPIObserverResult result;
++    char *json = NULL;
++    size_t json_size = 0;
++    int err;
++
++    err = ff_vaapi_decode_observer_finish(avctx);
++    if (err < 0)
++        return err;
++    err = ff_vaapi_decode_observer_result(avctx, &result);
++    if (err < 0)
++        return err;
++    err = vaapi_observer_report_json(&result, &json, &json_size);
++    if (err < 0)
++        return err;
++    err = vaapi_observer_publish_report(path, json, json_size);
++    av_free(json);
++    return err;
++}
++
 +void ff_vaapi_decode_observer_flush(AVCodecContext *avctx)
 +{
 +    int err = ff_vaapi_decode_observer_finish(avctx);
@@ -590,7 +736,7 @@ index 4ac2df5..b17d255 100644
  int ff_vaapi_decode_make_param_buffer(AVCodecContext *avctx,
                                        VAAPIDecodePicture *pic,
                                        int type,
-@@ -221,6 +706,8 @@ int ff_vaapi_decode_issue(AVCodecContext *avctx,
+@@ -221,6 +858,8 @@ int ff_vaapi_decode_issue(AVCodecContext *avctx,
          AV_VAAPI_DRIVER_QUIRK_RENDER_PARAM_BUFFERS)
          ff_vaapi_decode_destroy_buffers(avctx, pic);
  
@@ -599,7 +745,7 @@ index 4ac2df5..b17d255 100644
      err = 0;
      goto exit;
  
-@@ -739,6 +1226,14 @@ int ff_vaapi_decode_uninit(AVCodecContext *avctx)
+@@ -739,6 +1378,14 @@ int ff_vaapi_decode_uninit(AVCodecContext *avctx)
  {
      VAAPIDecodeContext *ctx = avctx->internal->hwaccel_priv_data;
      VAStatus vas;
@@ -614,7 +760,7 @@ index 4ac2df5..b17d255 100644
  
      if (ctx->va_context != VA_INVALID_ID) {
          vas = vaDestroyContext(ctx->hwctx->display, ctx->va_context);
-@@ -757,5 +1252,6 @@ int ff_vaapi_decode_uninit(AVCodecContext *avctx)
+@@ -757,5 +1404,6 @@ int ff_vaapi_decode_uninit(AVCodecContext *avctx)
          }
      }
  
@@ -654,7 +800,7 @@ index 7813473..f227652 100644
  
  int ff_vaapi_decode_make_param_buffer(AVCodecContext *avctx,
                                        VAAPIDecodePicture *pic,
-@@ -83,6 +102,14 @@ int ff_vaapi_decode_cancel(AVCodecContext *avctx,
+@@ -83,6 +102,16 @@ int ff_vaapi_decode_cancel(AVCodecContext *avctx,
  int ff_vaapi_decode_init(AVCodecContext *avctx);
  int ff_vaapi_decode_uninit(AVCodecContext *avctx);
  
@@ -664,6 +810,8 @@ index 7813473..f227652 100644
 +int ff_vaapi_decode_observer_finish(AVCodecContext *avctx);
 +int ff_vaapi_decode_observer_result(AVCodecContext *avctx,
 +                                    VAAPIObserverResult *result);
++int ff_vaapi_decode_observer_write_report(AVCodecContext *avctx,
++                                          const char *path);
 +void ff_vaapi_decode_observer_flush(AVCodecContext *avctx);
 +
  int ff_vaapi_common_frame_params(AVCodecContext *avctx,
@@ -693,3 +841,160 @@ index 878f796..46f8b2b 100644
      .frame_params         = ff_vaapi_common_frame_params,
      .priv_data_size       = sizeof(VAAPIDecodeContext),
      .caps_internal        = HWACCEL_CAP_ASYNC_SAFE,
+diff --git i/fftools/ffmpeg.h w/fftools/ffmpeg.h
+index b0595b3..5c38bf2 100644
+--- i/fftools/ffmpeg.h
++++ w/fftools/ffmpeg.h
+@@ -164,6 +164,7 @@ typedef struct OptionsContext {
+     SpecifierOptList hwaccels;
+     SpecifierOptList hwaccel_devices;
+     SpecifierOptList hwaccel_output_formats;
++    SpecifierOptList va_observer_reports;
+     SpecifierOptList autorotate;
+     SpecifierOptList apply_cropping;
+
+@@ -435,6 +436,7 @@ typedef struct DecoderOpts {
+     enum HWAccelID              hwaccel_id;
+     enum AVHWDeviceType         hwaccel_device_type;
+     char                       *hwaccel_device;
++    const char                 *va_observer_report;
+     enum AVPixelFormat          hwaccel_output_format;
+
+     AVRational                  time_base;
+diff --git i/fftools/ffmpeg_opt.c w/fftools/ffmpeg_opt.c
+index 203bd83..33fc694 100644
+--- i/fftools/ffmpeg_opt.c
++++ w/fftools/ffmpeg_opt.c
+@@ -1934,6 +1934,9 @@ const OptionDef options[] = {
+     { "hwaccel_output_format",      OPT_TYPE_STRING, OPT_VIDEO | OPT_EXPERT | OPT_PERSTREAM | OPT_INPUT,
+         { .off = OFFSET(hwaccel_output_formats) },
+         "select output format used with HW accelerated decoding", "format" },
++    { "va_observer_report",         OPT_TYPE_STRING, OPT_VIDEO | OPT_EXPERT | OPT_PERSTREAM | OPT_INPUT,
++        { .off = OFFSET(va_observer_reports) },
++        "write one private normalized VA observer record without replacing an existing path", "path" },
+     { "hwaccels",                   OPT_TYPE_FUNC,   OPT_EXIT | OPT_EXPERT,
+         { .func_arg = show_hwaccels },
+         "show available HW acceleration methods" },
+diff --git i/fftools/ffmpeg_demux.c w/fftools/ffmpeg_demux.c
+index 20e133e..9f73440 100644
+--- i/fftools/ffmpeg_demux.c
++++ w/fftools/ffmpeg_demux.c
+@@ -1427,6 +1427,7 @@ static int ist_add(const OptionsContext *o, Demuxer *d, AVStream *st, AVDictiona
+     const char *hwaccel = NULL;
+     const char *apply_cropping = NULL;
+     const char *hwaccel_output_format = NULL;
++    const char *va_observer_report = NULL;
+     const char *codec_tag = NULL;
+     const char *bsfs = NULL;
+     char *next;
+@@ -1509,6 +1510,9 @@ static int ist_add(const OptionsContext *o, Demuxer *d, AVStream *st, AVDictiona
+         opt_match_per_stream_str(ist, &o->hwaccels, ic, st, &hwaccel);
+         opt_match_per_stream_str(ist, &o->hwaccel_output_formats, ic, st,
+                                        &hwaccel_output_format);
++        opt_match_per_stream_str(ist, &o->va_observer_reports, ic, st,
++                                       &va_observer_report);
++        ds->dec_opts.va_observer_report = va_observer_report;
+         if (!hwaccel_output_format && hwaccel && !strcmp(hwaccel, "cuvid")) {
+             av_log(ist, AV_LOG_WARNING,
+                 "WARNING: defaulting hwaccel_output_format to cuda for compatibility "
+diff --git i/fftools/ffmpeg_dec.c w/fftools/ffmpeg_dec.c
+index 1e47a7c..41816a7 100644
+--- i/fftools/ffmpeg_dec.c
++++ w/fftools/ffmpeg_dec.c
+@@ -20,6 +20,8 @@
+
+ #include <stdbit.h>
+
++#include "config_components.h"
++
+ #include "libavutil/avassert.h"
+ #include "libavutil/avstring.h"
+ #include "libavutil/dict.h"
+@@ -34,6 +36,10 @@
+
+ #include "libavcodec/avcodec.h"
+ #include "libavcodec/codec.h"
++#if CONFIG_HEVC_VAAPI_HWACCEL
++#include "libavcodec/vaapi_decode.h"
++#endif
++
+
+ #include "ffmpeg.h"
+
+@@ -76,6 +82,7 @@ typedef struct DecoderPriv {
+     void               *log_parent;
+     char                log_name[32];
+     char               *parent_name;
++    char               *va_observer_report;
+
+     // user specified decoder multiview options manually
+     int                 multiview_user_config;
+@@ -136,6 +143,7 @@ void dec_free(Decoder **pdec)
+     av_freep(&dp->dec.subtitle_header);
+
+     av_freep(&dp->parent_name);
++    av_freep(&dp->va_observer_report);
+
+     av_freep(&dp->views_requested);
+     av_freep(&dp->view_map);
+@@ -1014,6 +1022,21 @@ static int decoder_thread(void *arg)
+             av_log(dp, AV_LOG_VERBOSE, "Decode error rate %g\n", err_rate);
+     }
+
++#if CONFIG_HEVC_VAAPI_HWACCEL
++    if (ret >= 0 && dp->va_observer_report) {
++        ret = ff_vaapi_decode_observer_write_report(dp->dec_ctx,
++                                                     dp->va_observer_report);
++        if (ret < 0) {
++            av_log(dp, AV_LOG_FATAL,
++                   "Cannot publish the VA observer result: %s\n",
++                   av_err2str(ret));
++            goto finish;
++        }
++    }
++#else
++    av_assert0(!dp->va_observer_report);
++#endif
++
+ finish:
+     dec_thread_uninit(&dt);
+     avcodec_free_context(&dp->dec_ctx);
+@@ -1518,13 +1541,35 @@
+ }
+-
++
+ static int dec_open(DecoderPriv *dp, AVDictionary **dec_opts,
+                     const DecoderOpts *o, AVFrame *param_out)
+ {
++    const AVDictionaryEntry *observer_outputs =
++        av_dict_get(*dec_opts, "va_observer_outputs", NULL, 0);
+     const AVCodec *codec = o->codec;
+     int ret;
+-
++
++    if (!!observer_outputs != !!o->va_observer_report ||
++        (o->va_observer_report && !*o->va_observer_report)) {
++        av_log(dp, AV_LOG_ERROR,
++               "va_observer_outputs and va_observer_report must be set together.\n");
++        return AVERROR(EINVAL);
++    }
++    if (o->va_observer_report) {
++#if CONFIG_HEVC_VAAPI_HWACCEL
++        if (codec->id != AV_CODEC_ID_HEVC)
++            return AVERROR(EINVAL);
++        dp->va_observer_report = av_strdup(o->va_observer_report);
++        if (!dp->va_observer_report)
++            return AVERROR(ENOMEM);
++#else
++        av_log(dp, AV_LOG_ERROR,
++               "VA observer reporting requires the HEVC VAAPI hwaccel.\n");
++        return AVERROR(ENOSYS);
++#endif
++    }
++
+     dp->flags      = o->flags;
+     dp->log_parent = o->log_parent;
+-
++
+     dp->dec.type                = codec->type;
+     dp->framerate_in            = o->framerate;
