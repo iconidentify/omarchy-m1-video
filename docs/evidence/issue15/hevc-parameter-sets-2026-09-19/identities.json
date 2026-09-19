@@ -1,0 +1,57 @@
+{
+  "schema": "omarchy-m1-video.issue15-hevc-qualification/1",
+  "date": "2026-09-19",
+  "device": {
+    "model": "Apple MacBook Pro (13-inch, M1, 2020)",
+    "compatible": [
+      "apple,j293",
+      "apple,t8103",
+      "apple,arm-platform"
+    ],
+    "architecture": "aarch64"
+  },
+  "kernel": {
+    "release": "7.1.13-3-1-ARCH",
+    "package": "linux-asahi 7.1.13.asahi3-1",
+    "headers_package": "linux-asahi-headers 7.1.13.asahi3-1",
+    "module_path": "/lib/modules/7.1.13-3-1-ARCH/updates/apple-avd.ko",
+    "module_sha256": "e50540e1d0fc48c7e0bf9b21ff028758bdb35f94aa7070af00de88e61e5c70e9",
+    "build_stamp": "tag=asahi-7.1.13-3 patches=029f57377a00",
+    "loaded_identity_limit": "The guard confirms that apple_avd is loaded, but cannot certify which on-disk binary was loaded earlier or that every patch is active."
+  },
+  "va_driver": {
+    "package": "libva-v4l2_request-avd 1.3.r11-2",
+    "vendor": "v4l2-request (omarchy-m1-video 1.3.r11)",
+    "path": "/usr/lib/dri/v4l2_request_drv_video.so",
+    "sha256": "ff01edf14cf85f52cf07073da2cf642a9d9b0dde9f055e366478fdb1d2d89a10",
+    "source_commit_for_tools": "7109f7eeeba7e16c1bc5d1d5dcd96eb214d6482f",
+    "libva_package": "libva 2.24.1-1"
+  },
+  "ffmpeg": {
+    "system_package": "ffmpeg 2:9.0.1-4",
+    "source_commit": "bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa",
+    "source_tag": "n9.0.1",
+    "patch": "experiments/hevc-parameter-sets/ffmpeg-n9.0.1-hevc-pending-parameter-sets.patch",
+    "patch_sha256": "a598cbf599060ff2bb105bb95a24c5dada122b58363ad9d24337cfb1f307f26b",
+    "base_binary_sha256": "6779ba3a2583b95c849a8bfc7976cc1f7de281d0abaeed57b68da65d4faed5c6",
+    "fixed_binary_sha256": "5b57be7b2b206f06c574fb635640aae52b6bb68540ea61271bddc27a31cac1de",
+    "base_libavcodec_so_63_sha256": "33ac78aa4bc3cab8e1cde7498def9ee79a59a6ebf5df0ae9bb57b8ef10b4d931",
+    "fixed_libavcodec_so_63_sha256": "74a6c3c87cf2eee77f0369d051c33b7f9d7e1e4c6289155ec109a3d549c3658d",
+    "installed": false
+  },
+  "checker": {
+    "source": "tests/frame-check.c at driver commit 7109f7eeeba7e16c1bc5d1d5dcd96eb214d6482f",
+    "binary_sha256": "0bfab6b1240ad7c6bf659e8d7499d7b3bc611039309bbbae23463ef9f0982bf2",
+    "runtime_linkage": "Selected local FFmpeg prefix for libavformat.so.63, libavcodec.so.63, libswscale.so.10 and libavutil.so.61; system libva, libva-drm and libdrm."
+  },
+  "corpus": {
+    "fluster_commit": "f3ad284a9e6cac70dc01b02e0de71c2994181d34",
+    "suite_json_sha256": "778c3cf8724b7f3a9f9ad59d4633531f110e3d660d27f47721b96e148224d04f",
+    "vpsspspps_vector_sha256": "8501a5e5f0f191d3810a7aecab43aacac1fcc28f08cb3731158cc48a89501a27"
+  },
+  "unabridged_local_results": {
+    "base_vector_summary_sha256": "63f967244c9144d2dd39ab97b1bb2f3311ae4156b5ee2ce27df92596dca4a5bb",
+    "fixed_vector_summary_sha256": "dbd10a8053ed166db8981fde8b6c8c82adaa559ba98840193e51c413969aa833",
+    "fixed_full_suite_summary_sha256": "5146a4485fd58f51436e66bc365c85ac884f829a8deeebbef6279e718c698d1b"
+  }
+}

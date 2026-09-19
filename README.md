@@ -62,7 +62,7 @@ Conformance on an M1 (bit-exact against the reference decoders):
 
 | Suite | Through VA-API (FFmpeg) | Through V4L2 (GStreamer) |
 |---|---|---|
-| HEVC `JCT-VC-HEVC_V1` (147 streams) | 144 serial; 144 with four test processes¹ | 143 |
+| HEVC `JCT-VC-HEVC_V1` (147 streams) | 144 with packaged r11; **145 with the selected patched FFmpeg client**; 144 with four packaged-client test processes¹ | 143 |
 | H.264 `JVT-AVC_V1` (135 streams) | 73 | 77 |
 | H.264 FRExt `JVT-FR-EXT` (69 streams) | 25 by default; 27 with High 10 enabled | 35 |
 | VP9 `VP9-TEST-VECTORS` (305 streams) | 216 | Not checked |
@@ -74,6 +74,12 @@ observed. Historical intermittent concurrent mismatches remain open.
 The r11 package preserves the exact preceding HEVC, AVC, opt-in High 10 FRExt and VP9
 pass sets. It also passes 864 generated hardware frame comparisons, including mixed
 codecs sharing one VA display. See [the r11 validation record](docs/codec-validation-r11-2026-09-15.json).
+
+The 145/147 HEVC result uses FFmpeg n9.0.1 commit `bf1b838f2ab88b4f8fd83443325c782ea0e0f7fa`
+plus the pending-parameter-set patch with SHA-256
+`a598cbf599060ff2bb105bb95a24c5dada122b58363ad9d24337cfb1f307f26b`.
+It is a guarded local-client qualification, not an installed package or a driver-only
+r11 improvement. See [the issue #15 hardware evidence](docs/evidence/issue15/hevc-parameter-sets-2026-09-19/README.md).
 
 The VP9 high-bit-depth result covers only the suite's one 10-bit 4:2:0 stream (10 frames),
 not its five 12-bit or 4:2:2/4:4:4 streams. An additional 384 generated VP9 frame comparisons

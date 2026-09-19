@@ -164,7 +164,7 @@ preceding full batch is submitted. A failed RenderPicture blocks EndPicture from
 an incomplete picture. The sanitizer regressions cover these paths, index remapping, and
 long-term references retained across 200 picture updates.
 
-### VPSSPSPPS_A_MainConcept_1: FFmpeg parser and output handling
+### VPSSPSPPS_A_MainConcept_1: selected FFmpeg client passes hardware
 
 Direct GStreamer V4L2 passes the reference checksum. FFmpeg discards parameter sets whose
 dependencies have not yet been seen, then loses pictures that refer to them. Its normal
@@ -173,9 +173,18 @@ native-size decode retains only two frames (352x288 and 1280x720) and hashes to
 `ec9f5857591ac4c215d194deaf52167c`, not the reference `1ddf74263cb4953cfdfcf99c563d88ea`.
 
 Passing the stream through `h265parse config-interval=-1` recovers five frames but still
-misses the reference checksum. That experiment does not close the case. A client parser
-fix must preserve valid parameter sets until their dependencies are available and emit
-every picture; the checksum tool must preserve each picture's dimensions as well.
+misses the reference checksum. The selected FFmpeg n9.0.1 client patch instead preserves
+pending dependencies until activation. In a guarded VA-API run it emits all six pictures
+at their native sizes (176x144 through 1280x720) and matches the reference checksum
+`1ddf74263cb4953cfdfcf99c563d88ea`.
+
+The complete strict hardware suite with that client passes **145/147**, 8,895 frames. An
+exact pass-set comparison against r11 loses no passes and adds only
+`VPSSPSPPS_A_MainConcept_1`; `RPS_E_qualcomm_5` remains wrong and the unequal-bit-depth
+stream remains an expected rejection. The exact FFmpeg commit, patch hash, local binary
+hashes and guard records are in [the issue #15 evidence](evidence/issue15/hevc-parameter-sets-2026-09-19/README.md).
+The patch was not installed or packaged, so the shipped r11 stack remains 144/147 and no
+driver-only release is credited with this client fix.
 
 ### Other HEVC limits
 
