@@ -2,9 +2,10 @@
 
 Implementation `2d4c483c1b8d8e31607cc9a1c4cb30b908a77983`, final test source
 `4e8b50937a9a614307928442b3c7ad8bc199ca66`. The evidence commit changes only
-documentation/logs. Unmerged dependency PR106 is preserved at
-`b1a39794d2b828ebea0633d43ac559db0a814fa7`; fetched default main was
-`a3a6dbedf12830c13d6e23605a538553f125a507`.
+documentation/logs. Dependency PR106 is now merged into this branch at
+`1b7b033cf35fc056e9fbe4a81d7e012dcbe79b39`, which carries the adversarial
+review's flush fix; the figures below are from a fresh run on that merged tree.
+Fetched default main was `a3a6dbedf12830c13d6e23605a538553f125a507`.
 
 The fresh final-source run exited 0. Its complete successful stdout/stderr is
 [retained here](scheduling-validation-20260918.log). Pinned GStreamer revision
@@ -15,10 +16,10 @@ configured plugin is compiled, not just extracted scheduling predicates.
 
 | Executed checks | ASan/UBSan | TSan |
 | --- | ---: | ---: |
-| Actual registered output callback modes | 32 (19 original + 13 new) | 32 |
+| Actual registered output callback modes | 33 (19 original + 13 new + flush-armed) | 33 |
 | Retained-copy integration modes on modified source | 25 | 25 |
 | Native observer modes on modified source | 29 | 29 |
-| Named semantic callsite mutations | 13 (8 existing + 5 new) | Not repeated |
+| Named semantic callsite mutations | 14 (8 existing + 5 new + armed-flush-recovery) | Not repeated |
 | Original HEVC parser/bitwriter/parser-element checks | 48 (17 + 1 + 5 + 25) | Not repeated |
 
 New cases cover selection and matched no-copy, incomplete plan, duplicate output,
