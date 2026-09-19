@@ -63,6 +63,7 @@ enum {
     MODE_SNAPSHOT_FAIL,
     MODE_BAD_ABI,
     MODE_WRONG_RECEIPT,
+    MODE_CLOSE_ONCE,
 };
 
 struct fake_counts {
@@ -207,6 +208,8 @@ VAStatus v4l2r_observer_close(VADriverContextP driver,
     if (!session || session->nonce != 14)
         return VA_STATUS_ERROR_INVALID_PARAMETER;
     counts.close++;
+    if (mode == MODE_CLOSE_ONCE && counts.close == 1)
+        return VA_STATUS_ERROR_OPERATION_FAILED;
     return VA_STATUS_SUCCESS;
 }
 

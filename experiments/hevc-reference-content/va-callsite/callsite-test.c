@@ -18,7 +18,7 @@
 
 enum {
     MODE_NORMAL, MODE_WRONG_SURFACE, MODE_END_ONCE, MODE_END_ALWAYS,
-    MODE_SNAPSHOT_FAIL, MODE_BAD_ABI, MODE_WRONG_RECEIPT,
+    MODE_SNAPSHOT_FAIL, MODE_BAD_ABI, MODE_WRONG_RECEIPT, MODE_CLOSE_ONCE,
 };
 struct fake_counts {
     unsigned open, select, begin, snapshot, end, close;
@@ -293,6 +293,34 @@ int main(int argc, char **argv)
         counts = f.get_counts();
         assert(!counts.select && counts.close == 1);
         destroy(&f, -1);
+    } else if (!strcmp(argv[2], "post-finish-output")) {
+        VAAPIObserverResult result;
+        fixture_init(&f, argv[1]);
+        assert(ff_vaapi_decode_observer_arm(&f.avctx, "0", 0) == 0);
+        assert(output(&f, 68) == 0);
+        assert(ff_vaapi_decode_observer_finish(&f.avctx) == 0);
+        assert(ff_vaapi_decode_observer_result(&f.avctx, &result) == 0);
+        assert(output(&f, 69) < 0);
+        assert(ff_vaapi_decode_observer_result(&f.avctx, &result) < 0);
+        counts = f.get_counts();
+        assert(counts.select == 1 && counts.begin == 1 && counts.end == 1 &&
+               counts.close == 1);
+        destroy(&f, -1);
+    } else if (!strcmp(argv[2], "close-retry")) {
+        VAAPIObserverResult result;
+        fixture_init(&f, argv[1]);
+        f.set_mode(MODE_CLOSE_ONCE);
+        assert(ff_vaapi_decode_observer_arm(&f.avctx, "0", 0) == 0);
+        assert(output(&f, 70) == 0);
+        assert(ff_vaapi_decode_observer_finish(&f.avctx) < 0);
+        assert(ff_vaapi_decode_observer_result(&f.avctx, &result) < 0);
+        counts = f.get_counts();
+        assert(counts.end == 1 && counts.close == 1);
+        assert(ff_vaapi_decode_observer_finish(&f.avctx) == 0);
+        assert(ff_vaapi_decode_observer_result(&f.avctx, &result) == 0);
+        counts = f.get_counts();
+        assert(counts.close == 2);
+        destroy(&f, 0);
     } else {
         assert(!"unknown case");
     }

@@ -10,7 +10,7 @@ no hardware access. Repository base
   codeload archive SHA-256
   `fb1931fd4eb29297ee1c1017a24f800c4d8fbea35b4f2aaeb28308a48a9149b4`.
 - FFmpeg patch SHA-256
-  `5011cca17351479f19c91a678a6801590616e699ff496a03b9d148426ebb1833`.
+  `e8a7bbcadc0c0efb144612f978301f535030a036a6f2454312393ad7a26de840`.
 - Paired driver ABI patch SHA-256
   `21ce2b1df7fcea8001cf0de6496a69ed1da6159e814cc2f42b58c4dd44ab766b`.
 - Driver integration source `c77e7b566f7baf9c7a2aad797e62c9aa578d9687`;
@@ -25,27 +25,30 @@ Command:
 
 ```sh
 python3 experiments/hevc-reference-content/va-callsite/tests.py \
-  --keep /home/chrisk/src/video-114-work-20260919/runner-final5
+  --archive /home/chrisk/src/video-114-work-20260919/runner-final5/ffmpeg.tar.gz \
+  --keep /home/chrisk/src/video-114-work-20260919/runner-self-review2
 ```
 
 The runner configured and built the complete selected FFmpeg libraries twice,
 with ASan/UBSan and TSan. It verified the real start/output call-site order and
-ran 17 cases under each sanitizer: default-off, copy-off/on, invalid display,
+ran 19 cases under each sanitizer: default-off, copy-off/on, invalid display,
 wrong DSO origin, late arm, threaded and foreign-owner rejection, bad ABI,
 duplicate selection, wrong selected surface, wrong receipt surface, failed-end
-retry, snapshot failure, flush retry, active-uninit retry and incomplete finish.
-All 34 executions passed without a sanitizer diagnostic.
+retry, snapshot failure, flush retry, active-uninit retry, incomplete finish,
+post-finish output rejection and native-close retry. All 38 executions passed
+without a sanitizer diagnostic.
 
 | Build | `vaapi_decode.o` SHA-256 | Fixture SHA-256 |
 | --- | --- | --- |
-| ASan/UBSan | `05755e51fe6f3b23f251c2f5c1e2ad443e04568bca6dd2a075c609b2a8c75957` | `71f54fcd1c6b9515cdd3a1fe72b25892bd04715a73987151309ca147465578d3` |
-| TSan | `a0756903c3209a734ab26a04cd2a6c832093c1888e70792323aa0b62d4f332cd` | `084f217abc68e14e8de0bbf5fe0f6265d7483e9f094b8d8ee0089e10fd68588a` |
+| ASan/UBSan | `f3b00f527eb93cff0983515ab4e9c0760b252b48b76a1730c13be4958d58c763` | `5dc58de60122e0aabeae440f0b81d52e83537c0d9118f93f97b98a1c4450f5b2` |
+| TSan | `3f74facbba3bfc5b12554c2dccbc4d166763d748db7a251c8af12f926a615d78` | `9ba28bdadd94a9c672a22d46519bdc7362d757daae834c33175804bbf9977b88` |
 
-Nine semantic mutations were distinguished by named behavioral assertions:
+Ten semantic mutations were distinguished by named behavioral assertions:
 driver-DSO origin, private ABI, open-before-submit, single-thread ownership,
 owner-thread enforcement, selected-surface binding, duplicate selection,
-retained-lease cleanup and output-before-publication order. No compiler failure,
-timeout or sanitizer finding counted as a mutation pass.
+retained-lease cleanup, failed-result rejection and output-before-publication
+order. No compiler failure, timeout or sanitizer finding counted as a mutation
+pass.
 
 ## Real driver integration preservation
 

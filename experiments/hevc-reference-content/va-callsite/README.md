@@ -72,13 +72,14 @@ python3 experiments/hevc-reference-content/va-callsite/tests.py \
 
 Positive cases cover default-off, copy-off/on, bad display, wrong driver origin,
 late arm, threaded and foreign-owner rejection, ABI mismatch, duplicate selections,
-target/receipt mismatch, snapshot failure, failed-end retry and incomplete
-finish, including flush and uninit retry paths. Eight compiled semantic
+target/receipt mismatch, snapshot failure, failed-end retry, native-close retry,
+incomplete finish and post-finish output rejection, including flush and uninit
+retry paths. Nine compiled semantic
 mutations cover driver origin, ABI, open-before-submit, single-thread ownership,
 owner-thread enforcement, selected-surface binding, duplicate selection and
-retained-lease cleanup. A ninth removes the actual output hook
-and must fail the dequeue-before-publication assertion. Compiler, timeout or
-sanitizer failures are not counted as mutation detections.
+retained-lease cleanup, plus sticky failed-result rejection. A tenth removes
+the actual output hook and must fail the dequeue-before-publication assertion.
+Compiler, timeout or sanitizer failures are not counted as mutation detections.
 
 The paired `driver-client-abi.patch` is layered after the existing VA adapter and
 copy-integration patches. The existing VA integration job builds it in the full

@@ -538,7 +538,7 @@ index 4ac2df5..b17d255 100644
 +    if (!pthread_equal(state->owner, pthread_self()))
 +        return AVERROR(EPERM);
 +    if (state->finished)
-+        return 0;
++        return state->failed ? AVERROR_INVALIDDATA : 0;
 +    if (state->active) {
 +        if (state->end(state->driver, &state->session,
 +                       state->receipt.lease) != VA_STATUS_SUCCESS)
@@ -570,7 +570,7 @@ index 4ac2df5..b17d255 100644
 +        return AVERROR(EINVAL);
 +    ctx = avctx->internal->hwaccel_priv_data;
 +    state = ctx->observer;
-+    if (!state || !state->finished || !state->closed || state->active ||
++    if (!state || state->failed || !state->finished || !state->closed || state->active ||
 +        !pthread_equal(state->owner, pthread_self()))
 +        return AVERROR(EINVAL);
 +    *result = state->result;

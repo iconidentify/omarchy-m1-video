@@ -23,6 +23,7 @@ CASES = (
     "wrong-origin", "late-arm", "threaded-reject", "bad-abi", "duplicate",
     "foreign-owner", "wrong-surface", "receipt-mismatch", "end-retry",
     "snapshot-failure", "flush-retry", "uninit-retry", "incomplete",
+    "post-finish-output", "close-retry",
 )
 ENV = os.environ | {
     "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
@@ -200,6 +201,10 @@ def mutations(tree: Path, build: Path) -> None:
          "    /* mutation: retain active lease state after native end */\n"
          "    av_frame_unref(state->held_frame);",
          "success-off", "output(&f, 42) == 0"),
+        ("failed-result",
+         "if (!state || state->failed || !state->finished || !state->closed || state->active ||",
+         "if (!state || false || !state->finished || !state->closed || state->active ||",
+         "post-finish-output", "ff_vaapi_decode_observer_result(&f.avctx, &result) < 0"),
     ]
     for label, old, new, case, assertion in cases:
         try:

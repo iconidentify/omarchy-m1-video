@@ -25,9 +25,9 @@
 | 5 Concurrency | FFmpeg frame threading transfers non-thread-safe VA state between workers, conflicting with the observer's owner-thread contract: R1. Armed mode now requires one decoder thread and one application owner; both guards have behavioral tests and mutations. |
 | 6 Trust/bounds | Real `VADisplayContextP` magic/context/vtable is validated. `dladdr` identifies the loaded backend and every private symbol must resolve to that same DSO base with the paired ABI token. Parser limits selections to eight distinct ordinals. |
 | 7 Hardware | Driver identity/range checks are inherited and rerun, but all syscalls/content here are synthetic. DMA visibility, firmware behavior, live manifest and same-run kernel association remain external gates. |
-| 8 Consolidate | Two introduced findings were fixed; owner-thread and uninit concerns share the native lease contract. Dismissals/limits are recorded below. |
+| 8 Consolidate | Three introduced findings were fixed; owner-thread, result-state and uninit concerns share the native lease contract. Dismissals/limits are recorded below. |
 | 9 Resolve conflicts | The initial assumption that VA serialization made frame threading safe was rejected after reading `pthread_frame.c`: state serialization does not preserve `pthread_t` ownership. |
-| 10 Verify | Complete pinned FFmpeg is built under ASan/UBSan and TSan. Seventeen cases and nine semantic mutations cover the final patch; the complete real-driver VA integration suite is rerun separately. |
+| 10 Verify | Complete pinned FFmpeg is built under ASan/UBSan and TSan. Nineteen cases and ten semantic mutations cover the final patch; the complete real-driver VA integration suite is rerun separately. |
 | 11 Report | Ready for scoped PR review after final-head CI. #82 and driver #42 remain open; this is not a live-use or support decision. |
 
 ## Concerns and dispositions
@@ -48,6 +48,13 @@
   decoder-produced frame merely because the callback returned an error. Both
   failure branches now unref before returning. The structural call-site check
   requires dequeue → observer → failed-frame cleanup → publication ordering.
+- **R3, confirmed and fixed, P1/high confidence, introduced here:** after a
+  successful explicit finish, a later output correctly failed because the
+  observer was closed, but `result()` and repeated `finish()` ignored the new
+  sticky failure and could still report the earlier observation as successful.
+  Both APIs now reject that state. The `post-finish-output` case proves the
+  decode error invalidates result and uninit status; the `failed-result`
+  mutation must fail the result assertion specifically.
 - **T1, hosted-test integration fixed:** the first Ubuntu/x86 job stopped in
   FFmpeg configure because NASM was absent. The selected observer path does not
   require x86 assembly; the hermetic runner now passes `--disable-x86asm` instead
