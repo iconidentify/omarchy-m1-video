@@ -82,6 +82,13 @@ rather than a missing capability, and the decoder was loaded but wholly idle in 
 boot. No PMU boot error has appeared in any boot since. Cause, module involvement and
 loaded-binary identity all remain unresolved.
 
+A [first boot-matrix pass](evidence/issue13/m1-boot-matrix-20260919.md) ran on
+2026-09-19 with the owner at the console: one attempt in each of the four cells,
+controls verified decoder-absent and patched cells verified decoder-loaded. All four
+were clean with zero PMU boot errors. Four of the eight planned attempts were not
+run. This is a screening result on a small sample and does not establish reliable
+booting.
+
 Next: an explicitly approved cold/warm boot matrix, with timestamps, power state, kernel
 and patch identity, previous-boot journal and any persistent crash record. A reproducible
 failure needs comparison with the module blacklisted. Save work before every reboot or
