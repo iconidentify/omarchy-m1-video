@@ -6,11 +6,13 @@ Parent [driver #42](https://github.com/iconidentify/libva-v4l2_request/issues/42
 Eight workloads: `{B,E} × {VA,Gst} × {observer off,on}`. The actual native lifetime
 APIs and experimental bounded copy path now exist; see [integration](integration/README.md).
 The additive [Gst call site](gst-callsite/README.md) now wires one production
-output callback, with offline tests and explicit internal arming. There is still
-no campaign controller or executable hardware campaign command. Review that
-call site, implement selected-writer scheduling, remaining VA client wiring and
-same-run command/reference association, provide exact loaded
-build/client/tool/corpus evidence, and approve the deployment manifest. Re-review
+output callback, with offline tests and explicit internal arming. Selected-writer scheduling is
+merged. A [campaign controller](campaign/README.md) now plans and reviews these
+eight workloads against the call site's documented limits and these budgets, and
+refuses to execute them; there is still no executable hardware campaign command.
+Remaining: remaining VA client wiring and same-run command/reference association,
+exact loaded build/client/tool/corpus evidence, and an approved deployment
+manifest. Re-review
 this plan against that exact head. The manifest verifier alone covers the observer
 object, kernel, AVD and modular vb2 components; it does not cover the full clients.
 

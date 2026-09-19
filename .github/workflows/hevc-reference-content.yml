@@ -25,6 +25,8 @@ jobs:
           persist-credentials: false
       - name: Fake queue pause/drain/retention and adapter admissions
         run: python3 experiments/hevc-reference-content/tests.py
+      - name: Campaign controller plan review and refusal
+        run: python3 experiments/hevc-reference-content/campaign/tests.py
   gst-observer:
     runs-on: ubuntu-latest
     timeout-minutes: 30

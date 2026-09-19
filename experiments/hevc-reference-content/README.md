@@ -8,9 +8,13 @@ copy path to those actual implementations, with complete-source offline fixtures
 It normalizes the divergent receipts and requires reviewed runtime allocation/build
 provenance. No approved live manifest or production call-site wiring ships.
 
+One production Gst call site and selected-writer scheduling are merged, and a
+[campaign controller](campaign/README.md) plans and reviews the eight workloads
+while refusing to run them.
+
 Remaining gates: full client/dependency/corpus identities, actual same-run kernel
-command/reference association, reviewed pre-publication call sites, approved loaded
-builds and the separately guarded [campaign](CAMPAIGN.md). #82 and driver #42 stay
+command/reference association, remaining VA client wiring, approved loaded builds
+and the separately guarded [campaign](CAMPAIGN.md) itself. #82 and driver #42 stay
 open. Existing synthetic, source-audit and helper evidence is preserved below as
 historical partial work; its statements about missing APIs describe that earlier
 stage and the unchanged Python `real_client_adapter`, not the newer C patches.
