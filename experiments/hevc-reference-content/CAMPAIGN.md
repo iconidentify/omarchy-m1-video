@@ -5,16 +5,20 @@ Parent [driver #42](https://github.com/iconidentify/libva-v4l2_request/issues/42
 
 Eight workloads: `{B,E} × {VA,Gst} × {observer off,on}`. The actual native lifetime
 APIs and experimental bounded copy path now exist; see [integration](integration/README.md).
-The additive [Gst call site](gst-callsite/README.md) now wires one production
-output callback, with offline tests and explicit internal arming. Selected-writer scheduling is
+The additive [Gst call site](gst-callsite/README.md) and
+[FFmpeg/VA call site](va-callsite/README.md) now wire their production output
+boundaries, with offline tests and explicit internal arming. Selected-writer scheduling is
 merged. A [campaign controller](campaign/README.md) now plans and reviews these
-eight workloads against the call site's documented limits and these budgets, and
-refuses to execute them; there is still no executable hardware campaign command.
-Remaining: remaining VA client wiring and same-run command/reference association,
-exact loaded build/client/tool/corpus evidence, and an approved deployment
-manifest. Re-review
-this plan against that exact head. The manifest verifier alone covers the observer
-object, kernel, AVD and modular vb2 components; it does not cover the full clients.
+eight workloads against the shared budgets and the Gst call-site limits, and
+refuses to execute them. It predates the VA call site: its `frames` field is a
+Gst `system_frame_number`, not a VA output ordinal, and it does not yet enforce
+the VA client's `threads=1`/same-application-owner contract. There is still no
+executable hardware campaign command. Remaining: extend that refusing planner
+and eventual runner for the VA selector/owner rules, add same-run
+command/reference association, exact loaded build/client/tool/corpus evidence,
+and an approved deployment manifest. Re-review this plan against that exact
+head. The manifest verifier alone covers the observer object, kernel, AVD and
+modular vb2 components; it does not cover the full clients.
 
 Use a fresh run UUID/root, the portable exclusive guard, fixed journal boundary,
 foreign-client check and healthy idle start. Off and on both pause/drain, retain
@@ -55,7 +59,10 @@ The following is a plan, not a run result or an installer recipe.
    location before publication. Identify the exact successful writer and all later
    readers from native records. Join kernel command/reference records through the
    same run/context/allocation/writer identity; frame, POC, fd and capture index alone
-   cannot authorize or identify a snapshot. Missing/lost/ambiguous joins block entry.
+   cannot authorize or identify a snapshot. For VA, use distinct zero-based output
+   ordinals on a fresh `threads=1` decoder and keep send/receive/finish/close on one
+   application owner; do not pass Gst `system_frame_number` selections through as
+   VA ordinals. Missing/lost/ambiguous joins block entry.
 3. Verify the original B/E corpus lock and every input hash. Create a fresh root for
    each of the eight workloads, retaining exact argv/environment, monotonic/journal
    boundaries, tool identities and zero-loss trace accounting. Repeat the same
