@@ -8,6 +8,9 @@ typedef struct _GstHevcCallsite {
   GstVideoCodecFrame *held_frame;
   GstH265Picture *held_picture;
   gboolean copy, attempted, success, in_callback, cancel_held;
+  gboolean scheduled, failed, observed[HEVC_CONTENT_SLOTS];
+  guint count, collected;
+  guint32 frames[HEVC_CONTENT_SLOTS];
   gint cancel_state;
 } GstHevcCallsite;
 
@@ -22,8 +25,9 @@ content_client (GstH265Decoder *decoder)
       gst_v4l2_codec_h265_dec_output_picture;
 }
 
-gboolean
-gst_hevc_callsite_arm (GstH265Decoder *decoder, gboolean copy)
+static gboolean
+content_arm (GstH265Decoder *decoder, gboolean copy,
+    const guint32 *frames, guint count)
 {
   if (!content_client (decoder) || (copy != FALSE && copy != TRUE))
     return FALSE;
@@ -45,6 +49,10 @@ gst_hevc_callsite_arm (GstH265Decoder *decoder, gboolean copy)
   }
   state->owner = g_thread_ref (g_thread_self ());
   state->copy = copy;
+  state->scheduled = frames != NULL;
+  state->count = frames ? count : 1;
+  if (frames)
+    memcpy (state->frames, frames, count * sizeof (*frames));
   self->content_callsite = state;
   gst_object_ref (self); /* explicit finish owns this reference, also on errors */
   g_rec_mutex_unlock (&gst_hevc_observer_mutex);
@@ -52,6 +60,25 @@ gst_hevc_callsite_arm (GstH265Decoder *decoder, gboolean copy)
 done:
   GST_VIDEO_DECODER_STREAM_UNLOCK (decoder);
   return ok;
+}
+
+gboolean
+gst_hevc_callsite_arm (GstH265Decoder *decoder, gboolean copy)
+{
+  return content_arm (decoder, copy, NULL, 0);
+}
+
+gboolean
+gst_hevc_callsite_arm_frames (GstH265Decoder *decoder, gboolean copy,
+    const guint32 *frames, guint count)
+{
+  if (!frames || !count || count > HEVC_CONTENT_SLOTS)
+    return FALSE;
+  for (guint i = 0; i < count; i++)
+    for (guint j = 0; j < i; j++)
+      if (frames[i] == frames[j])
+        return FALSE;
+  return content_arm (decoder, copy, frames, count);
 }
 
 /* Runs only inside the production output callback, under stream -> observer
@@ -68,9 +95,32 @@ content_before_output (GstV4l2CodecH265Dec *self, GstV4l2Request *request,
     return FALSE;
   state->in_callback = TRUE;
   *active = state;
-  if (state->attempted)
+  if (state->failed)
+    return FALSE;
+  if (!state->scheduled && state->attempted)
     return state->success;
+  guint selected = 0;
+  if (state->scheduled) {
+    /* Validate actual request identity even for a nonselected output: a wrong
+     * frame number must not disguise a selected writer as an ordinary output. */
+    if (!gst_hevc_callsite_frame_matches (request, frame->system_frame_number) ||
+        frame->system_frame_number != GST_CODEC_PICTURE (picture)->system_frame_number ||
+        !gst_hevc_callsite_output_matches (request, frame->output_buffer)) {
+      state->failed = TRUE;
+      return FALSE;
+    }
+    for (selected = 0; selected < state->count; selected++)
+      if (state->frames[selected] == frame->system_frame_number)
+        break;
+    if (selected == state->count)
+      return TRUE;
+    if (state->observed[selected]) {
+      state->failed = TRUE; /* duplicate/wrapped frame number is ambiguous */
+      return FALSE;
+    }
+  }
   state->attempted = TRUE;
+  state->failed = TRUE; /* sticky until this whole observation succeeds */
   pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, &state->cancel_state);
   state->cancel_held = TRUE;
   GstHevcObserverTarget target;
@@ -90,7 +140,12 @@ content_before_output (GstV4l2CodecH265Dec *self, GstV4l2Request *request,
     return FALSE;
   }
   state->receipt.lease = 0;
-  state->success = ok;
+  if (ok) {
+    state->observed[selected] = TRUE;
+    state->collected++;
+    state->failed = FALSE;
+    state->success = state->collected == state->count;
+  }
   return ok;
 }
 
@@ -116,9 +171,14 @@ gst_hevc_callsite_result (GstH265Decoder *decoder)
   GST_VIDEO_DECODER_STREAM_LOCK (decoder);
   GstHevcCallsite *state = GST_V4L2_CODEC_H265_DEC (decoder)->content_callsite;
   if (state && state->owner == g_thread_self () && !state->in_callback &&
-      state->success && !state->receipt.lease && state->pool.used == 1 &&
-      state->pool.slot[0].valid)
-    result = &state->pool;
+      state->success && !state->failed && !state->receipt.lease &&
+      state->pool.used == state->count) {
+    gboolean valid = TRUE;
+    for (guint i = 0; i < state->pool.used; i++)
+      valid &= state->pool.slot[i].valid;
+    if (valid)
+      result = &state->pool;
+  }
   GST_VIDEO_DECODER_STREAM_UNLOCK (decoder);
   return result; /* borrowed private copy, valid only until same-owner finish */
 }
