@@ -88,3 +88,6 @@ declared output counts/input windows, collect evidence, compare off/on outputs o
 restore a machine. Those values must come from the locked corpus and later
 same-run evidence, not assumed POC/index mappings. A plan passing review says
 only that it is internally consistent with the accepted client contracts.
+
+See [REVIEW.md](REVIEW.md) for the adversarial dispositions and
+[VALIDATION.md](VALIDATION.md) for exact offline evidence and limitations.

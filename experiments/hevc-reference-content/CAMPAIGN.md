@@ -25,13 +25,17 @@ Use a fresh run UUID/root, the portable exclusive guard, fixed journal boundary,
 foreign-client check and healthy idle start. Off and on both pause/drain, retain
 allocation and surface, map and preallocate; only selected compressed/MV copies differ.
 Keep reference, completion and command records from that same run with zero lost records.
-Initial slots: three selected E writers and one B control per client (eight total);
-select their actual identities from same-run records, not assumed POC/index mappings.
+Initial targets: three selected E writers and one B control per client (eight
+unique targets). Each target is observed in paired copy-off/on workloads: sixteen
+selected observations, but only the eight copy-on observations retain copied
+bytes. Select their actual identities from same-run records, not assumed
+POC/index mappings.
 
-Budgets: 184320 bytes/snapshot, eight snapshots/1474560 bytes total, at most 368128
-bytes per retained mapping, 20ms copy, 2s drain, proposed 120s/run and 20min campaign
-external deadlines. A deadline rejects a late copy; it cannot interrupt a stuck
-memory access. External guard/watchdog and healthy restoration rules still apply.
+Budgets: 184320 bytes/copied snapshot, eight copied snapshots/1474560 bytes total,
+at most 368128 bytes per retained mapping, 20ms copy, 2s drain, proposed 120s/run
+and 20min campaign external deadlines. A deadline rejects a late copy; it cannot
+interrupt a stuck memory access. External guard/watchdog and healthy restoration
+rules still apply.
 
 Compare every decoded output frame and selected same-run command/reference
 projection. Require B exact/E known-wrong outputs unchanged across off/on, no new
