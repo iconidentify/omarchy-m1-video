@@ -52,6 +52,14 @@ from the M1 history in [gap status](GAP_STATUS.md#h1--unexplained-resets-shortly
 It records earlier firmware and decode failures on the M2, but establishes no link between
 those failures and the historical M1 resets. Zero new boots were attempted for this assessment.
 
+The [M1 retained-journal analysis](evidence/issue13/m1-boot-reset-analysis.md) covers the
+affected machine itself. Both original reset boots are still retained. Each was recorded
+by the platform as one PMU **boot error with zero panics**, and neither boot contains any
+kernel oops, warning, AVD error or firmware message; the decoder module was loaded and
+idle. The resets were therefore not kernel panics and produced no kernel-visible fault.
+This characterises the events; it does not identify a cause, rule the module in or out, or
+make the boot path safe. Zero new boots were attempted for that analysis either.
+
 ## Proposed comparison — not approved or run
 
 The first campaign should use the affected M1 if available. An M2 campaign would produce
@@ -102,6 +110,12 @@ A skipped or unapproved cell is `not_run`, never a pass.
   or reset/freeze/recovery occurred; mark interrupted observations with duration.
 - Pre/post collection files and hashes; corresponding previous-boot journal availability;
   pstore access/archive state; retained redacted crash/PMU evidence where available.
+- The `macsmc-reboot` boot-error/panic counters for the attempt, captured immediately
+  after login before anything else can read and clear them, and recorded even when zero.
+  This was the only signal that fired for either original reset: a kernel journal alone
+  captured nothing for both. An attempt without this capture is `no discriminating
+  evidence`, not a clean boot. The counter is a count with no reason code, so record it
+  alongside the journal rather than in place of it.
 - All commands/actions actually performed, first new fault timestamp, stopping decision
   and final module/configuration state. Record any recovery separately from test outcomes.
 

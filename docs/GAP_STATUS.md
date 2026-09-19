@@ -70,10 +70,17 @@ validated on the M1.
 Tracked work: [Investigate unexplained boot resets with a consented, reproducible test matrix](https://github.com/iconidentify/omarchy-m1-video/issues/13), [Correct the identified reset cause before qualifying boot-enabled installation](https://github.com/iconidentify/omarchy-m1-video/issues/17).
 
 Two boots on 2026-09-14 reset with patches 0001–0005 loaded at boot. Their journals record
-module loading but no saved AVD panic/oops before ending. The second boot's PMU report says
-one boot error and zero panics. `/sys/fs/pstore` was empty when inspected on 2026-09-15.
+module loading but no saved AVD panic/oops before ending. Both post-reset boots report one
+PMU boot error and zero panics. `/sys/fs/pstore` was empty when inspected on 2026-09-15.
 One subsequent boot with all 15 patches succeeded. This does not establish the cause or
 prove reliable booting; decoding tests do not close this issue.
+
+The [M1 retained-journal analysis](evidence/issue13/m1-boot-reset-analysis.md) adds the
+baseline that makes the counter discriminating: an earlier retained boot shows the same
+counter recording 11 panics, so zero panics across both resets is a positive observation
+rather than a missing capability, and the decoder was loaded but wholly idle in each reset
+boot. No PMU boot error has appeared in any boot since. Cause, module involvement and
+loaded-binary identity all remain unresolved.
 
 Next: an explicitly approved cold/warm boot matrix, with timestamps, power state, kernel
 and patch identity, previous-boot journal and any persistent crash record. A reproducible
