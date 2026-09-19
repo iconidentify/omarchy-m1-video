@@ -81,3 +81,17 @@ jobs:
           echo "$RUNNER_TEMP/callsite-build-tools/bin" >> "$GITHUB_PATH"
       - name: Pinned production output callback and cleanup (no device)
         run: python3 experiments/hevc-reference-content/gst-callsite/tests.py --keep "$RUNNER_TEMP/gst-callsite"
+
+  va-callsite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install FFmpeg VA build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libva-dev libdrm-dev
+      - name: Pinned FFmpeg HEVC output hook, binding and cleanup (no device)
+        run: python3 experiments/hevc-reference-content/va-callsite/tests.py --keep "$RUNNER_TEMP/va-callsite"

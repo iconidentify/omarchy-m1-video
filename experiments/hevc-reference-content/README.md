@@ -1,20 +1,24 @@
 # HEVC reference-content observer experiments
 
-## Current status — 2026-09-18
+## Current status — 2026-09-19
 
 The real VA and Gst producer barriers/retained-allocation APIs are merged in
 PR100 and PR99. [integration/](integration/README.md) adds an experimental bounded
 copy path to those actual implementations, with complete-source offline fixtures.
 It normalizes the divergent receipts and requires reviewed runtime allocation/build
-provenance. No approved live manifest or production call-site wiring ships.
+provenance. No approved live manifest or enabled/shipped activation ships; both
+call sites remain additive experiments.
 
-One production Gst call site and selected-writer scheduling are merged, and a
-[campaign controller](campaign/README.md) plans and reviews the eight workloads
-while refusing to run them.
+Additive production-boundary Gst and FFmpeg/VA output call sites and
+selected-writer scheduling are merged. A [campaign controller](campaign/README.md)
+plans the eight workloads while refusing to run them; it still needs the new
+VA-specific output-ordinal and owner/thread constraints before it can become a
+runner.
 
 Remaining gates: full client/dependency/corpus identities, actual same-run kernel
-command/reference association, remaining VA client wiring, approved loaded builds
-and the separately guarded [campaign](CAMPAIGN.md) itself. #82 and driver #42 stay
+command/reference association, VA campaign-controller adaptation, approved
+loaded builds and the separately guarded [campaign](CAMPAIGN.md) itself. #82 and
+driver #42 stay
 open. Existing synthetic, source-audit and helper evidence is preserved below as
 historical partial work; its statements about missing APIs describe that earlier
 stage and the unchanged Python `real_client_adapter`, not the newer C patches.

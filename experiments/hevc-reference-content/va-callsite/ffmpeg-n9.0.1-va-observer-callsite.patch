@@ -1,0 +1,695 @@
+diff --git i/libavcodec/hevc/hevcdec.c w/libavcodec/hevc/hevcdec.c
+index 18e22f6..dc07a83 100644
+--- i/libavcodec/hevc/hevcdec.c
++++ w/libavcodec/hevc/hevcdec.c
+@@ -54,6 +54,9 @@
+ #include "libavcodec/progressframe.h"
+ #include "libavcodec/thread.h"
+ #include "libavcodec/threadprogress.h"
++#if CONFIG_HEVC_VAAPI_HWACCEL
++#include "libavcodec/vaapi_decode.h"
++#endif
+ 
+ #include "hevc.h"
+ #include "parse.h"
+@@ -3875,13 +3878,33 @@ static int hevc_receive_frame(AVCodecContext *avctx, AVFrame *frame)
+ 
+ do_output:
+     if (av_container_fifo_read(s->output_fifo, frame, 0) >= 0) {
++        if (s->va_observer_outputs && frame->format != AV_PIX_FMT_VAAPI) {
++            av_frame_unref(frame);
++            return AVERROR(ENOSYS);
++        }
++#if CONFIG_HEVC_VAAPI_HWACCEL
++        ret = ff_vaapi_decode_observer_output(avctx, frame);
++        if (ret < 0) {
++            av_frame_unref(frame);
++            return ret;
++        }
++#endif
++
+         if (!(avctx->export_side_data & AV_CODEC_EXPORT_DATA_FILM_GRAIN))
+             av_frame_remove_side_data(frame, AV_FRAME_DATA_FILM_GRAIN_PARAMS);
+ 
+         return 0;
+     }
+ 
+-    return avci->draining ? AVERROR_EOF : AVERROR(EAGAIN);
++    if (avci->draining) {
++#if CONFIG_HEVC_VAAPI_HWACCEL
++        ret = ff_vaapi_decode_observer_finish(avctx);
++        return ret < 0 ? ret : AVERROR_EOF;
++#else
++        return AVERROR_EOF;
++#endif
++    }
++    return AVERROR(EAGAIN);
+ }
+ 
+ static int hevc_ref_frame(HEVCFrame *dst, const HEVCFrame *src)
+@@ -4205,6 +4224,10 @@ static const AVOption options[] = {
+         AV_OPT_TYPE_BOOL, {.i64 = 0}, 0, 1, PAR },
+     { "strict-displaywin", "strictly apply default display window size", OFFSET(apply_defdispwin),
+         AV_OPT_TYPE_BOOL, {.i64 = 0}, 0, 1, PAR },
++    { "va_observer_outputs", "experimental selected VA output ordinals", OFFSET(va_observer_outputs),
++        AV_OPT_TYPE_STRING, {.str = NULL}, 0, 0, PAR },
++    { "va_observer_copy", "copy selected VA reference-content ranges", OFFSET(va_observer_copy),
++        AV_OPT_TYPE_BOOL, {.i64 = 0}, 0, 1, PAR },
+     { "view_ids", "Array of view IDs that should be decoded and output; a single -1 to decode all views",
+         .offset = OFFSET(view_ids), .type = AV_OPT_TYPE_INT | AV_OPT_TYPE_FLAG_ARRAY,
+         .min = -1, .max = INT_MAX, .flags = PAR },
+diff --git i/libavcodec/hevc/hevcdec.h w/libavcodec/hevc/hevcdec.h
+index 8394740..eca3c8e 100644
+--- i/libavcodec/hevc/hevcdec.h
++++ w/libavcodec/hevc/hevcdec.h
+@@ -561,6 +561,10 @@ typedef struct HEVCContext {
+                             ///< as a format defined in 14496-15
+     int apply_defdispwin;
+ 
++    /* Experimental, default-off VA reference-content observation. */
++    char *va_observer_outputs;
++    int va_observer_copy;
++
+     // multi-layer AVOptions
+     int         *view_ids;
+     unsigned  nb_view_ids;
+diff --git i/libavcodec/vaapi_decode.c w/libavcodec/vaapi_decode.c
+index 4ac2df5..b17d255 100644
+--- i/libavcodec/vaapi_decode.c
++++ w/libavcodec/vaapi_decode.c
+@@ -1,3 +1,6 @@
++#ifndef _GNU_SOURCE
++#define _GNU_SOURCE
++#endif
+ /*
+  * This file is part of FFmpeg.
+  *
+@@ -18,10 +21,22 @@
+ 
+ #include "config_components.h"
+ 
++#include <dlfcn.h>
++#include <errno.h>
++#include <linux/videodev2.h>
++#include <pthread.h>
++#include <stdbool.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include <string.h>
++#include <va/va_backend.h>
++
+ #include "libavutil/avassert.h"
+ #include "libavutil/common.h"
++#include "libavutil/error.h"
+ #include "libavutil/mem.h"
+ #include "libavutil/pixdesc.h"
++#include "libavutil/sha.h"
+ 
+ #include "avcodec.h"
+ #include "codec_desc.h"
+@@ -31,6 +46,482 @@
+ #include "vaapi_hevc.h"
+ 
+ 
++#define VA_OBSERVER_SLOTS 8
++#define VA_OBSERVER_BYTES 184320
++#define VA_OBSERVER_PLANES VIDEO_MAX_PLANES
++#define VA_OBSERVER_ABI UINT64_C(0x7634726f62730001)
++
++struct VAObserverSession {
++    uint64_t run[2], context_generation, nonce;
++    VAContextID context;
++};
++
++struct VAObserverTarget {
++    VASurfaceID surface;
++    uint64_t surface_generation, allocation_generation, writer;
++};
++
++struct VAObserverReceipt {
++    struct VAObserverSession session;
++    struct VAObserverTarget target;
++    uint64_t lease, submitted, completed, last_reference;
++    uint32_t capture_index, planes;
++    uint64_t plane_size[VA_OBSERVER_PLANES];
++};
++
++enum VAContentClient {
++    VA_CONTENT_CLIENT_VA = 1,
++};
++
++struct VAContentIdentity {
++    enum VAContentClient client;
++    uint64_t run[2], context_generation, session, lease;
++    uint64_t allocation_generation, writer, submitted, completed;
++    uint32_t capture_index, planes;
++    uint32_t allocation_memory, allocation_flags, allocation_type;
++    uint64_t plane_size[VA_OBSERVER_PLANES];
++    union {
++        struct {
++            uint32_t context, surface;
++            uint64_t surface_generation, last_reference;
++        } va;
++        struct {
++            uint64_t request;
++            uint32_t frame;
++        } gst;
++    } detail;
++};
++
++struct VAContentProvenance {
++    uint32_t device_major, device_minor;
++    char builds[9][129];
++};
++
++struct VAContentPool {
++    bool enabled, stopped;
++    unsigned used;
++    pthread_t owner;
++    struct {
++        bool valid, copied;
++        uint64_t elapsed_ns, before_ns, after_ns;
++        struct VAContentIdentity identity;
++        struct VAContentProvenance provenance;
++        unsigned char bytes[VA_OBSERVER_BYTES];
++    } slot[VA_OBSERVER_SLOTS];
++};
++
++typedef VAStatus (*VAObserverOpen)(VADriverContextP, VAContextID,
++                                   struct VAObserverSession *);
++typedef VAStatus (*VAObserverSelect)(VADriverContextP,
++                                     const struct VAObserverSession *,
++                                     VASurfaceID, struct VAObserverTarget *);
++typedef VAStatus (*VAObserverBegin)(VADriverContextP,
++                                    const struct VAObserverSession *,
++                                    const struct VAObserverTarget *, uint64_t,
++                                    struct VAObserverReceipt *);
++typedef VAStatus (*VAObserverEnd)(VADriverContextP,
++                                  const struct VAObserverSession *, uint64_t);
++typedef VAStatus (*VAObserverClose)(VADriverContextP,
++                                    const struct VAObserverSession *);
++typedef uint64_t (*VAObserverABI)(void);
++typedef void (*VAContentInit)(struct VAContentPool *, bool);
++typedef bool (*VAContentSnapshot)(VADriverContextP,
++                                  const struct VAObserverReceipt *,
++                                  struct VAContentPool *, bool);
++
++typedef struct VAAPIObserverState {
++    void *driver_handle;
++    VADriverContextP driver;
++    VAObserverOpen open;
++    VAObserverSelect select;
++    VAObserverBegin begin;
++    VAObserverEnd end;
++    VAObserverClose close;
++    VAObserverABI abi;
++    VAContentInit content_init;
++    VAContentSnapshot content_snapshot;
++    struct VAObserverSession session;
++    struct VAObserverReceipt receipt;
++    struct VAContentPool *pool;
++    VAAPIObserverResult result;
++    AVFrame *held_frame;
++    uint64_t outputs[VA_OBSERVER_SLOTS];
++    unsigned nb_outputs;
++    unsigned seen;
++    uint64_t output_index;
++    pthread_t owner;
++    bool copy;
++    bool active;
++    bool closed;
++    bool failed;
++    bool finished;
++} VAAPIObserverState;
++
++static int vaapi_observer_symbol(VAAPIObserverState *state,
++                                 const Dl_info *origin, const char *name,
++                                 void *result, size_t result_size)
++{
++    void *symbol;
++    Dl_info info;
++
++    if (result_size != sizeof(symbol))
++        return AVERROR(ENOSYS);
++    dlerror();
++    symbol = dlsym(state->driver_handle, name);
++    if (!symbol || dlerror() || !dladdr(symbol, &info) ||
++        info.dli_fbase != origin->dli_fbase)
++        return AVERROR(ENOSYS);
++    memcpy(result, &symbol, sizeof(symbol));
++    return 0;
++}
++
++static int vaapi_observer_bind(VAAPIDecodeContext *ctx,
++                               VAAPIObserverState *state)
++{
++#if !defined(__linux__) || !defined(RTLD_NOLOAD)
++    return AVERROR(ENOSYS);
++#else
++    VADisplayContextP display = (VADisplayContextP)ctx->hwctx->display;
++    VADriverContextP driver;
++    void *origin_symbol = NULL;
++    Dl_info origin;
++    int err;
++
++    if (!display || !vaDisplayIsValid(ctx->hwctx->display) ||
++        display->vadpy_magic != VA_DISPLAY_MAGIC ||
++        !(driver = display->pDriverContext) || !driver->vtable ||
++        !driver->vtable->vaEndPicture)
++        return AVERROR(ENODEV);
++
++    if (sizeof(origin_symbol) != sizeof(driver->vtable->vaEndPicture))
++        return AVERROR(ENOSYS);
++    memcpy(&origin_symbol, &driver->vtable->vaEndPicture,
++           sizeof(origin_symbol));
++    if (!origin_symbol || !dladdr(origin_symbol, &origin) ||
++        !origin.dli_fname || !origin.dli_fbase)
++        return AVERROR(ENODEV);
++
++    state->driver_handle = dlopen(origin.dli_fname,
++                                  RTLD_NOW | RTLD_LOCAL | RTLD_NOLOAD);
++    if (!state->driver_handle)
++        return AVERROR(ENODEV);
++    state->driver = driver;
++
++#define LOAD(member, symbol_name) do {                                      \
++        err = vaapi_observer_symbol(state, &origin, symbol_name,             \
++                                    &state->member, sizeof(state->member));   \
++        if (err < 0)                                                         \
++            return err;                                                      \
++    } while (0)
++    LOAD(open,             "v4l2r_observer_open");
++    LOAD(select,           "v4l2r_observer_select");
++    LOAD(begin,            "v4l2r_observer_begin");
++    LOAD(end,              "v4l2r_observer_end");
++    LOAD(close,            "v4l2r_observer_close");
++    LOAD(abi,              "v4l2r_observer_client_abi");
++    LOAD(content_init,     "v4l2r_content_init");
++    LOAD(content_snapshot, "v4l2r_content_snapshot");
++#undef LOAD
++    if (state->abi() != VA_OBSERVER_ABI)
++        return AVERROR(ENOSYS);
++    return 0;
++#endif
++}
++
++static int vaapi_observer_parse_outputs(const char *value,
++                                        uint64_t outputs[VA_OBSERVER_SLOTS],
++                                        unsigned *count)
++{
++    const char *p = value;
++    unsigned n = 0;
++
++    if (!p || !*p)
++        return AVERROR(EINVAL);
++    for (;;) {
++        char *end;
++        unsigned long long output;
++
++        if (n == VA_OBSERVER_SLOTS || *p == '+' || *p == '-')
++            return AVERROR(EINVAL);
++        errno = 0;
++        output = strtoull(p, &end, 10);
++        if (errno || end == p)
++            return AVERROR(EINVAL);
++        for (unsigned i = 0; i < n; i++)
++            if (outputs[i] == output)
++                return AVERROR(EINVAL);
++        outputs[n++] = output;
++        if (!*end)
++            break;
++        if (*end != ',' || !end[1])
++            return AVERROR(EINVAL);
++        p = end + 1;
++    }
++    *count = n;
++    return 0;
++}
++
++static void vaapi_observer_free(VAAPIObserverState **statep)
++{
++    VAAPIObserverState *state = *statep;
++    if (!state)
++        return;
++    av_frame_free(&state->held_frame);
++    av_freep(&state->pool);
++    if (state->driver_handle)
++        dlclose(state->driver_handle);
++    av_freep(statep);
++}
++
++int ff_vaapi_decode_observer_arm(AVCodecContext *avctx,
++                                 const char *outputs, int copy)
++{
++    VAAPIDecodeContext *ctx;
++    VAAPIObserverState *state;
++    int err;
++
++    if (!outputs)
++        return 0;
++    if (!avctx || !avctx->internal)
++        return AVERROR(EINVAL);
++    ctx = avctx->internal->hwaccel_priv_data;
++    if (!ctx || ctx->observer)
++        return ctx && ctx->observer ? 0 : AVERROR(EINVAL);
++    if (avctx->codec_id != AV_CODEC_ID_HEVC || avctx->pix_fmt != AV_PIX_FMT_VAAPI ||
++        ctx->va_context == VA_INVALID_ID || ctx->observer_issued)
++        return AVERROR(EINVAL);
++    if (avctx->active_thread_type || avctx->thread_count != 1) {
++        av_log(avctx, AV_LOG_ERROR,
++               "VA reference-content observer requires single-threaded "
++               "decoding (set threads=1).\n");
++        return AVERROR(ENOSYS);
++    }
++
++    state = av_mallocz(sizeof(*state));
++    if (!state)
++        return AVERROR(ENOMEM);
++    state->pool = av_mallocz(sizeof(*state->pool));
++    state->held_frame = av_frame_alloc();
++    if (!state->pool || !state->held_frame) {
++        err = AVERROR(ENOMEM);
++        goto fail;
++    }
++    err = vaapi_observer_parse_outputs(outputs, state->outputs,
++                                       &state->nb_outputs);
++    if (err < 0)
++        goto fail;
++    err = vaapi_observer_bind(ctx, state);
++    if (err < 0)
++        goto fail;
++    state->copy = !!copy;
++    state->owner = pthread_self();
++    state->content_init(state->pool, true);
++    if (state->open(state->driver, ctx->va_context, &state->session) !=
++        VA_STATUS_SUCCESS) {
++        err = AVERROR(EIO);
++        goto fail;
++    }
++    ctx->observer = state;
++    return 0;
++
++fail:
++    vaapi_observer_free(&state);
++    return err;
++}
++
++static int vaapi_observer_selected(VAAPIObserverState *state, uint64_t output)
++{
++    for (unsigned i = 0; i < state->nb_outputs; i++)
++        if (state->outputs[i] == output)
++            return i;
++    return -1;
++}
++
++int ff_vaapi_decode_observer_output(AVCodecContext *avctx, AVFrame *frame)
++{
++    VAAPIDecodeContext *ctx;
++    VAAPIObserverState *state;
++    struct VAObserverTarget target;
++    VASurfaceID surface;
++    VAStatus end_status;
++    struct AVSHA *sha = NULL;
++    bool copied;
++    int selected, err;
++
++    if (!avctx || !avctx->internal || !avctx->internal->hwaccel_priv_data ||
++        avctx->pix_fmt != AV_PIX_FMT_VAAPI)
++        return 0;
++    ctx = avctx->internal->hwaccel_priv_data;
++    state = ctx->observer;
++    if (!state)
++        return 0;
++    if (!pthread_equal(state->owner, pthread_self()) || state->closed ||
++        state->failed || state->active || !frame || frame->format != AV_PIX_FMT_VAAPI) {
++        state->failed = true;
++        return AVERROR(EINVAL);
++    }
++
++    selected = vaapi_observer_selected(state, state->output_index++);
++    if (selected < 0)
++        return 0;
++    if (state->seen & (1U << selected)) {
++        state->failed = true;
++        return AVERROR(EINVAL);
++    }
++    surface = ff_vaapi_get_surface_id(frame);
++    if (surface == VA_INVALID_SURFACE || av_frame_ref(state->held_frame, frame) < 0) {
++        state->failed = true;
++        return AVERROR(ENOMEM);
++    }
++    if (state->select(state->driver, &state->session, surface, &target) !=
++        VA_STATUS_SUCCESS || target.surface != surface) {
++        err = AVERROR(EIO);
++        goto fail_without_lease;
++    }
++    memset(&state->receipt, 0, sizeof(state->receipt));
++    if (state->begin(state->driver, &state->session, &target, 0,
++                     &state->receipt) != VA_STATUS_SUCCESS) {
++        err = AVERROR(EIO);
++        goto fail_without_lease;
++    }
++    state->active = true;
++    if (state->receipt.target.surface != surface) {
++        state->failed = true;
++        end_status = state->end(state->driver, &state->session,
++                                state->receipt.lease);
++        if (end_status != VA_STATUS_SUCCESS)
++            return AVERROR(EIO);
++        state->active = false;
++        av_frame_unref(state->held_frame);
++        return AVERROR(EIO);
++    }
++    copied = state->content_snapshot(state->driver, &state->receipt,
++                                     state->pool, state->copy);
++    end_status = state->end(state->driver, &state->session,
++                            state->receipt.lease);
++    if (end_status != VA_STATUS_SUCCESS) {
++        state->failed = true;
++        return AVERROR(EIO);
++    }
++    state->active = false;
++    av_frame_unref(state->held_frame);
++    if (!copied || !state->pool->used ||
++        !state->pool->slot[state->pool->used - 1].valid) {
++        state->failed = true;
++        return AVERROR(EIO);
++    }
++    if (state->result.count >= VAAPI_OBSERVER_MAX_OUTPUTS) {
++        state->failed = true;
++        return AVERROR(EOVERFLOW);
++    }
++    const unsigned pool_index = state->pool->used - 1;
++    const struct VAContentIdentity *identity =
++        &state->pool->slot[pool_index].identity;
++    if (identity->client != VA_CONTENT_CLIENT_VA ||
++        identity->detail.va.surface != surface) {
++        state->failed = true;
++        return AVERROR(EIO);
++    }
++    VAAPIObserverResultSlot *result = &state->result.slot[state->result.count];
++    *result = (VAAPIObserverResultSlot) {
++        .output_index = state->output_index - 1,
++        .surface = surface,
++        .run = {identity->run[0], identity->run[1]},
++        .context_generation = identity->context_generation,
++        .session = identity->session,
++        .allocation_generation = identity->allocation_generation,
++        .writer = identity->writer,
++        .submitted = identity->submitted,
++        .completed = identity->completed,
++        .capture_index = identity->capture_index,
++        .copied = state->pool->slot[pool_index].copied,
++    };
++    if (result->copied) {
++        sha = av_sha_alloc();
++        if (!sha || av_sha_init(sha, 256) < 0) {
++            av_free(sha);
++            state->failed = true;
++            return AVERROR(ENOMEM);
++        }
++        av_sha_update(sha, state->pool->slot[pool_index].bytes,
++                      VA_OBSERVER_BYTES);
++        av_sha_final(sha, result->sha256);
++        av_free(sha);
++    }
++    state->result.count++;
++    state->seen |= 1U << selected;
++    return 0;
++
++fail_without_lease:
++    av_frame_unref(state->held_frame);
++    state->failed = true;
++    return err;
++}
++
++int ff_vaapi_decode_observer_finish(AVCodecContext *avctx)
++{
++    VAAPIDecodeContext *ctx;
++    VAAPIObserverState *state;
++    int err = 0;
++
++    if (!avctx || !avctx->internal || !avctx->internal->hwaccel_priv_data)
++        return 0;
++    ctx = avctx->internal->hwaccel_priv_data;
++    state = ctx->observer;
++    if (!state)
++        return 0;
++    if (!pthread_equal(state->owner, pthread_self()))
++        return AVERROR(EPERM);
++    if (state->finished)
++        return state->failed ? AVERROR_INVALIDDATA : 0;
++    if (state->active) {
++        if (state->end(state->driver, &state->session,
++                       state->receipt.lease) != VA_STATUS_SUCCESS)
++            return AVERROR(EIO);
++        state->active = false;
++        av_frame_unref(state->held_frame);
++    }
++    if (!state->closed) {
++        if (state->close(state->driver, &state->session) != VA_STATUS_SUCCESS)
++            return AVERROR(EIO);
++        state->closed = true;
++    }
++    if (state->failed || state->seen != (1U << state->nb_outputs) - 1 ||
++        state->pool->used != state->nb_outputs)
++        err = AVERROR_INVALIDDATA;
++    else
++        state->finished = true;
++    return err;
++}
++
++int ff_vaapi_decode_observer_result(AVCodecContext *avctx,
++                                    VAAPIObserverResult *result)
++{
++    VAAPIDecodeContext *ctx;
++    VAAPIObserverState *state;
++
++    if (!avctx || !avctx->internal || !avctx->internal->hwaccel_priv_data ||
++        !result)
++        return AVERROR(EINVAL);
++    ctx = avctx->internal->hwaccel_priv_data;
++    state = ctx->observer;
++    if (!state || state->failed || !state->finished || !state->closed || state->active ||
++        !pthread_equal(state->owner, pthread_self()))
++        return AVERROR(EINVAL);
++    *result = state->result;
++    return 0;
++}
++
++void ff_vaapi_decode_observer_flush(AVCodecContext *avctx)
++{
++    int err = ff_vaapi_decode_observer_finish(avctx);
++    if (err < 0)
++        av_log(avctx, AV_LOG_ERROR,
++               "VA reference-content observer refused flush cleanup: %s.\n",
++               av_err2str(err));
++}
++
++
+ int ff_vaapi_decode_make_param_buffer(AVCodecContext *avctx,
+                                       VAAPIDecodePicture *pic,
+                                       int type,
+@@ -221,6 +706,8 @@ int ff_vaapi_decode_issue(AVCodecContext *avctx,
+         AV_VAAPI_DRIVER_QUIRK_RENDER_PARAM_BUFFERS)
+         ff_vaapi_decode_destroy_buffers(avctx, pic);
+ 
++    if (ctx->observer_issued != UINT64_MAX)
++        ctx->observer_issued++;
+     err = 0;
+     goto exit;
+ 
+@@ -739,6 +1226,14 @@ int ff_vaapi_decode_uninit(AVCodecContext *avctx)
+ {
+     VAAPIDecodeContext *ctx = avctx->internal->hwaccel_priv_data;
+     VAStatus vas;
++    int observer_err = ff_vaapi_decode_observer_finish(avctx);
++
++    if (ctx->observer && ctx->observer->active) {
++        av_log(avctx, AV_LOG_ERROR,
++               "VA reference-content observer still retains a surface; "
++               "refusing context destruction.\n");
++        return observer_err < 0 ? observer_err : AVERROR(EIO);
++    }
+ 
+     if (ctx->va_context != VA_INVALID_ID) {
+         vas = vaDestroyContext(ctx->hwctx->display, ctx->va_context);
+@@ -757,5 +1252,6 @@ int ff_vaapi_decode_uninit(AVCodecContext *avctx)
+         }
+     }
+ 
+-    return 0;
++    vaapi_observer_free(&ctx->observer);
++    return observer_err;
+ }
+diff --git i/libavcodec/vaapi_decode.h w/libavcodec/vaapi_decode.h
+index 7813473..f227652 100644
+--- i/libavcodec/vaapi_decode.h
++++ w/libavcodec/vaapi_decode.h
+@@ -58,8 +58,27 @@ typedef struct VAAPIDecodeContext {
+     int                   surface_count;
+ 
+     VASurfaceAttrib       pixel_format_attribute;
++
++    struct VAAPIObserverState *observer;
++    uint64_t               observer_issued;
+ } VAAPIDecodeContext;
+ 
++#define VAAPI_OBSERVER_MAX_OUTPUTS 8
++typedef struct VAAPIObserverResultSlot {
++    uint64_t output_index;
++    VASurfaceID surface;
++    uint64_t run[2], context_generation, session;
++    uint64_t allocation_generation, writer, submitted, completed;
++    uint32_t capture_index;
++    int copied;
++    uint8_t sha256[32];
++} VAAPIObserverResultSlot;
++
++typedef struct VAAPIObserverResult {
++    unsigned count;
++    VAAPIObserverResultSlot slot[VAAPI_OBSERVER_MAX_OUTPUTS];
++} VAAPIObserverResult;
++
+ 
+ int ff_vaapi_decode_make_param_buffer(AVCodecContext *avctx,
+                                       VAAPIDecodePicture *pic,
+@@ -83,6 +102,14 @@ int ff_vaapi_decode_cancel(AVCodecContext *avctx,
+ int ff_vaapi_decode_init(AVCodecContext *avctx);
+ int ff_vaapi_decode_uninit(AVCodecContext *avctx);
+ 
++int ff_vaapi_decode_observer_arm(AVCodecContext *avctx,
++                                 const char *outputs, int copy);
++int ff_vaapi_decode_observer_output(AVCodecContext *avctx, AVFrame *frame);
++int ff_vaapi_decode_observer_finish(AVCodecContext *avctx);
++int ff_vaapi_decode_observer_result(AVCodecContext *avctx,
++                                    VAAPIObserverResult *result);
++void ff_vaapi_decode_observer_flush(AVCodecContext *avctx);
++
+ int ff_vaapi_common_frame_params(AVCodecContext *avctx,
+                                  AVBufferRef *hw_frames_ctx);
+ 
+diff --git i/libavcodec/vaapi_hevc.c w/libavcodec/vaapi_hevc.c
+index 878f796..46f8b2b 100644
+--- i/libavcodec/vaapi_hevc.c
++++ w/libavcodec/vaapi_hevc.c
+@@ -141,6 +141,11 @@ static int vaapi_hevc_start_frame(AVCodecContext          *avctx,
+ 
+     VAPictureParameterBufferHEVC *pic_param = (VAPictureParameterBufferHEVC *)&pic->pic_param;
+ 
++    err = ff_vaapi_decode_observer_arm(avctx, h->va_observer_outputs,
++                                       h->va_observer_copy);
++    if (err < 0)
++        return err;
++
+     pic->pic.output_surface = ff_vaapi_get_surface_id(h->cur_frame->f);
+ 
+     *pic_param = (VAPictureParameterBufferHEVC) {
+@@ -667,6 +672,7 @@ const FFHWAccel ff_hevc_vaapi_hwaccel = {
+     .frame_priv_data_size = sizeof(VAAPIDecodePictureHEVC),
+     .init                 = ff_vaapi_decode_init,
+     .uninit               = ff_vaapi_decode_uninit,
++    .flush                = ff_vaapi_decode_observer_flush,
+     .frame_params         = ff_vaapi_common_frame_params,
+     .priv_data_size       = sizeof(VAAPIDecodeContext),
+     .caps_internal        = HWACCEL_CAP_ASYNC_SAFE,

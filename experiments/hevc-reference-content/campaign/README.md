@@ -14,6 +14,13 @@ python3 experiments/hevc-reference-content/campaign/tests.py
 Planning and review are offline and side-effect free: no device is opened, no
 lease acquired, no module loaded, no client started.
 
+The controller predates the FFmpeg/VA call site. Its `frames` values and
+publication-window checks describe Gst `system_frame_number`s; they are not VA
+output ordinals. Before this planner can become a runner, its VA workloads must
+gain distinct output-ordinal selection, `threads=1`, one application owner for
+send/receive/finish/close, and the call site's fatal-cleanup handling. Passing the
+same integer tuple to both clients is only matrix planning, not a valid VA arm.
+
 ## What it checks, and why each check exists
 
 Every rule is a documented property of the merged call site or a budget from

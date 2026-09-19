@@ -83,5 +83,6 @@ Historical PR76 captures lack these observer identities and cannot be upgraded.
 
 No join tool or fabricated binding is introduced by this scheduling slice.
 No kernel code, shipped patch, approved manifest, hardware operation or support
-count changes. #82 and driver #42 stay open. The VA production call site, live
-ownership solution and separately guarded off/on DMA campaign also remain open.
+count changes. #82 and driver #42 stay open. The additive
+[FFmpeg/VA call site](../va-callsite/README.md) is now separate and complete
+offline; the same-run join, live manifest and guarded off/on DMA campaign remain open.

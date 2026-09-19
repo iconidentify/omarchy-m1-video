@@ -201,6 +201,7 @@ def main():
         adapter = module('va_adapter_tests', PARENT / 'va-adapter/tests.py')
         root = adapter.fetch_tree(destination, args.archive)
         run(['patch', '-p1', '--fuzz=0', '-i', HERE / 'va-integration.patch'], cwd=root)
+        run(['patch', '-p1', '--fuzz=0', '-i', PARENT / 'va-callsite' / 'driver-client-abi.patch'], cwd=root)
         sync(root, 'va'); fixture(root, 'va')
         run(['meson', 'setup', root / 'build', root, '--buildtype=debug', '-Db_sanitize=address,undefined'])
         run(['meson', 'compile', '-C', root / 'build', '-j', '4'])

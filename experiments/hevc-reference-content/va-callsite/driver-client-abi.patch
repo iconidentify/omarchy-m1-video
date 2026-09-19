@@ -1,0 +1,25 @@
+--- a/src/observer.c
++++ b/src/observer.c
+@@ -13,6 +13,13 @@
+ #define REFUSED VA_STATUS_ERROR_OPERATION_FAILED
+ static _Thread_local uint64_t owner_generation;
+ 
++/* Paired private-client ABI. Change this token whenever any observer receipt,
++ * target, session or content-pool layout/calling convention changes. */
++V4L2R_OBSERVER_API uint64_t v4l2r_observer_client_abi(void)
++{
++	return UINT64_C(0x7634726f62730001);
++}
++
+ /* Saturate instead of permitting generation/nonce ABA on integer wrap. */
+ uint64_t v4l2r_observer_generation(void)
+ {
+--- a/src/observer.h
++++ b/src/observer.h
+@@ -32,5 +32,6 @@
+ };
+ #define V4L2R_OBSERVER_API __attribute__((visibility("default")))
++V4L2R_OBSERVER_API uint64_t v4l2r_observer_client_abi(void);
+ V4L2R_OBSERVER_API VAStatus v4l2r_observer_open(VADriverContextP va, VAContextID id,
+ 	struct v4l2r_observer_session *session);
+ V4L2R_OBSERVER_API VAStatus v4l2r_observer_select(VADriverContextP va,
