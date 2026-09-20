@@ -166,8 +166,9 @@ static inline bool hevc_content_runtime(int video_fd, enum hevc_content_client c
     const char *base = strrchr(target, '/');
     if (!base || strcmp(base + 1, "apple_avd")) return false;
     struct v4l2_capability cap = {0};
+    /* QUERYCAP reports the platform driver name, not its module filename. */
     if (ioctl(video_fd, VIDIOC_QUERYCAP, &cap) ||
-        memcmp(cap.driver, "apple-avd\0", sizeof("apple-avd"))) return false;
+        memcmp(cap.driver, "avd\0", sizeof("avd"))) return false;
     if (!hevc_content_build_id("/sys/kernel/notes", values[2])) return false;
     for (unsigned i = 3; i <= 6; i++) {
         /* Built-in status needs separate reviewed evidence; missing notes are

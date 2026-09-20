@@ -14,7 +14,7 @@ __attribute__((visibility("default"))) int __wrap_ioctl(int fd,unsigned long op,
         va_list ap;va_start(ap,op);arg=va_arg(ap,void*);va_end(ap);
     }
     int result=base_ioctl(fd,op,arg);if(result) return result;
-    if(op==VIDIOC_QUERYCAP) {strcpy((char*)((struct v4l2_capability*)arg)->driver,"apple-avd");model_video=fd;}
+    if(op==VIDIOC_QUERYCAP) {model_capability(arg);model_video=fd;}
     if(op==VIDIOC_CREATE_BUFS) {
         struct v4l2_create_buffers *b=arg;
         if(b->count && !V4L2_TYPE_IS_OUTPUT(b->format.type)) fill_plane(capture_base[b->index],0,b->index);

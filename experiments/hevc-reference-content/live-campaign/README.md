@@ -94,6 +94,19 @@ record. It still rejects duplicate, missing or reversed endpoints. A regression
 uses all 44 detailed windows from the accepted public B/E VA/Gst captures, and
 a source mutation restores the old refusal to prove the test distinguishes it.
 
+Attempt 3 confirmed MMAP and prompt fatal-error termination, then refused the
+first observation with 20 persisted output hashes and 28 kernel completions.
+It restored the original healthy/idle state; no successful join is claimed.
+The last `VIDIOC_QUERYCAP` identifies the next concrete boundary: the kernel
+reports platform driver name `avd`, while `integration/runtime.h` and both fake
+syscall fixtures incorrectly expected `apple-avd`. The pinned `avd_querycap`
+copies `avd_driver.driver.name`; the separately verified module remains
+`apple_avd`. Correcting the fixtures first reproduced the exact false rejection.
+Runtime admission now expects exact NUL-terminated `avd`, while retaining the
+module symlink and all nine build/source checks. Wrong-name, prefix and empty
+capability cases reject, and two mutations exercise the old spelling and a
+missing name gate. This corrects observer admission, not decoded output.
+
 Self-review found two deployment integration gaps before device access: the
 standalone guard copy had no real source-root metadata, and the same-run reader
 required even public immutable oracle/UAPI inputs to belong to the ordinary run
