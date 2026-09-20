@@ -38,6 +38,30 @@
   absent generator programs. Fixed without host installation by reproducing
   the two programs from hash-locked upstream 2.88.3 templates and binding the
   exact local pkg-config/native-file route into the candidate manifest.
+- D5, confirmed in a copied unmutated test tree: two missing helper files made
+  the old mutation harness report an unrelated error as mutation detection.
+  Each mutation now requires a clean positive baseline and exactly its owning
+  assertion failure, with no unrelated errors.
+- D6, confirmed against both kernel recorder sources: live admission expected
+  textual key/value status instead of the versioned numeric `S 1` wire format.
+  Fixed with exact extent/version/zero-field validation and active-field
+  negatives. Loaded GNU note parsing now honors its header and digest size.
+- D7, confirmed across the real supervisor's callees: the command oracle takes
+  a directory with two builds plus identity data; the initial argv named one
+  executable. The initial guard path also named the wrong repository. Fixed
+  by staging the complete oracle and using the guard from the pinned VA tree.
+- D8, confirmed by loader/import analysis: copying the Gst binaries alone could
+  select system libraries, and hashing only supervisor.py left its imports and
+  data unbound. Stage and verify the built library closure plus all repository
+  runtime inputs, Python, tracer and preload dependencies; probe the actual
+  supervisor/oracle import before emitting a candidate.
+- D9, confirmed by admissible counterexamples: evidence digest equality did
+  not compare target contents, and plan validity did not imply the same target
+  selection. Admission now compares both relationships explicitly.
+- D10, confirmed in the pinned FFmpeg source: output POC logs require debug
+  level and include the codec prefix and trailing period. The command enables
+  debug output and keeps VAAPI output for hwdownload; the same-run reader
+  accepts that exact log form with an unrelated-codec negative regression.
 
 The strongest remaining limitation is intentionally outside #126: a valid
 manifest cannot prove observation noninterference or HEVC correctness. Only the

@@ -108,6 +108,8 @@ class Fixture:
         modules = {name: copy.deepcopy(artifact) for name in manifest.EXPECTED_MODULES}
         reference = manifest.file_record(self.reference)
         reference["frames_sha256"] = hashlib.sha256(b"frames").hexdigest()
+        reference_frames = root / "reference-frames.json"
+        reference_frames.write_bytes(b"frames")
         self.document = {
             "schema": manifest.SCHEMA, "state": "reviewed",
             "repo": {"commit": "1" * 40, "dirty": False},
@@ -139,8 +141,23 @@ class Fixture:
                        "campaign_seconds": 1200},
         }
         self.path = root / "manifest.json"
+        runtime_root = root / "runtime"
+        self.document["runtime_sources"] = {}
+        for relative in manifest.RUNTIME_FILES:
+            path = runtime_root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("# fixture runtime input\n")
+            self.document["runtime_sources"][relative] = manifest.file_record(path)
+        self.document["artifacts"]["same_run_supervisor"] = self.document[
+            "runtime_sources"]["experiments/hevc-reference-content/same-run/supervisor.py"]
+        target_evidence = root / "targets.json"
+        target_evidence.write_text(json.dumps({"targets": [
+            {key: value for key, value in row.items() if key != "evidence_sha256"}
+            for row in self.targets]}) + "\n")
+        self.document["artifacts"]["target_evidence"] = manifest.file_record(target_evidence)
         self.document["artifacts"]["recorder_provenance"] = \
             manifest.file_record(self.provenance)
+        self.document["artifacts"]["reference_frames"] = manifest.file_record(reference_frames)
         self.document["artifacts"].update({
             "glib_mkenums": manifest.file_record(glib_bin / "glib-mkenums"),
             "glib_genmarshal": manifest.file_record(glib_bin / "glib-genmarshal"),
@@ -214,6 +231,32 @@ class DeploymentTest(unittest.TestCase):
         self.rejected(lambda value: value["artifacts"]["glib_native_file"].update(
             manifest.file_record(self.fixture.patch)), "native GLib tool wiring")
 
+    def test_staged_shared_library_is_used_after_relocation(self):
+        import build
+        root = self.fixture.root / "linkage"
+        origin, stage = root / "build", root / "stage"
+        (origin / "lib").mkdir(parents=True)
+        (origin / "tools").mkdir()
+        source = origin / "tiny.c"
+        source.write_text("int staged_value(void) { return 42; }\n")
+        library = origin / "lib/libgstfixture.so.0"
+        subprocess.run(["cc", "-shared", "-fPIC", "-Wl,-soname,libgstfixture.so.0",
+                        str(source), "-o", str(library)], check=True, capture_output=True)
+        source.write_text("int staged_value(void); int main(void) { return staged_value()!=42; }\n")
+        binary = origin / "tools/gst-launch-1.0"
+        subprocess.run(["cc", str(source), "-L" + str(origin / "lib"),
+                        "-l:libgstfixture.so.0", "-Wl,-rpath," + str(stage / "lib") +
+                        ":$ORIGIN/../lib", "-o", str(binary)], check=True, capture_output=True)
+        build.stage_gst_libraries({"gst_launch": binary}, origin, stage / "lib")
+        staged = build.copy_artifact(binary, stage / "bin/gst-launch-1.0")
+        artifacts = {name: staged for name in
+                     ("gst_launch", "gst_plugin", "gst_parser", "gst_videoconvert", "gst_core")}
+        build.require_staged_gst_libraries(artifacts, stage)
+        self.assertEqual(subprocess.run([str(staged)]).returncode, 0)
+        (stage / "lib/libgstfixture.so.0").unlink()
+        with self.assertRaises(manifest.ManifestError):
+            build.require_staged_gst_libraries(artifacts, stage)
+
     def test_complete_manifest_and_admission(self):
         self.verify()
         approved = self.fixture.write()
@@ -235,6 +278,32 @@ class DeploymentTest(unittest.TestCase):
     def test_dirty_repo_is_rejected(self):
         self.rejected(lambda value: value["repo"].__setitem__("dirty", True),
                       "dirty source")
+
+    def test_runtime_import_drift_is_rejected(self):
+        row = self.fixture.document["runtime_sources"][
+            "experiments/hevc-reference-content/same-run/join.py"]
+        Path(row["path"]).write_text("# changed imported validator\n")
+        with self.assertRaisesRegex(manifest.ManifestError, "runtime.*hash drift"):
+            self.verify()
+
+    def test_target_contents_and_plan_are_bound(self):
+        self.rejected(lambda value: value["targets"][0].__setitem__("selectors", [4]),
+                      "staged evidence contents")
+        plan = json.loads(self.fixture.plan.read_text())
+        for row in plan["workloads"]:
+            if row["client"] == "gst" and row["vector"] == "B":
+                row["selectors"] = [4]
+        rebuilt = controller.Plan(run_id=plan["run_id"], workloads=[
+            controller.Workload(**{key: row[key] for key in (
+                "vector", "client", "copy", "selector_domain", "selectors",
+                "arm_input_index", "last_required_input_index",
+                "parameter_set_change_inputs", "gst_pool_size", "va_output_count")})
+            for row in plan["workloads"]])
+        self.fixture.plan.write_text(rebuilt.to_json() + "\n")
+        self.fixture.document["plan"] = manifest.file_record(self.fixture.plan)
+        with self.assertRaisesRegex(admission.AdmissionError, "manifest targets"):
+            admission.admitted_document(self.fixture.path, self.fixture.write(),
+                                        live=False, root_owned=False)
 
     def test_source_and_patch_drift_are_rejected(self):
         self.rejected(lambda value: value["sources"]["ffmpeg"].__setitem__(
@@ -330,7 +399,7 @@ class DeploymentTest(unittest.TestCase):
         with self.assertRaisesRegex(manifest.ManifestError, "unexpected fields"):
             self.verify(value)
 
-    def test_live_preflight_checks_loaded_modules_and_recorder_state(self):
+    def test_live_preflight_refuses_redirected_endpoints(self):
         endpoints = self.fixture.root / "debug"
         cmd = endpoints / "apple_avd_hevc_cmdtrace/status"
         ref = endpoints / "apple_avd_hevc_trace/status"
@@ -349,16 +418,27 @@ class DeploymentTest(unittest.TestCase):
             with self.assertRaisesRegex(manifest.ManifestError, "endpoint set"):
                 manifest.validate(value, root_owned=False, check_files=False)
 
+    def test_recorder_status_uses_actual_kernel_wire_format(self):
+        for reference, count in ((False, 7), (True, 9)):
+            fields = ["0"] * count
+            manifest.recorder_off("S 1 " + " ".join(fields) + "\n", reference=reference)
+            for index in range(count):
+                bad = fields.copy()
+                bad[index] = "1"
+                with self.assertRaisesRegex(manifest.ManifestError, "clean/off"):
+                    manifest.recorder_off("S 1 " + " ".join(bad), reference=reference)
+            for bad in ("phase=off contexts=0 errors=0", "S 1 " + " 0" * (count - 1)):
+                with self.assertRaisesRegex(manifest.ManifestError, "clean/off"):
+                    manifest.recorder_off(bad, reference=reference)
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mutation", choices=(
-        "manifest-digest", "source", "dependency", "corpus", "capacity",
-        "target", "plan", "execution-refusal"))
-    args, remaining = parser.parse_known_args()
-    if args.mutation:
-        os.environ["HEVC_DEPLOYMENT_MUTATION"] = args.mutation
-    suite = unittest.defaultTestLoader.loadTestsFromTestCase(DeploymentTest)
+    parser.add_argument("--test", choices=[name for name in dir(DeploymentTest)
+                                          if name.startswith("test_")])
+    args = parser.parse_args()
+    suite = (unittest.TestSuite([DeploymentTest(args.test)]) if args.test else
+             unittest.defaultTestLoader.loadTestsFromTestCase(DeploymentTest))
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     return not result.wasSuccessful()
 

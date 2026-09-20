@@ -61,6 +61,19 @@ MUTATIONS = (
      [("        verify_glib_tooling(artifact_paths)\n",
        "        # mutation: do not bind Meson to the staged GLib tools\n")],
      "test_glib_tool_wiring_drift_is_rejected"),
+    ("target-contents", "manifest.py",
+     [("        need(targets == expected_targets, \"targets differ from staged evidence contents\")\n",
+       "        # mutation: accept targets unrelated to the evidence contents\n")],
+     "test_target_contents_and_plan_are_bound"),
+    ("plan-targets", "admission.py",
+     [("    if expected_plan != plan:\n"
+       "        raise AdmissionError(\"campaign plan differs from manifest targets\")\n",
+       "    # mutation: accept a valid plan for different targets\n")],
+     "test_target_contents_and_plan_are_bound"),
+    ("recorder-idle", "manifest.py",
+     [("         all(value == \"0\" for value in values[2:]),\n",
+       "         all(value in (\"0\", \"1\") for value in values[2:]),\n")],
+     "test_recorder_status_uses_actual_kernel_wire_format"),
 )
 
 
@@ -75,6 +88,11 @@ def main() -> int:
             shutil.copy2(CAMPAIGN / "controller.py", campaign / "controller.py")
             path = deployment / filename
             text = path.read_text()
+            command = ["python3", str(deployment / "tests.py"), "--test", expected_test]
+            baseline = subprocess.run(command, capture_output=True, text=True, timeout=90)
+            if baseline.returncode:
+                raise RuntimeError(f"mutation baseline failed: {label}\n"
+                                   f"{baseline.stdout}{baseline.stderr}")
             for old, new in changes:
                 text = replace_once(text, old, new)
             path.write_text(text)
@@ -85,10 +103,12 @@ def main() -> int:
             if compiled.returncode:
                 raise RuntimeError(f"{label} did not compile\n{compiled.stdout}{compiled.stderr}")
             result = subprocess.run(
-                ["python3", str(deployment / "tests.py")], capture_output=True,
+                command, capture_output=True,
                 text=True, timeout=90)
             output = result.stdout + result.stderr
-            if result.returncode != 1 or expected_test not in output or "FAILED" not in output:
+            if (result.returncode != 1 or
+                    f"FAIL: {expected_test} (__main__.DeploymentTest.{expected_test})" not in output or
+                    "FAILED (failures=1)" not in output or "ERROR:" in output):
                 raise RuntimeError(f"mutation not distinguished: {label}\n{output[-12000:]}")
             print("PASS named deployment mutation", label)
     return 0

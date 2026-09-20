@@ -77,6 +77,10 @@ def admitted_document(path: Path, approved_sha256: str, *, live: bool,
     if {row["name"] for row in commands} != {row["name"] for row in plan["workloads"]}:
         raise AdmissionError("command/workload matrix drift")
     builder = _builder_module()
+    expected_plan = builder.plan_document(document["targets"])
+    expected_plan["run_id"] = plan["run_id"]
+    if expected_plan != plan:
+        raise AdmissionError("campaign plan differs from manifest targets")
     artifacts = {name: Path(row["path"])
                  for name, row in document["artifacts"].items()}
     expected_commands = builder.command_matrix(artifacts, document["corpus"],
@@ -102,7 +106,7 @@ def main() -> int:
     parser.add_argument("--live", action="store_true")
     args = parser.parse_args()
     try:
-        result = admitted_document(args.manifest.resolve(), args.approved_sha256,
+        result = admitted_document(args.manifest.absolute(), args.approved_sha256,
                                    live=args.live, root_owned=True)
     except (AdmissionError, manifest.ManifestError, OSError, TypeError, KeyError) as error:
         print(f"REFUSED: {error}")

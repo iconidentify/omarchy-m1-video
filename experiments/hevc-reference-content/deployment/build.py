@@ -9,6 +9,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -29,6 +30,8 @@ KERNEL_PIN = "94fb23346d522edf53722357c426a3e58030beea"
 KERNEL_SOURCE_SHA = "a16ebf3b486144d45ed91122ed78040dc64bbaa9901a312669e11c31bc8ff7d3"
 RECORDER_MODULE_SHA = "7a00ffa548e89d4316eb2b1454c7e153128906f099729efb58b77c26fadcdf02"
 ORACLE_SHA = "d98837f95faa669a8c01f16caad7c986181bdc03cbce80c8ced26ec1697f4310"
+ORACLE_BASELINE_SHA = "de27d493221c64107e39bbea0bf9b8c9e635a0eea902a48ebfd43eee4517ec01"
+ORACLE_IDENTITY_SHA = "c3f9c469e478c0874adf36c95a3796dd0ab376979adab3ca3ceacfd6dffe18cd"
 UAPI_SHA = "c86036741a6b878cc2a28796c2fdd1ff18488ccdd274ea662cfadc934569d9fb"
 TARGET_EVIDENCE_SHA = "b7b37270f6336f4096dd018354178c7e06c98da335b2ce02866b530afba3814e"
 GLIB_PIN = "43bc79ea8803e33c5eb368085e2d5906f9f98079"
@@ -173,7 +176,8 @@ def build_gst(root: Path, archive: Path, jobs: int,
         "-Dgst-plugins-base:videoconvertscale=enabled",
         "-Dgst-plugins-bad:v4l2codecs=enabled",
         "-Dgst-plugins-bad:videoparsers=enabled",
-        "-Db_lundef=true", "-Dc_link_args=-Wl,--build-id",
+        "-Db_lundef=true",
+        "-Dc_link_args=-Wl,--build-id,-rpath," + str(root / "stage/lib"),
     ]
     if native_file:
         command += ["--native-file", native_file.resolve(strict=True)]
@@ -207,6 +211,29 @@ def copy_artifact(source: Path, destination: Path) -> Path:
     return destination.resolve()
 
 
+def stage_gst_libraries(artifacts: dict[str, Path], build_root: Path,
+                        destination: Path) -> None:
+    libraries = {path for artifact in artifacts.values()
+                 for path in manifest.dependency_closure(artifact)
+                 if path.is_relative_to(build_root)}
+    if not libraries:
+        raise ValueError("GStreamer has no dependencies from its pinned build")
+    for path in sorted(libraries):
+        dynamic = run(["readelf", "-d", path])
+        names = re.findall(r"\(SONAME\).*\[([^]]+)\]", dynamic)
+        if len(names) != 1 or Path(names[0]).name != names[0]:
+            raise ValueError("invalid built GStreamer library SONAME: " + str(path))
+        copy_artifact(path, destination / names[0])
+
+
+def require_staged_gst_libraries(artifacts: dict[str, Path], stage: Path) -> None:
+    for name in ("gst_launch", "gst_plugin", "gst_parser", "gst_videoconvert", "gst_core"):
+        libraries = [path for path in manifest.dependency_closure(artifacts[name])
+                     if path.name.startswith("libgst")]
+        if not libraries or any(path.parent != stage / "lib" for path in libraries):
+            raise ValueError("GStreamer runtime escaped the pinned stage: " + name)
+
+
 def command_matrix(artifacts: dict[str, Path], corpus: dict[str, dict],
                    targets: list[dict]) -> list[dict]:
     by_key = {(row["client"], row["vector"]): row for row in targets}
@@ -218,11 +245,13 @@ def command_matrix(artifacts: dict[str, Path], corpus: dict[str, dict],
             for copied in (False, True):
                 name = f"{vector}-{client}-{'on' if copied else 'off'}"
                 if client == "va":
-                    client_argv = [str(artifacts["ffmpeg"]), "-threads:v:0", "1",
-                            "-hwaccel", "vaapi", "-va_observer_outputs:v:0", selected,
+                    client_argv = [str(artifacts["ffmpeg"]), "-nostdin", "-loglevel", "debug",
+                            "-threads:v:0", "1", "-hwaccel", "vaapi",
+                            "-hwaccel_output_format", "vaapi", "-va_observer_outputs:v:0", selected,
                             "-va_observer_copy:v:0", "1" if copied else "0",
                             "-va_observer_report:v:0", "@OMARCHY_OBSERVER_REPORT@",
-                            "-i", source, "-vf", "hwdownload,format=nv12,format=yuv420p",
+                            "-i", source, "-map", "0:v:0", "-fps_mode", "passthrough",
+                            "-vf", "hwdownload,format=nv12,format=yuv420p",
                             "-f", "framemd5", "@OMARCHY_RUN_ROOT@/frames.md5"]
                 else:
                     client_argv = [str(artifacts["gst_launch"]), "-e", "filesrc",
@@ -232,11 +261,13 @@ def command_matrix(artifacts: dict[str, Path], corpus: dict[str, dict],
                             "hevc-observer-report=@OMARCHY_OBSERVER_REPORT@", "!",
                             "videoconvert", "!", "video/x-raw,format=I420", "!",
                             "filesink", "location=@OMARCHY_RUN_ROOT@/output.yuv"]
-                environment = {"LC_ALL": "C"}
+                environment = {"LC_ALL": "C", "PATH": "/usr/bin",
+                               "PYTHONNOUSERSITE": "1", "PYTHONDONTWRITEBYTECODE": "1"}
                 if client == "va":
                     environment |= {
                         "LIBVA_DRIVER_NAME": "v4l2_request",
                         "LIBVA_DRIVERS_PATH": str(artifacts["va_driver"].parent),
+                        "AV_LOG_FORCE_NOCOLOR": "1",
                     }
                 else:
                     environment |= {
@@ -246,12 +277,12 @@ def command_matrix(artifacts: dict[str, Path], corpus: dict[str, dict],
                         "GST_REGISTRY_FORK": "no",
                         "GST_REGISTRY": "@OMARCHY_RUN_ROOT@/gst-registry.bin",
                     }
-                argv = [sys.executable, str(artifacts["same_run_supervisor"]),
+                argv = [str(artifacts["python"]), "-s", str(artifacts["same_run_supervisor"]),
                         "--root", "@OMARCHY_RUN_ROOT@", "--client", client,
                         "--selectors", selected, "--copy", "on" if copied else "off",
                         "--kernel-run", "@OMARCHY_KERNEL_RUN@", "--deadline", "90",
                         "--uapi", str(artifacts["uapi"]),
-                        "--oracle", str(artifacts["oracle"]), "--", *client_argv]
+                        "--oracle", str(artifacts["oracle_identity"].parent), "--", *client_argv]
                 commands.append({"name": name, "client": client, "vector": vector,
                                  "copy": copied, "environment": environment,
                                  "argv": argv})
@@ -309,7 +340,8 @@ def main() -> int:
     parser.add_argument("--recorder-module", required=True, type=Path)
     parser.add_argument("--targets", required=True, type=Path)
     parser.add_argument("--corpus-root", required=True, type=Path)
-    parser.add_argument("--oracle", required=True, type=Path)
+    parser.add_argument("--oracle", required=True, type=Path,
+                        help="accepted oracle root containing identity.json and both builds")
     parser.add_argument("--uapi", required=True, type=Path)
     parser.add_argument("--glib-source", required=True, type=Path)
     parser.add_argument("--jobs", type=int, default=4)
@@ -324,7 +356,11 @@ def main() -> int:
         gst_archive = checked_archive(args.gst_archive, GST_ARCHIVE_SHA, "GStreamer")
         recorder_module = checked_file(args.recorder_module, RECORDER_MODULE_SHA,
                                        "corrected paired recorder module")
-        oracle = checked_file(args.oracle, ORACLE_SHA, "command oracle")
+        oracle = checked_file(args.oracle / "candidate/packing", ORACLE_SHA, "command oracle")
+        oracle_baseline = checked_file(args.oracle / "baseline/packing", ORACLE_BASELINE_SHA,
+                                       "baseline command oracle")
+        oracle_identity = checked_file(args.oracle / "identity.json", ORACLE_IDENTITY_SHA,
+                                       "command oracle identity")
         uapi = checked_file(args.uapi, UAPI_SHA, "generated UAPI")
         target_evidence = checked_file(args.targets, TARGET_EVIDENCE_SHA,
                                        "campaign target evidence")
@@ -344,6 +380,9 @@ def main() -> int:
         va_driver, va_patches = build_va(root, va_archive, args.jobs, build_commands)
         gst_artifacts, gst_patches = build_gst(
             root, gst_archive, args.jobs, glib_tools["glib_native_file"], build_commands)
+        stage_gst_libraries(gst_artifacts, root / "gst-build", stage / "lib")
+        runtime_sources = {relative: copy_artifact(REPO / relative, stage / "tools" / relative)
+                           for relative in sorted(manifest.RUNTIME_FILES)}
         recorder_provenance = REPO / "experiments/hevc-avd-command-trace/corrected-build.json"
         provenance_document = json.loads(recorder_provenance.read_text())
         if provenance_document.get("module_sha256") != RECORDER_MODULE_SHA:
@@ -364,15 +403,33 @@ def main() -> int:
                                       stage / "lib/gstreamer-1.0/libgstcoreelements.so"),
             "recorder_module": copy_artifact(recorder_module, stage / "modules/apple-avd.ko"),
             "v4l2_tracer": Path(shutil.which("v4l2-tracer") or "").resolve(strict=True),
-            "oracle": oracle,
+            "oracle": copy_artifact(oracle, stage / "oracle/candidate/packing"),
+            "oracle_baseline": copy_artifact(oracle_baseline, stage / "oracle/baseline/packing"),
+            "oracle_identity": copy_artifact(oracle_identity, stage / "oracle/identity.json"),
+            "python": Path(sys.executable).resolve(strict=True),
+            "tracer_preload": Path("/usr/lib/libv4l/libv4l2tracer.so").resolve(strict=True),
             "uapi": uapi,
-            "same_run_supervisor": (PARENT / "same-run/supervisor.py").resolve(strict=True),
-            "hwguard": (REPO / "tests/hwguard.py").resolve(strict=True),
+            "same_run_supervisor": runtime_sources[
+                "experiments/hevc-reference-content/same-run/supervisor.py"],
+            "hwguard": (root / "va-source" / ("libva-v4l2_request-" + VA_PIN) /
+                        "tests/hwguard.py").resolve(strict=True),
             "target_evidence": copy_artifact(target_evidence,
                                               stage / "target-evidence.json"),
             "recorder_provenance": copy_artifact(
                 recorder_provenance, stage / "recorder-provenance.json"),
+            "reference_frames": copy_artifact(
+                REPO / "experiments/hevc-controls/captures/2026-09-17/reference-frames.json",
+                stage / "reference-frames.json"),
         } | glib_tools
+        require_staged_gst_libraries(artifacts, stage)
+        # Import the staged supervisor's actual dependency graph and check the
+        # oracle through its real directory-based API, without opening a device.
+        run([artifacts["python"], "-B", "-s", "-c",
+             "import sys; from pathlib import Path; "
+             "sys.path.insert(0, sys.argv[1]); import supervisor; "
+             "supervisor.validator.command_oracle.verify_identity(Path(sys.argv[2]))",
+             artifacts["same_run_supervisor"].parent, artifacts["oracle_identity"].parent],
+            record=build_commands)
         target_document = json.loads(target_evidence.read_text())
         if type(target_document) is not dict or set(target_document) != {
                 "schema", "sources", "derivation", "targets"} or \
@@ -447,6 +504,8 @@ def main() -> int:
                       "pkg_config": tool(["pkg-config", "--version"]),
                       "python": sys.version.splitlines()[0]},
             "artifacts": {name: manifest.file_record(path) for name, path in artifacts.items()},
+            "runtime_sources": {name: manifest.file_record(path)
+                                for name, path in runtime_sources.items()},
             "dependencies": {name: dependency_records(artifacts[name])
                              for name in manifest.EXPECTED_DEPENDENCIES},
             "kernel": {"vermagic": run(["modinfo", "-F", "vermagic",
@@ -470,7 +529,7 @@ def main() -> int:
         # Candidate generation never self-approves.  Review changes state to
         # reviewed without changing any other byte/field, then pins that file's
         # exact digest in the external Authorization.
-        manifest.validate(document | {"state": "reviewed", "repo": document["repo"] | {"dirty": False}},
+        manifest.validate(document | {"state": "reviewed"},
                           root_owned=False, check_files=True)
         output = stage / "candidate-manifest.json"
         output.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n")

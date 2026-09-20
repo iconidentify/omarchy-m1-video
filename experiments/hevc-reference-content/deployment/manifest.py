@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import stat
+import struct
 import subprocess
 from typing import Callable
 
@@ -21,7 +22,7 @@ SCHEMA = "omarchy.hevc.observer-deployment/v1"
 TOP_KEYS = frozenset({
     "schema", "state", "repo", "host", "sources", "patches", "build", "tools",
     "artifacts", "dependencies", "kernel", "corpus", "reference",
-    "targets", "plan", "commands", "limits",
+    "targets", "plan", "commands", "limits", "runtime_sources",
 })
 SOURCE_KEYS = frozenset({"revision", "source_sha256"})
 PATCH_KEYS = frozenset({"order", "component", "path", "sha256"})
@@ -40,11 +41,34 @@ EXPECTED_ARTIFACTS = frozenset({
     "gst_videoconvert", "gst_core", "recorder_module",
     "v4l2_tracer", "oracle", "uapi", "same_run_supervisor", "hwguard",
     "target_evidence", "recorder_provenance", "glib_mkenums",
-    "glib_genmarshal", "glib_pc", "glib_native_file",
+    "glib_genmarshal", "glib_pc", "glib_native_file", "python",
+    "oracle_baseline", "oracle_identity", "tracer_preload", "reference_frames",
 })
 EXPECTED_DEPENDENCIES = frozenset({
     "ffmpeg", "va_driver", "gst_launch", "gst_plugin", "gst_parser",
-    "gst_videoconvert", "gst_core",
+    "gst_videoconvert", "gst_core", "python", "v4l2_tracer",
+    "tracer_preload", "oracle", "oracle_baseline",
+})
+RUNTIME_FILES = frozenset({
+    "experiments/hevc-reference-content/same-run/supervisor.py",
+    "experiments/hevc-reference-content/same-run/join.py",
+    "experiments/hevc-reference-content/same-run/validator.py",
+    "experiments/hevc-avd-command-capture/capture.py",
+    "experiments/hevc-avd-command-capture/compare.py",
+    "experiments/hevc-avd-command-trace/parser.py",
+    "experiments/hevc-avd-command-trace/oracle.py",
+    "experiments/hevc-avd-command-trace/packing.py",
+    "experiments/hevc-avd-command-trace/packing-host.c",
+    "experiments/hevc-avd-command-trace/kernel/control-layout.inc",
+    "experiments/hevc-avd-command-trace/kernel/cmd-core.h",
+    "experiments/hevc-full-controls/normalize.py",
+    "experiments/hevc-full-controls/report.py",
+    "experiments/hevc-full-controls/lifecycle.py",
+    "experiments/hevc-full-controls/payload-schema.json",
+    "experiments/hevc-controls/normalize.py",
+    "experiments/hevc-avd-trace/check.py",
+    "experiments/hevc-avd-map/model.py",
+    "experiments/hevc-avd-controls-map/source-map.json",
 })
 EXPECTED_MODULES = frozenset({
     "apple_avd", "videobuf2_common", "videobuf2_v4l2",
@@ -271,6 +295,14 @@ def validate(document: dict, *, root_owned: bool = False,
     artifact_paths = {name: _file(value, "artifact." + name,
                                   root_owned=root_owned, check_files=check_files)
                       for name, value in artifacts.items()}
+    runtime = _exact(document["runtime_sources"], RUNTIME_FILES, "runtime_sources")
+    runtime_root = artifact_paths["same_run_supervisor"].parents[3]
+    for relative, value in runtime.items():
+        path = _file(value, "runtime." + relative, root_owned=root_owned,
+                     check_files=check_files)
+        need(path == runtime_root / relative, "runtime source import path drift")
+    need(runtime["experiments/hevc-reference-content/same-run/supervisor.py"] ==
+         artifacts["same_run_supervisor"], "supervisor/runtime identity differs")
     if check_files:
         require_tokens(artifact_paths["va_driver"], "nm",
                        VA_OBSERVER_SYMBOLS, "VA driver")
@@ -342,6 +374,8 @@ def validate(document: dict, *, root_owned: bool = False,
     _hex(reference["frames_sha256"], "reference.frames_sha256")
     _file({key: reference[key] for key in FILE_KEYS}, "reference",
           root_owned=root_owned, check_files=check_files)
+    need(reference["frames_sha256"] == artifacts["reference_frames"]["sha256"],
+         "reference frame evidence digest differs")
 
     targets = document["targets"]
     need(type(targets) is list and len(targets) == 4, "exactly four target groups are required")
@@ -389,6 +423,11 @@ def validate(document: dict, *, root_owned: bool = False,
         need(by_target[("gst", vector)]["parameter_set_change_inputs"] ==
              by_target[("va", vector)]["parameter_set_change_inputs"],
              f"{vector} parameter-set evidence differs by client")
+    if check_files:
+        _, evidence = read_document(artifact_paths["target_evidence"])
+        expected_targets = [row | {"evidence_sha256": artifacts["target_evidence"]["sha256"]}
+                            for row in evidence.get("targets", [])]
+        need(targets == expected_targets, "targets differ from staged evidence contents")
 
     plan = _exact(document["plan"], FILE_KEYS | {"sha256"}, "plan")
     # FILE_KEYS already contains sha256; set union intentionally documents the one digest.
@@ -449,9 +488,22 @@ def _loaded_note(module: str) -> str:
     path = Path("/sys/module") / module / "notes/.note.gnu.build-id"
     need(path.is_file(), f"loaded module lacks a build-ID note: {module}")
     raw = path.read_bytes()
-    # GNU build-ID desc is the final 20 bytes on the modules admitted here.
-    need(len(raw) >= 20, f"short loaded build-ID note: {module}")
-    return raw[-20:].hex()
+    need(len(raw) >= 16, f"short loaded build-ID note: {module}")
+    namesz, descsz, kind = struct.unpack_from("<III", raw)
+    offset = 12 + ((namesz + 3) & ~3)
+    need(namesz == 4 and raw[12:16] == b"GNU\0" and kind == 3 and
+         descsz in (16, 20, 32) and len(raw) == offset + ((descsz + 3) & ~3),
+         f"invalid loaded GNU build-ID note: {module}")
+    return raw[offset:offset + descsz].hex()
+
+
+def recorder_off(text: str, *, reference: bool) -> None:
+    # Match the kernel's versioned numeric wire format, including open contexts.
+    values = text.split()
+    count = 9 if reference else 7
+    need(values[:2] == ["S", "1"] and len(values) == count + 2 and
+         all(value == "0" for value in values[2:]),
+         "recorder is not clean/off")
 
 
 def live_preflight(document: dict) -> None:
@@ -465,8 +517,7 @@ def live_preflight(document: dict) -> None:
         status_path = Path(path) / "status"
         need(status_path.is_file(), f"missing recorder endpoint: {path}")
         status_text = status_path.read_text()
-        need("phase=off" in status_text and "contexts=0" in status_text and
-             "errors=0" in status_text, f"recorder is not clean/off: {path}")
+        recorder_off(status_text, reference=Path(path).name == "apple_avd_hevc_trace")
 
 
 def main() -> int:
@@ -476,7 +527,7 @@ def main() -> int:
     parser.add_argument("--live", action="store_true")
     args = parser.parse_args()
     try:
-        document = verify(args.manifest.resolve(), args.approved_sha256,
+        document = verify(args.manifest.absolute(), args.approved_sha256,
                           live=args.live, root_owned=True)
     except (ManifestError, OSError) as error:
         print(f"REFUSED: {error}")

@@ -25,6 +25,14 @@ the loaded-kernel release/config, modular vb2 objects, corpus, reference
 evidence, exact target plan and all eight same-run argv/environment records.
 The output state is always `candidate`.
 
+The stage contains the GStreamer library closure at a pinned runtime search
+path, the supervisor's repository import/data closure, both C-oracle builds
+and their identity document, and the reference frame hashes. Python, the V4L2
+tracer and its preload library also have recorded dependency closures. A
+no-device import probe checks the staged supervisor and real oracle API before
+candidate publication. FFmpeg commands preserve VAAPI frames through the
+download filter and enable the debug output used for picture association.
+
 The host GLib package advertises two missing code generators. The builder
 therefore regenerates only `glib-mkenums` and `glib-genmarshal` from the clean,
 pinned GNOME/glib 2.88.3 source templates, checks their previously established
@@ -44,7 +52,7 @@ python3 experiments/hevc-reference-content/deployment/build.py \
   --recorder-module /home/chrisk/hevc-command-capture-20260917T2045Z/corrected-build/apple-avd.ko \
   --targets experiments/hevc-reference-content/deployment/target-evidence-20260920.json \
   --corpus-root /home/chrisk/src/fluster/resources/JCT-VC-HEVC_V1 \
-  --oracle /home/chrisk/hevc-command-capture-20260917T2118Z/oracle/candidate/packing \
+  --oracle /home/chrisk/hevc-command-capture-20260917T2118Z/oracle \
   --uapi /home/chrisk/hevc-command-capture-20260917T2118Z/oracle/v4l2-controls.h \
   --jobs 4
 ```
@@ -79,9 +87,10 @@ as writer identity.
 
 ## Review and admission
 
-A reviewer must change only `state` from `candidate` to `reviewed`, place the
-manifest and every referenced path in the required trusted location, and pin
-the exact resulting SHA-256 in the external authorization. `manifest.py`
+A reviewer must review the complete inventory, secure every referenced path
+in place (or regenerate the inventory after relocating it), change `state` to
+`reviewed`, and pin the exact resulting SHA-256 in the external authorization.
+`manifest.py`
 rejects a different digest, dirty source, mutable/untrusted paths, symlinks,
 duplicate or extra fields, dependency/build-ID drift, identity-less vb2,
 corpus/target/plan drift and missing clean recorder endpoints.

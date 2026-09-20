@@ -25,13 +25,21 @@ Current results:
 - 4/4 target-derivation tests passed against the four hash-locked public
   association tables, synthetic contiguous/noncontiguous pool traces and
   accepted/refused Annex-B parameter-set placement.
-- 19/19 deployment tests passed. They cover candidate refusal, exact approved
+- 23/23 deployment tests passed. They cover candidate refusal, exact approved
   digest, clean source, source/patch/artifact/dependency/module/corpus/target/
   capacity/plan/command binding, fresh run placeholders, trust modes, strict
   JSON and deterministic controller/builder reconstruction.
-- Nine deployment mutations removing the manifest-digest, source, dependency,
-  corpus, capacity, target, plan, build-tool wiring or execution-refusal gate
-  each failed their named test.
+- Twelve deployment mutations remove the manifest-digest, source, dependency,
+  corpus, capacity, target, plan, build-tool wiring, target-content, plan-target,
+  recorder-idle or execution-refusal gate. Each runs its named test once against
+  an unmodified baseline and then requires exactly that assertion to fail;
+  unrelated errors cannot count as mutation evidence.
+- The shared-library relocation test builds a real ELF executable and shared
+  library, verifies the staged closure, and rejects its missing dependency.
+  Runtime import drift, numeric recorder status and evidence/plan mismatch
+  regressions exercise the actual admission code.
+- 29/29 same-run tests and ten mutations passed, including FFmpeg's prefixed
+  debug output used by the staged command.
 - The private B and E Gst traces were parsed without decoder access. Their raw
   SHA-256 values are pinned in `target-evidence-20260920.json`; both expose one
   contiguous 19-allocation ordinary capture pool.
