@@ -69,7 +69,7 @@
 +      "../child/sandboxed_process_thread_type_handler_unittest.cc",
 +      "../common/apple_avd_gpu_permissions_linux_unittest.cc",
 +    ]
-+    deps += [ "//sandbox/linux:seccomp_bpf" ]
++    deps += [ "//sandbox/linux:sandbox_services" ]
    }
  
    if (is_linux) {

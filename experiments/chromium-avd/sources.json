@@ -69,5 +69,10 @@
     "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/sandbox/linux/syscall_broker/broker_command.h?format=TEXT",
     "sha256": "09a136f4ebb39249f247420d4e584631cf2596a71beb5c25308e1418c416fca6",
     "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/sandbox/linux/syscall_broker/broker_command.h"
+  },
+  {
+    "path": "sandbox/linux/BUILD.gn",
+    "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/sandbox/linux/BUILD.gn",
+    "sha256": "8052dbdce4791c53d5cb12bc946e84b91aa23f0a77a9ac3610b38ef3d118ce61"
   }
 ]

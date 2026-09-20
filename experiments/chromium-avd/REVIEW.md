@@ -39,7 +39,8 @@ and an appropriately provisioned ARM64 build worker remain unassigned.
   build executes in a later makepkg process; ninja receives -j1 explicitly.
 - **Component visibility, source-reviewed:** exported selector/native adapter
   declarations allow Chromium test targets to link via the content component;
-  the intended recipe is explicitly non-component. Full link verification remains
+  the intended recipe is explicitly non-component. Source review also corrected the new test dependency to `sandbox_services`,
+  which owns BrokerFilePermission, instead of the seccomp BPF target. Full link verification remains
   unresolved, so this is not a tested component-build claim.
 - **Hosted source transport, confirmed and fixed:** the first GitHub job
   ([35531401890](https://github.com/iconidentify/omarchy-m1-video/actions/runs/35531401890))
