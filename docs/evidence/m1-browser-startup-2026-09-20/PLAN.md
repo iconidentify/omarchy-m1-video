@@ -38,3 +38,21 @@ operation, reboot or release/tag is included. Preserve every failed/partial
 result; no automatic retry/reset, journal cutoff advance or threshold relaxation.
 Publish the measured result or a specific source-level blocker and release the
 scope at closeout. Full codec/package/boot qualification remains separate.
+
+## Cache-thread hypothesis after the paired startup result
+
+Both default browsers report working Mesa AGX OpenGL but GPU sandboxed=false
+and Seccomp=0, with disk-cache worker threads present. Chromium also defaults
+video decode to software; neither qualifies. Both guarded diagnostics exited
+normally and idle. No video was loaded.
+
+Mesa's documented `MESA_SHADER_CACHE_DISABLE=true` disables its disk shader
+cache while preserving the separate EGL blob-cache interface. Test that one
+environment change on Chrome in a fresh profile and 60-second guard. Record the
+environment explicitly. Hypothesis: avoiding the early disk-cache worker lets
+normal sandbox initialization complete, without the early-sandbox flag or
+library permission changes. Require actual GPU/renderer thread Seccomp=2,
+sandboxed=true and AGX hardware OpenGL/compositing together. A cache-off pass
+would still be a scoped launch alternative with unmeasured cache/performance
+cost, not a persistent setting or proof of playback. Preserve a negative result
+and stop this hypothesis if it does not satisfy the gate.
