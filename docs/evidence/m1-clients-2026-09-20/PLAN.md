@@ -90,3 +90,11 @@ decode or kernel fault. Preserve that failed preparation. The corrected runner
 waits for actual output parameters and an explicit decoder mode before recording
 identity; unavailable properties cannot satisfy the condition. Start a new
 software preparation row and only advance to hardware after it completes.
+
+A single separate no-media browser diagnostic may compare the installed
+binary's supported `--gpu-sandbox-start-early` switch with the preserved default
+result. This enables earlier isolation; it does not disable any sandbox. Require
+both GPU `sandboxed=true` and GPU/renderer `Seccomp: 2` before proposing a new
+browser playback plan. Run under a fresh 60-second guard and temporary profile.
+Do not persist the flag, operate the user's existing browser or replay video as
+part of this diagnostic. An unsuccessful diagnostic remains a blocker.
