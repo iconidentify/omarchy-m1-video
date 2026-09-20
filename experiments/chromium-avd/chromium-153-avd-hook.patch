@@ -1,0 +1,75 @@
+--- a/content/common/gpu_pre_sandbox_hook_linux.cc
++++ b/content/common/gpu_pre_sandbox_hook_linux.cc
+@@ -16,6 +16,7 @@
+ #include <vector>
+ 
+ #include "base/base_paths.h"
++#include "base/feature_list.h"
+ #include "base/files/file_enumerator.h"
+ #include "base/files/file_path.h"
+ #include "base/files/scoped_file.h"
+@@ -25,6 +26,7 @@
+ #include "base/strings/stringprintf.h"
+ #include "build/build_config.h"
+ #include "build/buildflag.h"
++#include "content/common/apple_avd_gpu_broker_linux.h"
+ #include "content/public/common/content_switches.h"
+ #include "media/gpu/buildflags.h"
+ #include "sandbox/linux/bpf_dsl/policy.h"
+@@ -47,6 +49,11 @@
+ 
+ namespace content {
+ namespace {
++
++#if BUILDFLAG(USE_VAAPI) && defined(ARCH_CPU_ARM64)
++// Experimental selected-M1 policy. Never enabled by a site or by default.
++BASE_FEATURE(kVaapiAppleAvd, base::FEATURE_DISABLED_BY_DEFAULT);
++#endif
+ 
+ inline bool IsChromeOS() {
+ #if BUILDFLAG(IS_CHROMEOS)
+@@ -669,6 +676,17 @@
+   }
+ 
+   AddStandardGpuPermissions(&permissions);
++#if BUILDFLAG(USE_VAAPI) && defined(ARCH_CPU_ARM64)
++  if (options.accelerated_video_decode_enabled &&
++      base::FeatureList::IsEnabled(kVaapiAppleAvd)) {
++    apple_avd::NativeDeviceFileSystem fs;
++    const auto rules = apple_avd::DiscoverPermissions(fs);
++    if (rules.empty()) {
++      LOG(WARNING) << "VaapiAppleAvd: no unique validated M1 device set";
++    }
++    apple_avd::AppendBrokerPermissions(rules, &permissions);
++  }
++#endif
+   return permissions;
+ }
+ 
+--- a/content/common/BUILD.gn
++++ b/content/common/BUILD.gn
+@@ -374,6 +374,9 @@
+ 
+   if (is_linux || is_chromeos) {
+     sources += [
++      "apple_avd_gpu_broker_linux.h",
++      "apple_avd_gpu_permissions_linux.cc",
++      "apple_avd_gpu_permissions_linux.h",
+       "gpu_pre_sandbox_hook_linux.cc",
+       "gpu_pre_sandbox_hook_linux.h",
+     ]
+--- a/content/test/BUILD.gn
++++ b/content/test/BUILD.gn
+@@ -3163,7 +3163,11 @@
+   }
+ 
+   if (is_linux || is_chromeos) {
+-    sources += [ "../child/sandboxed_process_thread_type_handler_unittest.cc" ]
++    sources += [
++      "../child/sandboxed_process_thread_type_handler_unittest.cc",
++      "../common/apple_avd_gpu_permissions_linux_unittest.cc",
++    ]
++    deps += [ "//sandbox/linux:seccomp_bpf" ]
+   }
+ 
+   if (is_linux) {

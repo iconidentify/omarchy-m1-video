@@ -1,0 +1,32 @@
+name: Chromium AVD policy experiment
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/chromium-avd.yml'
+      - 'experiments/chromium-avd/**'
+  pull_request:
+    paths:
+      - '.github/workflows/chromium-avd.yml'
+      - 'experiments/chromium-avd/**'
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  offline-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install isolated test dependencies on hosted runner
+        run: sudo apt-get update && sudo apt-get install -y clang libgtest-dev
+      - name: Fetch hash-pinned primary source inputs
+        run: python3 experiments/chromium-avd/source_cache.py /tmp/chromium-avd-source
+      - name: Compile and test selected-device policy (no hardware)
+        env:
+          CXX: clang++
+        run: python3 experiments/chromium-avd/test.py --source-cache /tmp/chromium-avd-source
