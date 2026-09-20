@@ -121,6 +121,23 @@ jobs:
       - name: Pinned Gst observer runner and normalized result (no device)
         run: python3 experiments/hevc-reference-content/gst-runner/tests.py --keep "$RUNNER_TEMP/gst-runner"
 
+  gst-eligibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ninja-build pkg-config libglib2.0-dev libglib2.0-dev-bin libgudev-1.0-dev flex bison python3-venv
+          python3 -m venv "$RUNNER_TEMP/eligibility-build-tools"
+          "$RUNNER_TEMP/eligibility-build-tools/bin/pip" install 'meson==1.12.0'
+          echo "$RUNNER_TEMP/eligibility-build-tools/bin" >> "$GITHUB_PATH"
+      - name: Finite Gst selected-allocation reservation and reuse (no device)
+        run: python3 experiments/hevc-reference-content/gst-eligibility/tests.py --keep "$RUNNER_TEMP/gst-eligibility"
+
   va-callsite:
     runs-on: ubuntu-latest
     timeout-minutes: 40

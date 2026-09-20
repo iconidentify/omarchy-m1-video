@@ -1,0 +1,427 @@
+diff --git a/subprojects/gst-plugins-bad/sys/v4l2codecs/gst-runner.inc b/subprojects/gst-plugins-bad/sys/v4l2codecs/gst-runner.inc
+index de77aff..b8cb760 100644
+--- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gst-runner.inc
++++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gst-runner.inc
+@@ -44,8 +44,11 @@ struct _GstHevcRunner
+   gboolean copy;
+   gboolean invalid;
+   gboolean locked;
++  gboolean allocation_frozen;
+   gboolean armed;
+   gboolean terminal;
++  guint allocated_mask;
++  guint remaining_allocations;
+   gint status;
+ };
+
+@@ -228,6 +231,108 @@ gst_hevc_runner_parse_frames (GstHevcRunner * runner)
+   return ok && runner->count;
+ }
+
++/* Freeze the complete runner configuration while source allocation is still
++ * negotiable.  The returned total is the ordinary decoder requirement plus
++ * one never-published allocation for every selected output. */
++static gboolean
++gst_hevc_runner_allocation_size (GstV4l2CodecH265Dec * self,
++    guint ordinary, guint * total)
++{
++  gboolean ok = TRUE;
++
++  g_return_val_if_fail (total, FALSE);
++  *total = ordinary;
++  GST_VIDEO_DECODER_STREAM_LOCK (self);
++  GstHevcRunner *runner = self->content_runner;
++  if (!runner)
++    goto done;
++  if (runner->allocation_frozen) {
++    ok = runner->count <= G_MAXUINT - ordinary;
++    if (ok)
++      *total = ordinary + runner->count;
++    goto done;
++  }
++  runner->locked = TRUE;
++  if (runner->invalid || runner->set_mask != GST_HEVC_RUNNER_SET_ALL ||
++      !gst_hevc_runner_parse_frames (runner) ||
++      !runner->report_path || !*runner->report_path ||
++      runner->count > G_MAXUINT - ordinary) {
++    gst_hevc_runner_message (self, GST_HEVC_RUNNER_CONFIG_REFUSED, TRUE);
++    ok = FALSE;
++    goto done;
++  }
++  runner->allocation_frozen = TRUE;
++  runner->allocated_mask = 0;
++  runner->remaining_allocations = runner->count;
++  *total = ordinary + runner->count;
++done:
++  GST_VIDEO_DECODER_STREAM_UNLOCK (self);
++  return ok;
++}
++
++static gboolean
++gst_hevc_runner_allocation_plan (GstV4l2CodecH265Dec * self,
++    guint32 frame, gboolean * active, gboolean * selected, guint * remaining)
++{
++  gboolean ok = TRUE;
++
++  *active = FALSE;
++  *selected = FALSE;
++  *remaining = 0;
++  GST_VIDEO_DECODER_STREAM_LOCK (self);
++  GstHevcRunner *runner = self->content_runner;
++  if (!runner)
++    goto done;
++  if (runner->terminal) {
++    ok = g_atomic_int_get (&runner->status) == GST_HEVC_RUNNER_SUCCESS;
++    goto done;
++  }
++  if (!runner->allocation_frozen || !runner->armed) {
++    ok = FALSE;
++    goto done;
++  }
++  *active = TRUE;
++  *remaining = runner->remaining_allocations;
++  for (guint i = 0; i < runner->count; i++) {
++    if (runner->frames[i] != frame)
++      continue;
++    if ((runner->allocated_mask & (1u << i)) || !runner->remaining_allocations) {
++      ok = FALSE;
++      goto done;
++    }
++    *selected = TRUE;
++    break;
++  }
++done:
++  GST_VIDEO_DECODER_STREAM_UNLOCK (self);
++  return ok;
++}
++
++static gboolean
++gst_hevc_runner_allocation_commit (GstV4l2CodecH265Dec * self, guint32 frame)
++{
++  gboolean ok = FALSE;
++
++  GST_VIDEO_DECODER_STREAM_LOCK (self);
++  GstHevcRunner *runner = self->content_runner;
++  if (!runner || !runner->allocation_frozen || !runner->armed ||
++      runner->terminal || !runner->remaining_allocations)
++    goto done;
++  for (guint i = 0; i < runner->count; i++) {
++    if (runner->frames[i] != frame)
++      continue;
++    if (runner->allocated_mask & (1u << i))
++      goto done;
++    runner->allocated_mask |= 1u << i;
++    runner->remaining_allocations--;
++    ok = TRUE;
++    break;
++  }
++done:
++  GST_VIDEO_DECODER_STREAM_UNLOCK (self);
++  return ok;
++}
++
+ static gboolean
+ gst_hevc_runner_arm (GstV4l2CodecH265Dec * self)
+ {
+@@ -244,8 +349,9 @@ gst_hevc_runner_arm (GstV4l2CodecH265Dec * self)
+     goto done;
+   runner->locked = TRUE;
+   if (runner->invalid || runner->set_mask != GST_HEVC_RUNNER_SET_ALL ||
+-      !gst_hevc_runner_parse_frames (runner) ||
+-      !runner->report_path || !*runner->report_path) {
++      !runner->allocation_frozen || !runner->count ||
++      runner->remaining_allocations != runner->count ||
++      runner->allocated_mask) {
+     gst_hevc_runner_message (self, GST_HEVC_RUNNER_CONFIG_REFUSED, TRUE);
+     ok = FALSE;
+     goto done;
+diff --git a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.c b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.c
+index d110c92..e0cfbb0 100644
+--- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.c
++++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.c
+@@ -57,7 +57,7 @@ struct _GstV4l2CodecAllocator
+   GstMemoryMapFullFunction observer_map_full;
+
+   GCond buffer_cond;
+-  gboolean flushing;
++  gint flushing;
+
+   GstV4l2Decoder *decoder;
+   GstPadDirection direction;
+@@ -345,9 +345,9 @@ gst_v4l2_codec_allocator_wait_for_buffer (GstV4l2CodecAllocator * self)
+   gboolean ret;
+
+   GST_OBJECT_LOCK (self);
+-  while (self->pool.length == 0 && !self->flushing)
++  while (self->pool.length == 0 && !g_atomic_int_get (&self->flushing))
+     g_cond_wait (&self->buffer_cond, GST_OBJECT_GET_LOCK (self));
+-  ret = !self->flushing;
++  ret = !g_atomic_int_get (&self->flushing);
+   GST_OBJECT_UNLOCK (self);
+
+   return ret;
+@@ -384,6 +384,79 @@ gst_v4l2_codec_allocator_prepare_buffer (GstV4l2CodecAllocator * self,
+   return TRUE;
+ }
+
++static GList *
++gst_v4l2_codec_allocator_observer_candidate (GstV4l2CodecAllocator * self,
++    gboolean selected, guint remaining_selected)
++{
++  GList *first_unpublished = NULL;
++  guint unpublished = 0;
++
++  for (GList *item = self->pool.head; item; item = item->next) {
++    GstV4l2CodecBuffer *buf = item->data;
++    if (buf->observer_published) {
++      if (!selected)
++        return item;
++    } else {
++      if (!first_unpublished)
++        first_unpublished = item;
++      unpublished++;
++    }
++  }
++
++  if (selected || unpublished > remaining_selected)
++    return first_unpublished;
++  return NULL;
++}
++
++gboolean
++gst_v4l2_codec_allocator_prepare_observer_buffer (
++    GstV4l2CodecAllocator * self, GstBuffer * gstbuf, gboolean selected,
++    guint remaining_selected)
++{
++  GST_HEVC_OBSERVER_LOCK;
++  if (gst_hevc_observer_busy (self->decoder))
++    return FALSE;
++  GstV4l2CodecBuffer *buf;
++  GList *candidate;
++
++  GST_OBJECT_LOCK (self);
++  candidate = gst_v4l2_codec_allocator_observer_candidate (self, selected,
++      remaining_selected);
++  if (!candidate) {
++    GST_OBJECT_UNLOCK (self);
++    return FALSE;
++  }
++  buf = candidate->data;
++  g_queue_delete_link (&self->pool, candidate);
++  GST_DEBUG_OBJECT (self, "Observer allocated %s buffer %i",
++      selected ? "selected unpublished" :
++      buf->observer_published ? "published" : "surplus unpublished",
++      buf->index);
++  gst_v4l2_codec_buffer_acquire (buf);
++  for (guint i = 0; i < buf->num_mems; i++) {
++    gst_buffer_append_memory (gstbuf, buf->mem[i]);
++    g_object_ref (buf->mem[i]->allocator);
++  }
++  GST_OBJECT_UNLOCK (self);
++  return TRUE;
++}
++
++gboolean
++gst_v4l2_codec_allocator_wait_for_observer_buffer (
++    GstV4l2CodecAllocator * self, guint remaining_selected)
++{
++  gboolean ret;
++
++  GST_OBJECT_LOCK (self);
++  while (!g_atomic_int_get (&self->flushing) &&
++      !gst_v4l2_codec_allocator_observer_candidate (self, FALSE,
++          remaining_selected))
++    g_cond_wait (&self->buffer_cond, GST_OBJECT_GET_LOCK (self));
++  ret = !g_atomic_int_get (&self->flushing);
++  GST_OBJECT_UNLOCK (self);
++  return ret;
++}
++
+ guint
+ gst_v4l2_codec_allocator_get_pool_size (GstV4l2CodecAllocator * self)
+ {
+@@ -427,7 +500,7 @@ gst_v4l2_codec_allocator_set_flushing (GstV4l2CodecAllocator * self,
+     gboolean flushing)
+ {
+   GST_OBJECT_LOCK (self);
+-  self->flushing = flushing;
++  g_atomic_int_set (&self->flushing, flushing);
+   if (flushing)
+     g_cond_broadcast (&self->buffer_cond);
+   GST_OBJECT_UNLOCK (self);
+diff --git a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.h b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.h
+index 8f4dcdd..102d48f 100644
+--- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.h
++++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecallocator.h
+@@ -46,6 +46,14 @@ gboolean                gst_v4l2_codec_allocator_wait_for_buffer (GstV4l2CodecAl
+ gboolean                gst_v4l2_codec_allocator_prepare_buffer (GstV4l2CodecAllocator * allocator,
+                                                                  GstBuffer * buffer);
+
++gboolean                gst_v4l2_codec_allocator_prepare_observer_buffer (GstV4l2CodecAllocator * allocator,
++                                                                          GstBuffer * buffer,
++                                                                          gboolean selected,
++                                                                          guint remaining_selected);
++
++gboolean                gst_v4l2_codec_allocator_wait_for_observer_buffer (GstV4l2CodecAllocator * allocator,
++                                                                           guint remaining_selected);
++
+ guint                   gst_v4l2_codec_allocator_get_pool_size (GstV4l2CodecAllocator *self);
+
+ void                    gst_v4l2_codec_allocator_detach (GstV4l2CodecAllocator * self);
+diff --git a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c
+index 0b9b6ce..38bd590 100644
+--- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c
++++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codech265dec.c
+@@ -533,7 +533,7 @@ gst_v4l2_codec_h265_dec_decide_allocation (GstVideoDecoder * decoder,
+ {
+   GstV4l2CodecH265Dec *self = GST_V4L2_CODEC_H265_DEC (decoder);
+   GstCaps *caps = NULL;
+-  guint min = 0, num_bitstream;
++  guint min = 0, num_bitstream, source_pool_size;
+   gboolean has_videometa;
+
+   if (self->streaming)
+@@ -592,6 +592,10 @@ gst_v4l2_codec_h265_dec_decide_allocation (GstVideoDecoder * decoder,
+     gst_query_parse_nth_allocation_pool (query, 0, NULL, NULL, &min, NULL);
+
+   min = MAX (2, min);
++  if (self->min_pool_size > G_MAXUINT - min ||
++      !gst_hevc_runner_allocation_size (self, self->min_pool_size + min,
++          &source_pool_size))
++    return FALSE;
+
+   num_bitstream = 1 +
+       MAX (1, gst_v4l2_decoder_get_render_delay (self->decoder));
+@@ -605,7 +609,7 @@ gst_v4l2_codec_h265_dec_decide_allocation (GstVideoDecoder * decoder,
+   }
+
+   self->src_allocator = gst_v4l2_codec_allocator_new (self->decoder,
+-      GST_PAD_SRC, self->min_pool_size + min);
++      GST_PAD_SRC, source_pool_size);
+   if (!self->src_allocator) {
+     GST_ELEMENT_ERROR (self, RESOURCE, NO_SPACE_LEFT,
+         ("Not enough memory to allocate source buffers."), (NULL));
+@@ -1486,12 +1490,32 @@ gst_v4l2_codec_h265_dec_ensure_output_buffer (GstV4l2CodecH265Dec * self,
+ {
+   GstBuffer *buffer;
+   GstFlowReturn flow_ret;
++  gboolean active, selected;
++  guint remaining;
+
+-  if (frame->output_buffer)
++  if (!gst_hevc_runner_allocation_plan (self, frame->system_frame_number,
++          &active, &selected, &remaining)) {
++    GST_ELEMENT_ERROR (self, RESOURCE, WRITE,
++        ("HEVC observer allocation policy refused the frame."), (NULL));
++    return FALSE;
++  }
++
++  if (frame->output_buffer) {
++    if (active) {
++      GST_ELEMENT_ERROR (self, RESOURCE, WRITE,
++          ("HEVC observer allocation cannot accept a pre-supplied buffer."),
++          (NULL));
++      return FALSE;
++    }
+     return TRUE;
++  }
+
+-  flow_ret = gst_buffer_pool_acquire_buffer (GST_BUFFER_POOL (self->src_pool),
+-      &buffer, NULL);
++  if (active)
++    flow_ret = gst_v4l2_codec_pool_acquire_observer_buffer (self->src_pool,
++        &buffer, selected, remaining);
++  else
++    flow_ret = gst_buffer_pool_acquire_buffer (GST_BUFFER_POOL (self->src_pool),
++        &buffer, NULL);
+   if (flow_ret != GST_FLOW_OK) {
+     if (flow_ret == GST_FLOW_FLUSHING)
+       GST_DEBUG_OBJECT (self, "Frame decoding aborted, we are flushing.");
+@@ -1501,6 +1525,14 @@ gst_v4l2_codec_h265_dec_ensure_output_buffer (GstV4l2CodecH265Dec * self,
+     return FALSE;
+   }
+
++  if (selected && !gst_hevc_runner_allocation_commit (self,
++          frame->system_frame_number)) {
++    gst_buffer_unref (buffer);
++    GST_ELEMENT_ERROR (self, RESOURCE, WRITE,
++        ("HEVC observer allocation commit was refused."), (NULL));
++    return FALSE;
++  }
++
+   frame->output_buffer = buffer;
+   return TRUE;
+ }
+diff --git a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecpool.c b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecpool.c
+index 9a539b1..7d61a27 100644
+--- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecpool.c
++++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecpool.c
+@@ -97,6 +97,54 @@ gst_v4l2_codec_pool_acquire_buffer (GstBufferPool * pool, GstBuffer ** buffer,
+   return GST_FLOW_OK;
+ }
+
++GstFlowReturn
++gst_v4l2_codec_pool_acquire_observer_buffer (GstV4l2CodecPool * self,
++    GstBuffer ** buffer, gboolean selected, guint remaining_selected)
++{
++  GstBuffer *buf;
++  GstVideoMeta *vmeta;
++
++  g_return_val_if_fail (self->vinfo_drm, GST_FLOW_ERROR);
++  g_return_val_if_fail (remaining_selected > 0 || !selected, GST_FLOW_ERROR);
++
++  buf = gst_atomic_queue_pop (self->queue);
++  if (!buf)
++    buf = gst_v4l2_codec_pool_create_empty_buffer ();
++
++  if (!gst_v4l2_codec_allocator_prepare_observer_buffer (self->allocator,
++          buf, selected, remaining_selected)) {
++    GstFlowReturn flow_ret = GST_FLOW_EOS;
++
++    /* A selected output cannot wait: an outstanding allocation becomes
++     * published before it returns.  Ordinary output may wait for a published
++     * allocation without consuming the finite unpublished reserve. */
++    if (!selected && gst_v4l2_codec_allocator_wait_for_observer_buffer (
++            self->allocator, remaining_selected)) {
++      if (gst_v4l2_codec_allocator_prepare_observer_buffer (self->allocator,
++              buf, FALSE, remaining_selected))
++        flow_ret = GST_FLOW_OK;
++    } else if (!selected) {
++      flow_ret = GST_FLOW_FLUSHING;
++    }
++    if (flow_ret != GST_FLOW_OK) {
++      gst_atomic_queue_push (self->queue, buf);
++      return flow_ret;
++    }
++  }
++
++  vmeta = gst_buffer_get_video_meta (buf);
++  vmeta->format = GST_VIDEO_INFO_FORMAT (&self->vinfo_drm->vinfo);
++  vmeta->width = GST_VIDEO_INFO_WIDTH (&self->vinfo_drm->vinfo);
++  vmeta->height = GST_VIDEO_INFO_HEIGHT (&self->vinfo_drm->vinfo);
++  vmeta->n_planes = gst_v4l2_format_get_n_planes (self->vinfo_drm);
++  memcpy (vmeta->offset, self->vinfo_drm->vinfo.offset,
++      sizeof (vmeta->offset));
++  memcpy (vmeta->stride, self->vinfo_drm->vinfo.stride,
++      sizeof (vmeta->stride));
++  *buffer = buf;
++  return GST_FLOW_OK;
++}
++
+ static void
+ gst_v4l2_codec_pool_reset_buffer (GstBufferPool * pool, GstBuffer * buffer)
+ {
+diff --git a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecpool.h b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecpool.h
+index 6ae194f..8a2a6c8 100644
+--- a/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecpool.h
++++ b/subprojects/gst-plugins-bad/sys/v4l2codecs/gstv4l2codecpool.h
+@@ -31,4 +31,9 @@ G_DECLARE_FINAL_TYPE(GstV4l2CodecPool, gst_v4l2_codec_pool, GST,
+ GstV4l2CodecPool *gst_v4l2_codec_pool_new  (GstV4l2CodecAllocator *allocator,
+                                             const GstVideoInfoDmaDrm * vinfo_drm);
+
++GstFlowReturn     gst_v4l2_codec_pool_acquire_observer_buffer (GstV4l2CodecPool * pool,
++                                                               GstBuffer ** buffer,
++                                                               gboolean selected,
++                                                               guint remaining_selected);
++
+ guint32           gst_v4l2_codec_buffer_get_index (GstBuffer * buffer);
