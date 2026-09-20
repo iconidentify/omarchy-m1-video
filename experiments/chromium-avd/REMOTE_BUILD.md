@@ -59,10 +59,14 @@ python3 experiments/chromium-avd/prepare_local.py \
 
 `--jobs` changes the explicit Ninja count and both preparation/build worker
 hints. It does not enforce memory or CPU limits; the enclosing service does.
-The default invocation still produces the byte-identical one-worker component
-recipe used on the shared desktop. Recipe generation and shell syntax have
-been checked; the real remote source preparation/configuration/build results
-must be recorded separately.
+The default invocation retains the one-worker component settings used on the
+shared desktop. Both modes point Chromium's tracked Rust-compiler symlink at
+the supplied private sysroot; the VM need not have `/usr/bin/rustc` installed.
+Recipe generation and shell syntax have been checked. Real remote preparation
+passed (32,229 GN targets, all 83 fonts restored); the first compile refused
+the original broken system-Rust symlink before doing work. That link is
+corrected without changing Rust versions or Chromium code. Full linking
+and integrated tests remain pending.
 
 ## Return and test
 

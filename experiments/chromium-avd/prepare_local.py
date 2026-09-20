@@ -27,12 +27,17 @@ def main():
     args = parser.parse_args()
     prefix = args.tools.resolve(strict=True)
     rust = args.rust_sysroot.resolve(strict=True)
+    if not (rust / 'bin/rustc').is_file():
+        raise ValueError('Missing compiler in the selected Rust sysroot')
     for name in ['gn', 'clang', 'clang++', 'ld.lld', 'gperf', 'bindgen', 'rustfmt', 'node', 'go', 'tsc']:
         if not (prefix / 'bin' / name).is_file():
             raise ValueError('Missing private tool: ' + name)
     if not (prefix / 'lib/libclang.so').is_file():
         raise ValueError('Missing matching libclang in private tool prefix')
     data = recipe(args.original.read_bytes())
+    # GN tracks this conventional path even when compilation uses the custom
+    # sysroot. A private builder need not have /usr/bin/rustc installed.
+    data = replace_once(data, '/usr/bin/rustc', shlex.quote(str(rust / 'bin/rustc')))
     for name in ['node', 'go', 'gperf']:
         data = replace_once(data, '/usr/bin/' + name, shlex.quote(str(prefix / 'bin' / name)))
     for key, path in [('clang_base_path', prefix), ('rust_bindgen_root', prefix),
