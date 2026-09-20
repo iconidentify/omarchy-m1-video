@@ -82,6 +82,19 @@ class FakeCampaign(run.Campaign):
 
 
 class Tests(unittest.TestCase):
+    def test_real_privileged_boundary_logs_paths_before_and_after_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            campaign = object.__new__(run.Campaign)
+            campaign.root = Path(directory)
+            result = mock.Mock(returncode=0, stdout='ok', stderr='')
+            with mock.patch.object(run.subprocess, 'run', return_value=result) as execute:
+                campaign.privileged('/fake/python', Path('/trusted/manifest.py'))
+            self.assertEqual(execute.call_args.args[0],
+                             ['/usr/bin/sudo', '-n', '/fake/python', '/trusted/manifest.py'])
+            events = [json.loads(line) for line in (campaign.root / 'events.jsonl').read_text().splitlines()]
+            self.assertEqual([row['event'] for row in events], ['privileged-attempt', 'privileged-result'])
+            self.assertEqual(events[0]['argv'][1], '/trusted/manifest.py')
+
     def test_external_uapi_is_rehoused_before_commands_are_rebuilt(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

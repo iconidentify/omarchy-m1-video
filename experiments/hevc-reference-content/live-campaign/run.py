@@ -195,8 +195,9 @@ class Campaign:
         need(manifest._loaded_note('apple_avd') == row['build_id'], 'loaded module identity drift')
 
     def privileged(self, *argv):
+        argv = tuple(map(str, argv))
         self.record('privileged-attempt', argv=list(argv))
-        result = subprocess.run(['/usr/bin/sudo', '-n', *map(str, argv)], text=True,
+        result = subprocess.run(['/usr/bin/sudo', '-n', *argv], text=True,
                                 capture_output=True, timeout=20)
         self.record('privileged-result', argv=list(argv), returncode=result.returncode,
                     stdout=result.stdout, stderr=result.stderr)
