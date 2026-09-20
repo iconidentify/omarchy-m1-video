@@ -56,3 +56,28 @@ sandboxed=true and AGX hardware OpenGL/compositing together. A cache-off pass
 would still be a scoped launch alternative with unmeasured cache/performance
 cost, not a persistent setting or proof of playback. Preserve a negative result
 and stop this hypothesis if it does not satisfy the gate.
+
+That single-variable attempt is rejected: sandboxing enabled, but GPU startup
+hit a Seccomp scheduling violation (aarch64 syscall 119, SCHED_BATCH, target a
+different worker thread), followed by Chrome's own three GPU restarts and
+software graphics. No AVD/kernel fault or media decode occurred. Preserve all
+three crash records locally; extracted core copies are removed after inspection.
+Core stacks are partially unsymbolized; do not invent missing function names.
+
+Exact versioned source explains a narrower next hypothesis. Mesa 26.1.8
+`disk_cache_type_create()` retains a cache object when the disk cache is disabled;
+`disk_cache_set_callbacks()` later initializes its queue. `util_queue_create_thread()`
+requests SCHED_BATCH for the new thread from its creator. Chrome 152's
+`RestrictSchedTarget`/`SIGSYSSchedHandler` allow self-targeted scheduling, not
+that other-thread target. The core/log combination supports this path but is
+not a fully symbolized caller stack.
+
+Test one new no-media Chrome startup with all existing Mesa cache backend
+selectors false: `MESA_DISK_CACHE_MULTI_FILE=0`, `MESA_DISK_CACHE_DATABASE=0`,
+`MESA_DISK_CACHE_SINGLE_FILE=0`; leave `MESA_SHADER_CACHE_DISABLE` unset.
+Versioned `disk_cache_create()` then returns NULL before creating the object;
+the DRI callback setter explicitly returns on NULL. This removes the late
+callback-worker path as well as the initial disk worker, without changing
+sandbox policy or suppressing a syscall. Same 60-second guard and success gates;
+no persistent configuration. Cache/performance costs remain unmeasured. A
+failure stops this hypothesis too; no cache-off setting is a playback claim.
