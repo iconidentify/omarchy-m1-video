@@ -49,6 +49,11 @@ EXPECTED_MODULES = frozenset({
 })
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
 BUILD_ID = re.compile(r"(?:[0-9a-f]{32}|[0-9a-f]{40}|[0-9a-f]{64})\Z")
+VA_OBSERVER_SYMBOLS = (
+    "v4l2r_observer_client_abi", "v4l2r_observer_open",
+    "v4l2r_observer_select", "v4l2r_observer_begin", "v4l2r_observer_end",
+    "v4l2r_observer_close", "v4l2r_content_init", "v4l2r_content_snapshot",
+)
 
 
 class ManifestError(ValueError):
@@ -244,8 +249,7 @@ def validate(document: dict, *, root_owned: bool = False,
                       for name, value in artifacts.items()}
     if check_files:
         require_tokens(artifact_paths["va_driver"], "nm",
-                       ("v4l2r_observer_abi", "v4l2r_content_snapshot",
-                        "v4l2r_observer_result"), "VA driver")
+                       VA_OBSERVER_SYMBOLS, "VA driver")
         require_tokens(artifact_paths["ffmpeg"], "strings",
                        ("va_observer_outputs", "va_observer_copy",
                         "va_observer_report"), "FFmpeg")

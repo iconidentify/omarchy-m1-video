@@ -10,6 +10,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import subprocess
 import sys
@@ -40,9 +41,14 @@ class Fixture:
         self.root = root
         source = root / "tiny.c"
         source.write_text(
-            "void v4l2r_observer_abi(void){}\n"
+            "void v4l2r_observer_client_abi(void){}\n"
+            "void v4l2r_observer_open(void){}\n"
+            "void v4l2r_observer_select(void){}\n"
+            "void v4l2r_observer_begin(void){}\n"
+            "void v4l2r_observer_end(void){}\n"
+            "void v4l2r_observer_close(void){}\n"
+            "void v4l2r_content_init(void){}\n"
             "void v4l2r_content_snapshot(void){}\n"
-            "void v4l2r_observer_result(void){}\n"
             'const char observer_tokens[] = "va_observer_outputs va_observer_copy '
             'va_observer_report hevc-observer-frames hevc-observer-copy '
             'hevc-observer-report observer-queue h265parse videoconvert filesink";\n'
@@ -166,6 +172,12 @@ class DeploymentTest(unittest.TestCase):
         helper = build.module("deployment_test_va_callsite",
                               HERE.parent / "va-callsite/tests.py")
         self.assertTrue(callable(helper.fetch_tree))
+
+    def test_va_symbol_contract_matches_ffmpeg_loader(self):
+        patch = (HERE.parent / "va-callsite/ffmpeg-n9.0.1-va-observer-callsite.patch").read_text()
+        loaded = tuple(re.findall(r'LOAD\([^,]+,\s+"([^"]+)"\);', patch))
+        self.assertEqual(len(loaded), len(set(loaded)))
+        self.assertEqual(set(loaded), set(manifest.VA_OBSERVER_SYMBOLS))
 
     def test_complete_manifest_and_admission(self):
         self.verify()

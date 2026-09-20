@@ -102,8 +102,7 @@ def build_va(root: Path, archive: Path, jobs: int,
          "v4l2_request_drv_video"], record=record)
     artifact = build / "src/v4l2_request_drv_video.so"
     symbols = run(["nm", "-D", artifact])
-    for symbol in ("v4l2r_observer_abi", "v4l2r_content_snapshot",
-                   "v4l2r_observer_result"):
+    for symbol in manifest.VA_OBSERVER_SYMBOLS:
         if symbol not in symbols:
             raise ValueError("VA artifact lacks observer symbol: " + symbol)
     return artifact, [PARENT / "va-adapter/driver-observer.patch",
