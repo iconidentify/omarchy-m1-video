@@ -37,10 +37,12 @@ Chromium build or operating-system sandbox test. Add Chromium-side integration
 tests/build wiring and verify patch application to pinned source.
 
 Prepare an isolated build recipe that does not install, run Chromium or acquire
-devices. Full browser compilation requires a separately available build worker
-and qualified independent review before hardware use. No configured remote host
-or repository runner was found at preparation. The shared desktop remains under
-one-worker bounded-build limits; do not raise limits to force a full build.
+devices. Full browser compilation requires a provisioned build environment and
+qualified independent review before hardware use. No configured remote host or
+repository runner was found at preparation. The owner later explicitly requested
+a build on the existing M1; LOCAL_BUILD.md records that scoped resource plan.
+Keep one build worker and the general small-test limits unchanged; do not increase
+the local attempt's limits automatically after a failure.
 
 Next runtime gate, only after build/review: fresh whole-current-boot exclusive
 guard, disposable profile, normal sandbox and no instrumentation; actual

@@ -82,12 +82,15 @@ case-sensitive StartsWith, export decorations and the host GoogleTest include
 path ([shims](tests/shims/)). Broker path/flag decisions are not substituted.
 This does **not** compile the GPU hook, GN graph, whole Chromium or OS sandbox.
 
-## Prepare a full test build on a separate worker
+## Prepare a full test build
 
 Use a native **ARM64 Arch Linux ARM worker** with Chromium's build dependencies
-already provisioned and a reviewed resource budget. No worker is configured in
-this session. Do not run a full build on the shared M1 desktop by increasing its
-bounded-build limits. Source download and compilation remain unrun.
+already provisioned and a reviewed resource budget. The owner subsequently
+requested using the existing M1: see [the scoped local build plan](LOCAL_BUILD.md)
+and `prepare_local.py` for private dependencies and its explicit resource budget.
+A separate machine is an option, not a requirement. The instructions below retain
+the original native package-build route; successful full compilation is not yet
+claimed. Do not change the general small-test limits to run this experiment.
 
 1. Obtain the exact packaging directory at the revision above in an isolated
    checkout, with all its adjacent patch files. Preserve the original PKGBUILD.
