@@ -155,6 +155,7 @@ content_callback_leave (GstHevcCallsite **active)
   GstHevcCallsite *state = *active;
   if (!state)
     return;
+  *active = NULL;
   state->in_callback = FALSE;
   if (!state->receipt.lease && state->cancel_held) {
     state->cancel_held = FALSE;
