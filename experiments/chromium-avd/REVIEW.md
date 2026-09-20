@@ -40,9 +40,11 @@ LOCAL_BUILD.md records its private tools, budget and incremental evidence.
   build executes in a later makepkg process; ninja receives -j1 explicitly.
 - **Component visibility, source-reviewed:** exported selector/native adapter
   declarations allow Chromium test targets to link via the content component;
-  the intended recipe is explicitly non-component. Source review also corrected the new test dependency to `sandbox_services`,
-  which owns BrokerFilePermission, instead of the seccomp BPF target. Full link verification remains
-  unresolved, so this is not a tested component-build claim.
+  the original package recipe is non-component, while the owner-directed local
+  recipe uses components to reduce link memory. Source review also corrected the
+  new test dependency to `sandbox_services`, which owns BrokerFilePermission,
+  instead of the seccomp BPF target. Full link verification remains unresolved,
+  so this is not a tested component-build claim.
 - **Hosted source transport, confirmed and fixed:** the first GitHub job
   ([35531401890](https://github.com/iconidentify/omarchy-m1-video/actions/runs/35531401890))
   timed out fetching Gitiles before any C++ test executed. Add Chromium's official
@@ -60,6 +62,8 @@ lld's private shared-library path and an explicit rustfmt link. Initial native
 compilation also selected Chromium's bundled x86 mold linker in the non-official
 configuration; select native lld explicitly for the local ARM64 build. Preserve
 these preparation failures; they are not hardware faults or passing browser runs.
+The first bindgen action then exposed a missing private-prefix libclang link;
+link the existing matching installed library and require it during preparation.
 
 Local checks use tools/bounded-build (one CPU/worker, 1.5 GiB maximum, disk TMPDIR).
 Successful initial GCC policy/mutation run: 44.6 seconds, 435.1 MiB reported peak;
@@ -77,7 +81,9 @@ character-device owner changes, inaccessible sysfs, GPU startup order or broker
 IPC/seccomp dispatch. The parent full-build unit test wiring is supplied but
 unrun. The generated recipe is syntax-tested, not build-qualified.
 
-No hardware lease acquired, client launched, installed package changed, system
-configuration edited or kernel/module operation performed. Existing Chrome crash
-and browser evidence remains unchanged; this candidate does not explain the
-earlier full desktop freeze. Keep the patch opt-in and draft pending review/build.
+The local compile holds hwguard's scheduling lock to exclude hardware campaigns;
+it does not open decoder devices or grant a playback lease to its child. No
+client launched, installed package changed, system configuration edited or
+kernel/module operation performed. Existing Chrome crash and browser evidence
+remains unchanged; this candidate does not explain the earlier full desktop
+freeze. Keep the patch opt-in and draft pending review/build.

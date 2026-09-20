@@ -26,6 +26,8 @@ def main():
     for name in ['gn', 'clang', 'clang++', 'ld.lld', 'gperf', 'bindgen', 'rustfmt', 'node', 'go', 'tsc']:
         if not (prefix / 'bin' / name).is_file():
             raise ValueError('Missing private tool: ' + name)
+    if not (prefix / 'lib/libclang.so').is_file():
+        raise ValueError('Missing matching libclang in private tool prefix')
     data = recipe(args.original.read_bytes())
     for name in ['node', 'go', 'gperf']:
         data = replace_once(data, '/usr/bin/' + name, shlex.quote(str(prefix / 'bin' / name)))

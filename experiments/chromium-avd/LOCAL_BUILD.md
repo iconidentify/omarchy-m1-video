@@ -46,3 +46,11 @@ block where deps is already initialized. The native build explicitly selects lld
 lld library path, and links the existing rustfmt into the private tool prefix.
 Initial failed attempts are retained. The scoped `CHROMIUM_AVD_CONFIGURE_ONLY=1`
 mode generates the real build graph without claiming to compile the browser.
+Bindgen also needs the matching installed libclang linked into that private
+prefix, because Chromium explicitly sets its library search location there.
+Direct incremental ninja invocations retain the distribution recipe's
+`RUSTC_BOOTSTRAP=1` environment for its stable Rust compiler; generating
+the build graph in a separate shell does not preserve that exported value.
+The local sequence compiles the GPU hook, the integrated policy test object,
+then chrome and chrome_sandbox, stopping at the first failed stage. No
+successful object build is counted as a linked browser or executed test.
