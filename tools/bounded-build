@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""Run one resource-bounded local build/test job on the shared Linux desktop."""
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+
+def main():
+    command = sys.argv[1:]
+    if not command or command == ['--help']:
+        print('Usage: tools/bounded-build COMMAND [ARG ...]\n'
+              'Use one build/test worker. No install or hardware permission is implied.')
+        return 0 if command else 2
+    if command[0] == '--':
+        command = command[1:]
+    if not command or os.geteuid() == 0 or not shutil.which('systemd-run'):
+        raise RuntimeError('a command and an ordinary Linux user with systemd-run are required')
+    cache = Path(os.environ.get('XDG_CACHE_HOME', str(Path.home() / '.cache')))
+    temporary = cache / 'omarchy-video-build' / 'tmp'
+    temporary.mkdir(parents=True, exist_ok=True)
+    filesystem = subprocess.check_output(
+        ['findmnt', '-n', '-o', 'FSTYPE', '-T', str(temporary)], text=True).strip()
+    if filesystem in ('tmpfs', 'ramfs'):
+        raise RuntimeError('build temporary directory must be on disk')
+    for path in (Path.cwd(), temporary):
+        if shutil.disk_usage(path).free < 10 * 1024**3:
+            raise RuntimeError('need at least 10 GiB free on work and temporary filesystems')
+    memory = dict(line.split(':', 1) for line in Path('/proc/meminfo').read_text().splitlines())
+    if int(memory['MemAvailable'].split()[0]) < 3 * 1024**2:
+        raise RuntimeError('need at least 3 GiB available RAM before starting')
+    argv = ['systemd-run', '--user', '--unit=omarchy-video-build', '--collect',
+            '--wait', '--pipe', '-p', 'WorkingDirectory=' + str(Path.cwd()),
+            '-p', 'CPUQuota=100%', '-p', 'MemoryHigh=1G', '-p', 'MemoryMax=1536M',
+            '-p', 'TasksMax=64', '-p', 'Nice=10', '-p', 'RuntimeMaxSec=1800',
+            '--setenv=TMPDIR=' + str(temporary)]
+    for name in ('PATH', 'CC', 'CXX', 'CFLAGS', 'CXXFLAGS', 'LDFLAGS',
+                 'PKG_CONFIG_PATH', 'PYTHONDONTWRITEBYTECODE'):
+        if name in os.environ:
+            argv.append('--setenv=' + name + '=' + os.environ[name])
+    # A fixed unit name refuses a second cooperating job, including jobs from
+    # another checkout. systemd enforces limits for the entire child process tree.
+    return subprocess.call(argv + ['--', *command])
+
+
+if __name__ == '__main__':
+    try:
+        raise SystemExit(main())
+    except (OSError, KeyError, RuntimeError, subprocess.SubprocessError) as error:
+        print('Build not started: ' + str(error), file=sys.stderr)
+        raise SystemExit(2)

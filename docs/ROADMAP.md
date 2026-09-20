@@ -1,33 +1,13 @@
-# Development roadmap
+# Roadmap and delivery priorities
 
-The GitHub roadmap is the live source of ownership, blockers and progress: [iconidentify/libva-v4l2_request#7](https://github.com/iconidentify/libva-v4l2_request/issues/7).
-The initial plan contains **54 leaf tickets in eight workstreams**, plus the roadmap and
-shared workflow issues, across both repositories. This document is an index, not a second
-status database. Check each ticket's current labels, comments and native dependencies.
+**Current priority: [one M1 playback candidate](M1_DELIVERY.md).** The owner-approved
+2026-09-20 reset prioritizes repeatable everyday playback, visible failures and a
+packaging decision. Use the [current scoreboard](https://github.com/iconidentify/libva-v4l2_request/issues/7)
+and [first paired test plan](M1_PLAYBACK_PLAN.md) for the next work. Installed,
+verified-candidate, experimental and blocked outcomes are distinct.
 
-## Next contributor wave
-
-Use [the contributor entry point](CONTRIBUTOR_START.md) for bounded offline tasks,
-public inputs and live claims. Actual HEVC observation is split into
-[VA API #95](https://github.com/iconidentify/omarchy-m1-video/issues/95) and
-[direct-V4L2 GStreamer API #96](https://github.com/iconidentify/omarchy-m1-video/issues/96),
-with separate experimental implementation files. Parent #82 retains exporter,
-bounded-copy and campaign integration gates. H.264 #79 retains actual admission
-work beyond merged NAL/parameter coverage; new PR97 is under review at this snapshot.
-
-The real concurrent worker and selected M1 qualification are now accepted through
-[driver PR96/97](https://github.com/iconidentify/libva-v4l2_request/pull/97): 180 groups,
-2,560 exact frame hashes and 200 retained frames, with healthy idle guard completion.
-[Evidence and limits](https://github.com/iconidentify/libva-v4l2_request/blob/avd-fixes/docs/concurrency-2026-09-18/README.md)
-keep model overlap, real teardown, strict suites, boot and support claims distinct.
-Allocator/startup candidate [selected runtime qualification](https://github.com/iconidentify/omarchy-m1-video/pull/91)
-is also complete with the original module restored; shipping remains separate.
-Delayed HEVC parameter-set [parent #15](https://github.com/iconidentify/omarchy-m1-video/issues/15)
-now has [selected-client M1 evidence](evidence/issue15/hevc-parameter-sets-2026-09-19/README.md):
-the exact local FFmpeg patch raises the strict suite from 144/147 to 145/147 with no lost pass.
-That client is not packaged, installed or upstream, so distribution remains separate.
-The live GitHub roadmap controls
-ownership and status; historical r11 figures below are a starting snapshot.
+The workstream catalogue below records the broader programme. It is not a list
+of simultaneous priorities or permission to claim historical ready entries.
 
 ## Agent entry point
 

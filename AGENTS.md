@@ -32,6 +32,14 @@ This repository sets up hardware video decoding on Apple Silicon Macs running Om
    them as issues in this repository.
 10. **To undo**, run `./uninstall.sh` and reboot.
 
+## Current delivery priority and shared desktop builds
+
+Read `docs/M1_DELIVERY.md` before choosing new owner-directed work. Reuse the
+existing playback/resource tools and preserve live contributor claims. Local
+builds and CPU test runs on the shared desktop use `tools/bounded-build`, one
+build/test worker and disk-backed temporary files. Do not overlap them with a
+hardware campaign or raise limits/delete retained evidence to make a run pass.
+
 ## Reviewing pull requests
 
 Use [sashiko.md](sashiko.md) for the local adversarial review stages, evidence
