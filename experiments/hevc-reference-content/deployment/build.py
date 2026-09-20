@@ -31,6 +31,8 @@ RECORDER_MODULE_SHA = "7a00ffa548e89d4316eb2b1454c7e153128906f099729efb58b77c26f
 ORACLE_SHA = "d98837f95faa669a8c01f16caad7c986181bdc03cbce80c8ced26ec1697f4310"
 UAPI_SHA = "c86036741a6b878cc2a28796c2fdd1ff18488ccdd274ea662cfadc934569d9fb"
 TARGET_EVIDENCE_SHA = "b7b37270f6336f4096dd018354178c7e06c98da335b2ce02866b530afba3814e"
+GLIB_PIN = "43bc79ea8803e33c5eb368085e2d5906f9f98079"
+GLIB_SOURCE_SHA = "0a0a176548084e8439eb9b61a4b6fd452f5dc09cf72ba758bd806460bcef7528"
 
 
 def module(name: str, path: Path):
@@ -167,6 +169,7 @@ def build_gst(root: Path, archive: Path, jobs: int,
         "meson", "setup", build, tree, "--buildtype=release",
         "-Dauto_features=disabled", "-Dbase=enabled", "-Dbad=enabled",
         "-Dgood=disabled", "-Dugly=disabled", "-Dtests=disabled",
+        "-Dgstreamer:check=enabled", "-Dgstreamer:tools=enabled",
         "-Dgst-plugins-base:videoconvertscale=enabled",
         "-Dgst-plugins-bad:v4l2codecs=enabled",
         "-Dgst-plugins-bad:videoparsers=enabled",
@@ -238,6 +241,8 @@ def command_matrix(artifacts: dict[str, Path], corpus: dict[str, dict],
                 else:
                     environment |= {
                         "GST_PLUGIN_PATH_1_0": str(artifacts["gst_plugin"].parent),
+                        "GST_PLUGIN_SYSTEM_PATH_1_0":
+                            str(artifacts["gst_plugin"].parent),
                         "GST_REGISTRY_FORK": "no",
                         "GST_REGISTRY": "@OMARCHY_RUN_ROOT@/gst-registry.bin",
                     }
@@ -306,7 +311,7 @@ def main() -> int:
     parser.add_argument("--corpus-root", required=True, type=Path)
     parser.add_argument("--oracle", required=True, type=Path)
     parser.add_argument("--uapi", required=True, type=Path)
-    parser.add_argument("--native-file", type=Path)
+    parser.add_argument("--glib-source", required=True, type=Path)
     parser.add_argument("--jobs", type=int, default=4)
     args = parser.parse_args()
     try:
@@ -324,11 +329,21 @@ def main() -> int:
         target_evidence = checked_file(args.targets, TARGET_EVIDENCE_SHA,
                                        "campaign target evidence")
         build_commands: list[dict] = []
+        stage = root / "stage"
+        glib_output = stage / "build-tools"
+        run([sys.executable, HERE / "prepare_glib_tools.py",
+             "--source", args.glib_source.resolve(strict=True),
+             "--output", glib_output], cwd=REPO, record=build_commands)
+        glib_tools = {
+            "glib_mkenums": glib_output / "bin/glib-mkenums",
+            "glib_genmarshal": glib_output / "bin/glib-genmarshal",
+            "glib_pc": glib_output / "pkgconfig/glib-2.0.pc",
+            "glib_native_file": glib_output / "native.ini",
+        }
         ffmpeg, ff_patches = build_ffmpeg(root, ff_archive, args.jobs, build_commands)
         va_driver, va_patches = build_va(root, va_archive, args.jobs, build_commands)
         gst_artifacts, gst_patches = build_gst(
-            root, gst_archive, args.jobs, args.native_file, build_commands)
-        stage = root / "stage"
+            root, gst_archive, args.jobs, glib_tools["glib_native_file"], build_commands)
         recorder_provenance = REPO / "experiments/hevc-avd-command-trace/corrected-build.json"
         provenance_document = json.loads(recorder_provenance.read_text())
         if provenance_document.get("module_sha256") != RECORDER_MODULE_SHA:
@@ -357,7 +372,7 @@ def main() -> int:
                                               stage / "target-evidence.json"),
             "recorder_provenance": copy_artifact(
                 recorder_provenance, stage / "recorder-provenance.json"),
-        }
+        } | glib_tools
         target_document = json.loads(target_evidence.read_text())
         if type(target_document) is not dict or set(target_document) != {
                 "schema", "sources", "derivation", "targets"} or \
@@ -419,6 +434,8 @@ def main() -> int:
                 "ffmpeg": {"revision": FFMPEG_PIN, "source_sha256": FFMPEG_ARCHIVE_SHA},
                 "va_driver": {"revision": VA_PIN, "source_sha256": VA_ARCHIVE_SHA},
                 "gstreamer": {"revision": GST_PIN, "source_sha256": GST_ARCHIVE_SHA},
+                "glib_tools": {"revision": GLIB_PIN,
+                               "source_sha256": GLIB_SOURCE_SHA},
                 "kernel": {"revision": KERNEL_PIN, "source_sha256": KERNEL_SOURCE_SHA},
             },
             "patches": [patch_record(index, path.parent.name, path)

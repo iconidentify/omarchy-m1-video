@@ -32,12 +32,15 @@ TARGET_KEYS = frozenset({
     "output_count", "gst_pool_size", "gst_reserve", "parameter_set_change_inputs",
     "evidence_sha256",
 })
-EXPECTED_SOURCES = frozenset({"ffmpeg", "va_driver", "gstreamer", "kernel"})
+EXPECTED_SOURCES = frozenset({
+    "ffmpeg", "va_driver", "gstreamer", "glib_tools", "kernel",
+})
 EXPECTED_ARTIFACTS = frozenset({
     "ffmpeg", "va_driver", "gst_launch", "gst_plugin", "gst_parser",
     "gst_videoconvert", "gst_core", "recorder_module",
     "v4l2_tracer", "oracle", "uapi", "same_run_supervisor", "hwguard",
-    "target_evidence", "recorder_provenance",
+    "target_evidence", "recorder_provenance", "glib_mkenums",
+    "glib_genmarshal", "glib_pc", "glib_native_file",
 })
 EXPECTED_DEPENDENCIES = frozenset({
     "ffmpeg", "va_driver", "gst_launch", "gst_plugin", "gst_parser",
@@ -156,6 +159,27 @@ def require_tokens(path: Path, command: str, tokens: tuple[str, ...], name: str)
         need(token in result.stdout, f"{name} lacks observer token: {token}")
 
 
+def verify_glib_tooling(artifacts: dict[str, Path]) -> None:
+    mkenums = artifacts["glib_mkenums"]
+    genmarshal = artifacts["glib_genmarshal"]
+    pc = artifacts["glib_pc"]
+    native = artifacts["glib_native_file"]
+    need(mkenums.name == "glib-mkenums" and
+         genmarshal.name == "glib-genmarshal" and
+         mkenums.parent == genmarshal.parent,
+         "GLib generator paths are not a single tool directory")
+    pc_text = pc.read_text()
+    need(pc_text.count("bindir=") == 1 and
+         f"bindir={mkenums.parent}" in pc_text and
+         "glib_mkenums=${bindir}/glib-mkenums" in pc_text and
+         "glib_genmarshal=${bindir}/glib-genmarshal" in pc_text,
+         "GLib pkg-config tool wiring is invalid")
+    expected_native = ("[built-in options]\n"
+                       f"pkg_config_path = ['{pc.parent}']\n")
+    need(native.read_text() == expected_native,
+         "Meson native GLib tool wiring is invalid")
+
+
 def _exact(value: object, keys: frozenset[str], name: str) -> dict:
     need(type(value) is dict and set(value) == keys,
          f"{name} has unexpected fields")
@@ -262,6 +286,7 @@ def validate(document: dict, *, root_owned: bool = False,
                        "Gst video converter")
         require_tokens(artifact_paths["gst_core"], "strings", ("filesink",),
                        "Gst core elements")
+        verify_glib_tooling(artifact_paths)
         try:
             provenance = json.loads(artifact_paths["recorder_provenance"].read_text(),
                                     object_pairs_hook=_pairs)

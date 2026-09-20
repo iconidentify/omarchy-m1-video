@@ -25,6 +25,13 @@ the loaded-kernel release/config, modular vb2 objects, corpus, reference
 evidence, exact target plan and all eight same-run argv/environment records.
 The output state is always `candidate`.
 
+The host GLib package advertises two missing code generators. The builder
+therefore regenerates only `glib-mkenums` and `glib-genmarshal` from the clean,
+pinned GNOME/glib 2.88.3 source templates, checks their previously established
+hashes, and supplies a staged pkg-config override through an exact Meson native
+file. The generators, overridden `glib-2.0.pc`, native file and source identity
+are ordinary manifest-bound inputs; nothing is installed on the host.
+
 On the M1 staging host used for #126, the command shape is:
 
 ```sh
@@ -33,6 +40,7 @@ python3 experiments/hevc-reference-content/deployment/build.py \
   --ffmpeg-archive /home/chrisk/src/video-114-work-20260919/runner-self-review2/ffmpeg.tar.gz \
   --va-archive /home/chrisk/src/video-114-work-20260919/integration-final/source.tar.gz \
   --gst-archive /home/chrisk/hevc-deployment-gstreamer-0701255.tar.gz \
+  --glib-source /tmp/omarchy-120-glib-tools-src \
   --recorder-module /home/chrisk/hevc-command-capture-20260917T2045Z/corrected-build/apple-avd.ko \
   --targets experiments/hevc-reference-content/deployment/target-evidence-20260920.json \
   --corpus-root /home/chrisk/src/fluster/resources/JCT-VC-HEVC_V1 \

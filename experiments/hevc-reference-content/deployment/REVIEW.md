@@ -9,7 +9,7 @@
 | Stage | Evidence | Disposition |
 | --- | --- | --- |
 | 1 Intent | New code is isolated under the experimental deployment directory; existing shipped patches and defaults are unchanged. | Fits the owning offline leaf. |
-| 2 Claims | Complete source/patch/artifact/dependency/corpus/target/plan inventory and real production builds are required before candidate emission. | Final build evidence remains to be filled from the clean head. |
+| 2 Claims | Complete source/patch/artifact/dependency/corpus/target/plan inventory and real production builds are required before candidate emission. | Exact-head build evidence and the candidate digest are release evidence posted during closeout. |
 | 3 Execution | Builder ends at a candidate. Verifier requires an exact externally reviewed digest. Admission reconstructs plan and commands, then returns false authorization. | Default and all error paths remain non-executing. |
 | 4 Resources | Builder creates only a caller-selected empty directory and subprocess build trees; it does not install. Supervisor argv is data and is never invoked here. | Partial build trees remain inspectable; no device resource exists. |
 | 5 Concurrency | Offline subprocesses share no mutable decoder state. Manifest publication/approval is outside the builder. | Inapplicable to hardware; later campaign owns process/device concurrency. |
@@ -18,7 +18,7 @@
 | 8 Consolidate | The pre-#125 controller incorrectly bounded frame numbers by pool size. | Confirmed and fixed: per-vector ordinary-plus-reserve capacity replaces the stale boundary. |
 | 9 Conflicts | Late Gst selectors 28/31/32 exceed pool slot counts but do not name slots; reserve allocation is selected by sticky publication state. | Source invariant and eligibility tests resolve the apparent conflict. |
 | 10 Verify | Late-selector positive test, insufficient-capacity negative test, target parser and gate mutations all exercise the changed paths. | No unresolved offline correctness finding at current head. |
-| 11 Report | Final exact-head CI and merge record pending. | Changes needed until build and hosted checks complete. |
+| 11 Report | Exact-head local build, hosted CI and merge disposition are recorded in the PR rather than editing this manifest-bound commit afterward. | Merge remains conditional on that evidence. |
 
 ## Findings
 
@@ -34,6 +34,10 @@
 - D3, confirmed during self-review: target evidence originally carried only an
   unbound digest. Fixed by staging it as an ordinary hashed artifact and
   requiring every target row to name that exact artifact digest.
+- D4, confirmed by the clean production build: Arch's `glib-2.0.pc` advertised
+  absent generator programs. Fixed without host installation by reproducing
+  the two programs from hash-locked upstream 2.88.3 templates and binding the
+  exact local pkg-config/native-file route into the candidate manifest.
 
 The strongest remaining limitation is intentionally outside #126: a valid
 manifest cannot prove observation noninterference or HEVC correctness. Only the

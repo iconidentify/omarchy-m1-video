@@ -57,6 +57,10 @@ MUTATIONS = (
      [("        \"execution_authorized\": False,\n",
        "        \"execution_authorized\": True,\n")],
      "test_complete_manifest_and_admission"),
+    ("build-tool-wiring", "manifest.py",
+     [("        verify_glib_tooling(artifact_paths)\n",
+       "        # mutation: do not bind Meson to the staged GLib tools\n")],
+     "test_glib_tool_wiring_drift_is_rejected"),
 )
 
 

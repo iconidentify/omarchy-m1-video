@@ -69,6 +69,23 @@ class Fixture:
         self.reference = root / "reference.json"
         self.reference.write_text('{"locked":true}\n')
         self.provenance = root / "recorder-provenance.json"
+        glib_bin = root / "build-tools/bin"
+        glib_pc_dir = root / "build-tools/pkgconfig"
+        glib_bin.mkdir(parents=True)
+        glib_pc_dir.mkdir()
+        for name in ("glib-mkenums", "glib-genmarshal"):
+            tool_path = glib_bin / name
+            tool_path.write_text("#!/usr/bin/python\n")
+            tool_path.chmod(0o755)
+        glib_pc = glib_pc_dir / "glib-2.0.pc"
+        glib_pc.write_text(
+            f"prefix=/usr\nbindir={glib_bin}\n"
+            "glib_genmarshal=${bindir}/glib-genmarshal\n"
+            "glib_mkenums=${bindir}/glib-mkenums\n")
+        glib_native = root / "build-tools/native.ini"
+        glib_native.write_text(
+            "[built-in options]\n"
+            f"pkg_config_path = ['{glib_pc_dir}']\n")
         self.targets = [
             self.target("gst", "B", [3], 6, 300, 16, 1),
             self.target("gst", "E", [2, 5, 9], 12, 300, 16, 3),
@@ -124,6 +141,12 @@ class Fixture:
         self.path = root / "manifest.json"
         self.document["artifacts"]["recorder_provenance"] = \
             manifest.file_record(self.provenance)
+        self.document["artifacts"].update({
+            "glib_mkenums": manifest.file_record(glib_bin / "glib-mkenums"),
+            "glib_genmarshal": manifest.file_record(glib_bin / "glib-genmarshal"),
+            "glib_pc": manifest.file_record(glib_pc),
+            "glib_native_file": manifest.file_record(glib_native),
+        })
         for target in self.document["targets"]:
             target["evidence_sha256"] = self.document["artifacts"][
                 "target_evidence"]["sha256"]
@@ -178,6 +201,18 @@ class DeploymentTest(unittest.TestCase):
         loaded = tuple(re.findall(r'LOAD\([^,]+,\s+"([^"]+)"\);', patch))
         self.assertEqual(len(loaded), len(set(loaded)))
         self.assertEqual(set(loaded), set(manifest.VA_OBSERVER_SYMBOLS))
+
+    def test_glib_generator_rendering_is_pinned(self):
+        import prepare_glib_tools
+        raw = b"#!@PYTHON@\nversion=@VERSION@\n"
+        self.assertEqual(prepare_glib_tools.render_template(raw),
+                         b"#!/usr/bin/python\nversion=2.88.3\n")
+        with self.assertRaisesRegex(ValueError, "substitutions"):
+            prepare_glib_tools.render_template(b"#!@PYTHON@\n")
+
+    def test_glib_tool_wiring_drift_is_rejected(self):
+        self.rejected(lambda value: value["artifacts"]["glib_native_file"].update(
+            manifest.file_record(self.fixture.patch)), "native GLib tool wiring")
 
     def test_complete_manifest_and_admission(self):
         self.verify()
