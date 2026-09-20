@@ -357,7 +357,7 @@ class Controller:
         raise AuthorizationError(
             "campaign execution is not implemented and is not authorized by this leaf: "
             "a reviewed deployment manifest, full client/dependency/corpus attestation and "
-            "an actual same-run kernel command/reference join remain outstanding. "
+            "proven live target eligibility/workload admission remain outstanding. "
             "See CAMPAIGN.md and companion issue #82.")
 
 
@@ -406,7 +406,7 @@ def main() -> int:
             print(f"  - {problem}")
         return 1
     print("\nPlan is internally consistent. It is NOT authorized to run: the campaign "
-          "requires a reviewed manifest, a same-run kernel command/reference join and "
+          "requires a reviewed live manifest, proven target eligibility and "
           "separate hardware authorization.")
     return 0
 

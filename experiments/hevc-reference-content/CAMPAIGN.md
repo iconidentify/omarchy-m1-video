@@ -16,11 +16,14 @@ VA client's `threads=1`, one-application-owner, finish-before-close and fatal
 quarantine contracts and emits deterministic per-workload adapter inputs. The
 VA call site now has a real decoder-worker result path and strict normalized
 collector; its exclusive report destination and whole-process-success rule are
-part of the emitted contract. There is still no executable hardware campaign
-command. Remaining: implement the Gst runner and guarded supervisor, plus
-same-run command/reference association, exact loaded
-build/client/tool/corpus evidence, and an approved deployment manifest. Re-review
-this plan against that exact head. The manifest verifier alone covers the
+part of the emitted contract. The Gst side now has the equivalent real runner.
+The [same-run supervisor](same-run/README.md) can execute one later admitted
+workload and binds either client result through its actual queue/V4L2 lifetime to
+paired sealed kernel evidence. There is still no executable eight-workload
+campaign command. Remaining: exact loaded build/client/tool/corpus evidence, an
+approved deployment manifest, proven live target eligibility (including Gst's
+pre-publication allocation limit), controller-level workload admission and the
+authorized guarded campaign. Re-review this plan against that exact head. The manifest verifier alone covers the
 observer object, kernel, AVD and modular vb2 components; it does not cover the
 full clients.
 

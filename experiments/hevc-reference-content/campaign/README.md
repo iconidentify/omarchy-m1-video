@@ -71,10 +71,13 @@ runner input merely because a consumer ignored the CLI exit status.
 ## Why execution still refuses
 
 `Controller.execute()` checks the authorization record, plan and preconditions,
-then raises `AuthorizationError` unconditionally. The campaign still lacks the
-reviewed deployment manifest, full client/dependency/corpus attestation and an
-actual same-run kernel command/reference join. Keeping refusal in code prevents
-a valid-looking JSON document from becoming accidental hardware authorization.
+then raises `AuthorizationError` unconditionally. The executable
+[same-run supervisor](../same-run/README.md) now supplies the per-workload
+client/kernel join, but the campaign still lacks a reviewed live deployment
+manifest, full client/dependency/corpus attestation, proven live target
+eligibility and controller-level workload admission. Keeping refusal in code
+prevents a valid-looking JSON document from becoming accidental hardware
+authorization.
 
 `Authorization` merely names an operator, guard lease, manifest digest, issue
 authorization and hardware window supplied elsewhere. The controller cannot

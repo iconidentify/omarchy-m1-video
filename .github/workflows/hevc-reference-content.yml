@@ -6,11 +6,19 @@ on:
       - '.github/workflows/hevc-reference-content.yml'
       - 'experiments/hevc-reference-content/**'
       - 'experiments/hevc-reference-memory/**'
+      - 'experiments/hevc-avd-command-capture/**'
+      - 'experiments/hevc-avd-command-trace/**'
+      - 'experiments/hevc-avd-trace/check.py'
+      - 'experiments/hevc-full-controls/**'
   pull_request:
     paths:
       - '.github/workflows/hevc-reference-content.yml'
       - 'experiments/hevc-reference-content/**'
       - 'experiments/hevc-reference-memory/**'
+      - 'experiments/hevc-avd-command-capture/**'
+      - 'experiments/hevc-avd-command-trace/**'
+      - 'experiments/hevc-avd-trace/check.py'
+      - 'experiments/hevc-full-controls/**'
 permissions:
   contents: read
 concurrency:
@@ -29,6 +37,18 @@ jobs:
         run: |
           python3 experiments/hevc-reference-content/campaign/tests.py
           python3 experiments/hevc-reference-content/campaign/mutations.py
+
+  same-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Exact-PID supervisor, client/kernel join and fail-closed mutations (no device)
+        run: |
+          python3 experiments/hevc-reference-content/same-run/tests.py
+          python3 experiments/hevc-reference-content/same-run/mutations.py
+          python3 experiments/hevc-avd-command-capture/tests.py
   gst-observer:
     runs-on: ubuntu-latest
     timeout-minutes: 30

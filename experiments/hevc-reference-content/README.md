@@ -14,13 +14,16 @@ selected-writer scheduling are merged. A [campaign controller](campaign/README.m
 plans the eight workloads while refusing to run them. It now keeps Gst frame
 numbers, VA output ordinals and input windows distinct, enforces each client's
 ownership/cleanup rules and emits machine-readable adapter contracts.
-The VA side now also exports one bounded normalized record from the real FFmpeg
-decoder worker before context free and has a strict offline collector. It still
-does not launch or authorize a decoder workload.
+Both clients now export one bounded normalized record from their real decoder
+worker/element paths before cleanup and have strict offline collectors. The
+[same-run supervisor](same-run/README.md) can launch one later admitted workload,
+arm the paired recorders for the exact decoder PID and bind the client result
+through its raw V4L2 lifetime to validated kernel evidence. It does not authorize
+a decoder workload on its own.
 
-Remaining gates: the Gst runner and guarded supervisor, full
-client/dependency/corpus identities, actual same-run kernel command/reference
-association, approved loaded builds and the separately guarded
+Remaining gates: full client/dependency/corpus identities, approved loaded builds,
+proven live target eligibility (including Gst's pre-publication allocation gate),
+controller-level workload admission and the separately guarded
 [campaign](CAMPAIGN.md) itself. #82 and
 driver #42 stay
 open. Existing synthetic, source-audit and helper evidence is preserved below as

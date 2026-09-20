@@ -69,9 +69,18 @@ def check_state(st,run,enabled,sealed=False):
         raise ValueError('recorder is not off')
 
 
-def supervise(command,run,enabled,deadline,backends,store=None):
+def supervise(command,run,enabled,deadline,backends,store=None,*,environment=None,
+              working_directory=None,stdout_path=None,stderr_path=None):
     if not command or not 1<=deadline<=90 or not 1<=run<2**64 or set(backends)!=set(PATHS):
         raise ValueError('command/run/deadline/backend contract')
+    if environment is not None and (type(environment) is not dict or
+            any(type(key) is not str or type(value) is not str
+                for key,value in environment.items())):
+        raise ValueError('environment contract')
+    if working_directory is not None and not Path(working_directory).is_dir():
+        raise ValueError('working directory contract')
+    if (stdout_path is None)!=(stderr_path is None):
+        raise ValueError('child log path contract')
     store=store or NullStore()
     result=dict(schema='hevc-avd-command-capture.execution/1',run=run,enabled=enabled,
                 child_pid=None,child_exit=None,child_reaped=False,child_released=False,
@@ -102,7 +111,17 @@ def supervise(command,run,enabled,deadline,backends,store=None):
                 os.close(writer);libc=ctypes.CDLL(None,use_errno=True)
                 if libc.prctl(1,signal.SIGKILL,0,0,0)!=0 or os.getppid()!=parent:os._exit(125)
                 if os.read(reader,1)!=b'G':os._exit(125)
-                os.close(reader);os.execvpe(command[0],command,os.environ)
+                os.close(reader)
+                if working_directory is not None:os.chdir(working_directory)
+                if stdout_path is not None:
+                    opened=[]
+                    try:
+                        for fd,path in ((1,stdout_path),(2,stderr_path)):
+                            out=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_CLOEXEC,0o600)
+                            opened.append(out);os.dup2(out,fd)
+                    finally:
+                        for out in opened:os.close(out)
+                os.execvpe(command[0],command,environment if environment is not None else os.environ)
             except BaseException:os._exit(126)
         os.close(reader);result['child_pid']=pid;event('child-blocked')
         for name,b in backends.items():

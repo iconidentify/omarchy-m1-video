@@ -54,7 +54,7 @@ MUTATIONS = (
      """        raise AuthorizationError(
             "campaign execution is not implemented and is not authorized by this leaf: "
             "a reviewed deployment manifest, full client/dependency/corpus attestation and "
-            "an actual same-run kernel command/reference join remain outstanding. "
+            "proven live target eligibility/workload admission remain outstanding. "
             "See CAMPAIGN.md and companion issue #82.")""",
      "        return None",
      "Execution.test_execute_refuses_even_with_valid_plan_and_authorization"),
