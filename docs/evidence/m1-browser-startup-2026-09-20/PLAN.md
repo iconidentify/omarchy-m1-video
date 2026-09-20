@@ -81,3 +81,32 @@ callback-worker path as well as the initial disk worker, without changing
 sandbox policy or suppressing a syscall. Same 60-second guard and success gates;
 no persistent configuration. Cache/performance costs remain unmeasured. A
 failure stops this hypothesis too; no cache-off setting is a playback claim.
+
+## Startup pass and exact playback gate
+
+The all-backends-off row passed: Chrome reports sandboxed=true, AGX hardware
+OpenGL/compositing, zero GPU crashes, and every sampled GPU/renderer thread has
+Seccomp=2. Its guard ended healthy/idle. Proceed with the already tagged
+12-second 640x360 H.264 BT.709 clip, SHA-256
+`befc52cf1eabc751f35ba254c47943b252cc93601724f015871f114d3da4dc0a`.
+All three cache backend selectors remain 0, with the disk-disable variable unset.
+Use Chrome 152 with normal sandbox flags and the installed kernel/clients.
+
+First complete one software-reference row, then installed-driver hardware,
+then C1 hardware only if installed passes. Each separate guard is 180 seconds.
+Reuse the prior runner's 20 exact seeks (1/4/2/6 seconds repeated), full playback,
+two elements, survivor and reopen. Enable Media diagnostics before loading.
+Require FFmpegVideoDecoder/platform=false for software and a named VA platform
+decoder/platform=true plus owned AVD holders and selected-driver mappings for
+hardware before advancing into the seek matrix. Software fallback stops the
+hardware row. Verify GPU sandbox/AGX and per-thread isolation before and after.
+
+Use actual DPR as measured, preserving the 640x360 CSS content and capture at
+native compositor resolution: expected 1280x720 at DPR 2 on this display. Bind
+metadata and require identical dimensions, frame timestamps and >=40 dB PSNR
+against software without resizing. Five captures cover four seek positions and
+reopen. These are selected compositor frames, not all played frames or panel
+photographs. Require a full 12-second completion with zero dropped-frame delta.
+Preserve the first failed gate and stop its matrix; no immediate retry or switch
+to sandbox-disabling flags. Successful default startup does not itself prove
+decode selection, so the first loaded-frame gate is decisive.
