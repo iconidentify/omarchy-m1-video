@@ -23,7 +23,7 @@ def main():
     args = parser.parse_args()
     prefix = args.tools.resolve(strict=True)
     rust = args.rust_sysroot.resolve(strict=True)
-    for name in ['gn', 'clang', 'clang++', 'ld.lld', 'gperf', 'bindgen', 'node', 'go', 'tsc']:
+    for name in ['gn', 'clang', 'clang++', 'ld.lld', 'gperf', 'bindgen', 'rustfmt', 'node', 'go', 'tsc']:
         if not (prefix / 'bin' / name).is_file():
             raise ValueError('Missing private tool: ' + name)
     data = recipe(args.original.read_bytes())
@@ -34,11 +34,14 @@ def main():
         data = replace_once(data, shlex.quote(key + '="/usr"'),
                             shlex.quote(key + '=' + json.dumps(str(path))))
     data = replace_once(data, "'is_component_build=false'", "'is_component_build=true'")
+    data = replace_once(data, "'use_gold=false'", "'use_mold=false'\n    'use_lld=true'")
     data = replace_once(data, "'symbol_level=0'", "'symbol_level=0'\n    'blink_symbol_level=0'\n    'v8_symbol_level=0'\n    'use_thin_lto=false'")
     # Native test/browser targets remain available; build the browser first.
     data = replace_once(data,
                         'ninja -j1 -C out/Release chrome chrome_sandbox chromedriver.unstripped content_unittests',
-                        'ninja -j1 -C out/Release chrome chrome_sandbox')
+                        'if [[ ${CHROMIUM_AVD_CONFIGURE_ONLY:-0} != 1 ]]; then\n'
+                        '    ninja -j1 -C out/Release chrome chrome_sandbox\n'
+                        '  fi')
     # The pinned distribution patch uses /usr/bin/tsc; redirect that one source
     # location into the private tool prefix, retaining the rest of its behavior.
     anchor = '  patch -Np1 -i ../chromium-153-typescript.patch'

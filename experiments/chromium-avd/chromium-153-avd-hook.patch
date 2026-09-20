@@ -60,7 +60,7 @@
      ]
 --- a/content/test/BUILD.gn
 +++ b/content/test/BUILD.gn
-@@ -3163,7 +3163,11 @@
+@@ -3163,7 +3163,10 @@
    }
  
    if (is_linux || is_chromeos) {
@@ -69,7 +69,18 @@
 +      "../child/sandboxed_process_thread_type_handler_unittest.cc",
 +      "../common/apple_avd_gpu_permissions_linux_unittest.cc",
 +    ]
-+    deps += [ "//sandbox/linux:sandbox_services" ]
    }
  
    if (is_linux) {
+@@ -3414,7 +3417,10 @@
+   }
+ 
+   if (is_linux || is_chromeos) {
+-    deps += [ "//components/crash/content/browser/error_reporting" ]
++    deps += [
++      "//components/crash/content/browser/error_reporting",
++      "//sandbox/linux:sandbox_services",
++    ]
+   }
+ 
+   if (is_fuchsia) {

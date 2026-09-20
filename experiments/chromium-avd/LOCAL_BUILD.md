@@ -18,7 +18,9 @@ disk falls below 30 GiB or available system memory remains below 3 GiB; stop on
 build/cgroup failure and inspect it before any continuation. Preserve incremental
 objects. This replaces the small-test profile for the specifically requested
 local browser build; it does not change tools/bounded-build or automatically
-increase limits to retry failures. Do not overlap hardware campaigns.
+increase limits to retry failures. Do not overlap hardware campaigns. Long compile runs hold the existing hwguard
+scheduling lock for exclusion only and stop if a decoder holder/fault appears;
+they do not open decoder devices or grant a playback lease to any child.
 
 Sources and private dependencies live outside Git in
 `m1-chromium-local-build-20260920`. The 1,878,222,540-byte Chromium lite archive
@@ -37,3 +39,10 @@ to the installed matching Clang. Record actual GN arguments, all source changes,
 tool versions and build logs. Test the modified GPU hook's real build targets
 before proceeding to the entire browser. Full compilation and playback are not
 established by source preparation.
+
+Local configuration passed after moving the new test dependency into the GN
+block where deps is already initialized. The native build explicitly selects lld
+(the development default selected a bundled x86 mold binary), uses the private
+lld library path, and links the existing rustfmt into the private tool prefix.
+Initial failed attempts are retained. The scoped `CHROMIUM_AVD_CONFIGURE_ONLY=1`
+mode generates the real build graph without claiming to compile the browser.

@@ -5,12 +5,13 @@ Session `codex-m1-chromium-access-20260920`, refs companion #22. Base
 The PR records the final tested SHA. Chromium 153.0.8010.36 and Arch packaging
 pins are in sources.json. Codex authored and reviewed this change with AI;
 **this is not independent review**. A qualified Chromium/Linux sandbox reviewer
-and an appropriately provisioned ARM64 build worker remain unassigned.
+remains unassigned. The owner subsequently requested building on the existing M1;
+LOCAL_BUILD.md records its private tools, budget and incremental evidence.
 
 | Stage | Evidence and disposition |
 | --- | --- |
 | 1 Intent | Browser-owned fix candidate for measured post-sandbox libdrm lookup failure. Driver/kernel/installation untouched. Experimental added device access is default-off. |
-| 2 Claims | Patch wires generic Linux GPU permissions behind ARM64, USE_VAAPI, accelerated-decode and feature gates. Recipe enables VA-API. Exact-file application passes. Full hook/GN/browser compilation and effective sandbox behavior remain unverified. |
+| 2 Claims | Patch wires generic Linux GPU permissions behind ARM64, USE_VAAPI, accelerated-decode and feature gates. Recipe enables VA-API. Exact-file application and full-tree local GN configuration pass after the ordering fix below. Full hook/browser compilation and effective sandbox behavior remain unverified. |
 | 3 Execution | Reviewed full discovery, caller hook, native filesystem adapter, rule-to-broker mapping and upstream permission predicates. Missing or nonunique validated sets return empty; all selected identities/topology are re-read. Bound scans and metadata sizes; no arbitrary user path becomes a rule. |
 | 4 Resources | Native lstat/realpath/read only. realpath allocation freed; metadata fd closed on read error, size rejection and EOF; EINTR retries; vectors/strings own results. No new device fd, ioctl, VA object or decoder lifetime change. |
 | 5 Concurrency | Startup snapshot, no shared mutable state. Synthetic selected-node deletion/inode changes before publication reject. New device appearance or privileged replacement after recheck is not covered; retain trusted non-hotplug SoC/root path assumption for independent review. |
@@ -19,7 +20,7 @@ and an appropriately provisioned ARM64 build worker remain unassigned.
 | 8 Consolidate | Open gates: full compilation/integration, independent sandbox review, selected hardware run. Startup metadata confidence is separate from runtime access correctness. |
 | 9 Resolve | A metadata-only stat grant is insufficient: libdrm also probes the render path with access; later driver contexts open media/video and read video uevent. Exact separate permissions retained. Driver .so preloading/lifetime is unchanged; libva uses RTLD_NODELETE on this Linux path. |
 | 10 Verify | 12 real GoogleTest cases and four compiled assertion-detecting mutations pass under ASan/UBSan. GCC 16.1.1 and Clang 22.1.8 used; host GoogleTest 1.18.0. Exact applied source plus upstream broker cc/h/command header; explicitly listed infrastructure shims. Recipe hash/syntax/refusal tests pass. |
-| 11 Report | Draft only. No merge or runtime qualification recommendation. Next owner supplies build worker and qualified sandbox review; guarded playback starts only after both. #22's playback/adaptation criteria and driver #48 remain open. |
+| 11 Report | Draft only. No merge or runtime qualification recommendation. The owner-directed local build is underway; qualified sandbox review is still required before guarded playback. #22's playback/adaptation criteria and driver #48 remain open. |
 
 ## Findings resolved during implementation
 
@@ -50,6 +51,15 @@ and an appropriately provisioned ARM64 build worker remain unassigned.
   fetch is not a policy-test pass or a policy defect.
 
 ## Validation scope and next decision
+
+The first real local GN configuration exposed a patch defect that the isolated
+test could not cover: the added test dependency used `deps +=` before that target
+initialized `deps`. Move it to the later Linux dependency block. Configuration
+then succeeded (31,953 targets from 4,995 files). The private tool prefix needed
+lld's private shared-library path and an explicit rustfmt link. Initial native
+compilation also selected Chromium's bundled x86 mold linker in the non-official
+configuration; select native lld explicitly for the local ARM64 build. Preserve
+these preparation failures; they are not hardware faults or passing browser runs.
 
 Local checks use tools/bounded-build (one CPU/worker, 1.5 GiB maximum, disk TMPDIR).
 Successful initial GCC policy/mutation run: 44.6 seconds, 435.1 MiB reported peak;
