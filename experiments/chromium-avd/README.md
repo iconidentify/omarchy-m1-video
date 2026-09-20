@@ -72,6 +72,8 @@ The test verifies source hashes, refuses modified/reapplied source, applies the
 patch with zero fuzz, and compiles **the applied selector, tests and adapter**
 with the exact upstream `BrokerFilePermission` implementation and command header.
 It runs 12 GoogleTest cases with ASan/UBSan and four compiled negative mutations.
+Undefined-behavior reports are fatal; a deliberate signed-overflow probe checks
+that the configured compiler cannot report that error and still exit successfully.
 Each mutation must fail its intended GoogleTest assertion; a compile failure,
 timeout, signal or sanitizer report does not count. Native adapter checks use
 ordinary temporary files and symlinks only. Real root-owned character-node

@@ -51,11 +51,24 @@ prefix, because Chromium explicitly sets its library search location there.
 Direct incremental ninja invocations retain the distribution recipe's
 `RUSTC_BOOTSTRAP=1` environment for its stable Rust compiler; generating
 the build graph in a separate shell does not preserve that exported value.
-The local sequence compiles the GPU hook, the integrated policy test object,
-then chrome and chrome_sandbox, stopping at the first failed stage. No
-successful object build is counted as a linked browser or executed test.
+The two modified GPU objects compiled successfully in the real Chromium build
+and their ELF headers identify AArch64. The integrated policy test object pulls
+in the much larger content_unittests dependency graph (33,937 remaining steps
+at the first attempt), so the resumed sequence builds chrome and chrome_sandbox
+before returning to that target. Completed objects are retained; an interrupted
+test stage remains incomplete. No successful object build is counted as a
+linked browser or executed test.
 
 The non-official build also selects a bundled x86 esbuild for DevTools. Set
 `devtools_skip_typecheck=false` to retain the supported, type-checked TypeScript
 path used by official builds and the already verified private compiler. This
 avoids introducing a mismatched native esbuild version or skipping type checks.
+
+The lite archive leaves the test-font directory empty. Before building the
+integrated test target, restore the exact bundle in its DEPS entry:
+bucket `chromium-fonts`, object `9c07d19d9c5ee1ff94f717e6fb17e0c8c354e6f9`,
+generation `1775663926405386`, 33,413,117 bytes, SHA-256
+`f0e9628f9e43e3f3476cde06a1849058de460e0e037b7449ce0d42b9a73c37d5`.
+After hash verification, extract into `third_party/test_fonts/test_fonts` and
+retain the existing licence file. All 83 font paths in the pinned BUILD.gn are
+present in the local tree. They are test inputs, not installed fonts.

@@ -87,8 +87,20 @@ def main():
             raise AssertionError('Wrong recipe accepted')
         flags = [os.environ.get('CXX', 'c++'), '-std=c++20', '-O1', '-g',
                  '-Wall', '-Wextra', '-Werror', '-fsanitize=address,undefined',
+                 '-fno-sanitize-recover=undefined',
                  '-fno-omit-frame-pointer', '-pthread',
                  '-I' + str(work), '-I' + str(HERE / 'tests/shims'), '-I' + str(cache)]
+        # A recoverable UBSan report can otherwise leave a positive test at
+        # exit status zero. Prove this compiler configuration stops on UB.
+        probe_source = work / 'sanitizer-stop.cc'
+        probe_source.write_text('int main() { volatile int x = __INT_MAX__; '
+                                'volatile int y = x + 1; (void)y; return 0; }\n')
+        probe = work / 'sanitizer-stop'
+        run(flags + [str(probe_source), '-o', str(probe)])
+        probe_result = subprocess.run([str(probe)], text=True, capture_output=True, timeout=30)
+        assert probe_result.returncode > 0 and 'runtime error: signed integer overflow' in probe_result.stderr, (
+            probe_result.returncode, probe_result.stdout, probe_result.stderr)
+        print('PASS: deliberate undefined behavior cannot exit successfully')
         selector = work / COMMON / 'apple_avd_gpu_permissions_linux.cc'
         tests = work / COMMON / 'apple_avd_gpu_permissions_linux_unittest.cc'
         broker = cache / 'sandbox/linux/syscall_broker/broker_file_permission.cc'

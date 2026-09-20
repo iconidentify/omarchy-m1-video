@@ -11,7 +11,7 @@ LOCAL_BUILD.md records its private tools, budget and incremental evidence.
 | Stage | Evidence and disposition |
 | --- | --- |
 | 1 Intent | Browser-owned fix candidate for measured post-sandbox libdrm lookup failure. Driver/kernel/installation untouched. Experimental added device access is default-off. |
-| 2 Claims | Patch wires generic Linux GPU permissions behind ARM64, USE_VAAPI, accelerated-decode and feature gates. Recipe enables VA-API. Exact-file application and full-tree local GN configuration pass after the ordering fix below. Full hook/browser compilation and effective sandbox behavior remain unverified. |
+| 2 Claims | Patch wires generic Linux GPU permissions behind ARM64, USE_VAAPI, accelerated-decode and feature gates. Recipe enables VA-API. Exact-file application, full-tree GN configuration and both modified real GPU object compilations pass; objects identify AArch64. Full browser linking, integrated test execution and effective sandbox behavior remain unverified. |
 | 3 Execution | Reviewed full discovery, caller hook, native filesystem adapter, rule-to-broker mapping and upstream permission predicates. Missing or nonunique validated sets return empty; all selected identities/topology are re-read. Bound scans and metadata sizes; no arbitrary user path becomes a rule. |
 | 4 Resources | Native lstat/realpath/read only. realpath allocation freed; metadata fd closed on read error, size rejection and EOF; EINTR retries; vectors/strings own results. No new device fd, ioctl, VA object or decoder lifetime change. |
 | 5 Concurrency | Startup snapshot, no shared mutable state. Synthetic selected-node deletion/inode changes before publication reject. New device appearance or privileged replacement after recheck is not covered; retain trusted non-hotplug SoC/root path assumption for independent review. |
@@ -71,6 +71,22 @@ action and earlier objects. Regenerated GN configuration passes, and the exact
 failed ColorUtils output now builds successfully with TypeScript. The resumed
 hook stage retains earlier work (1,146 remaining steps at restart); full browser
 compilation is still pending.
+
+Both modified real GPU objects subsequently compiled. The integrated test
+object first stopped at test fonts omitted from the lite archive; the exact
+DEPS-pinned bundle was restored and all 83 listed font files verified present.
+Its broader dependency graph is deferred until after the browser build, retaining
+the interrupted attempt and earlier objects. This is not a passing integrated
+test or a complete browser.
+
+A separate AI source review identified an acceptance defect in the isolated
+positive tests: UBSan could report recoverable undefined behavior and still exit
+zero. Make undefined-behavior reports fatal and add a deliberate signed-overflow
+probe that must emit its diagnostic and exit nonzero. The retained earlier CI
+log contains no sanitizer diagnostic; this finding does not imply a policy-code
+defect or erase the observed clean run. The new head's hosted result is recorded
+in the PR. The separate review and its runtime limitations remain separately
+identified; this document is still the author's self-review.
 
 Local checks use tools/bounded-build (one CPU/worker, 1.5 GiB maximum, disk TMPDIR).
 Successful initial GCC policy/mutation run: 44.6 seconds, 435.1 MiB reported peak;
