@@ -27,8 +27,8 @@ LAST_INPUTS = {"gst": {"E": 9, "B": 4}, "va": {"E": 12, "B": 6}}
 
 def good_plan(**build_overrides):
     values = {
-        "gst_pool_size": GST_POOL,
-        "va_output_count": VA_OUTPUT_COUNT,
+        "gst_pool_sizes": {"E": GST_POOL, "B": GST_POOL - 2},
+        "va_output_counts": {"E": VA_OUTPUT_COUNT, "B": VA_OUTPUT_COUNT},
         "gst_frames": {"E": GST_E, "B": GST_B},
         "va_outputs": {"E": VA_E, "B": VA_B},
         "last_required_inputs": LAST_INPUTS,
@@ -129,11 +129,15 @@ class Selections(unittest.TestCase):
         workload(plan, "E-va-on").selectors = tuple(range(c.MAX_SELECTION + 1))
         self.assertTrue(any("outside 1.." in problem for problem in c.validate_plan(plan)))
 
-    def test_gst_publication_boundary_rejected(self):
+    def test_late_gst_selectors_are_independent_of_pool_slot_numbers(self):
         plan = good_plan()
         for mode in ("off", "on"):
-            workload(plan, f"E-gst-{mode}").selectors = (2, 5, GST_POOL)
-        self.assertTrue(any("publication boundary" in problem
+            workload(plan, f"E-gst-{mode}").selectors = (28, 31, 32)
+        self.assertEqual(c.validate_plan(plan), [])
+
+    def test_gst_reserve_capacity_rejected(self):
+        plan = good_plan(gst_pool_sizes={"E": 3, "B": 2})
+        self.assertTrue(any("ordinary capacity" in problem
                             for problem in c.validate_plan(plan)))
 
     def test_va_output_count_boundary_rejected(self):
@@ -370,8 +374,10 @@ class Execution(unittest.TestCase):
 class Cli(unittest.TestCase):
     def _valid(self):
         return [
-            "--gst-pool-size", str(GST_POOL),
-            "--va-output-count", str(VA_OUTPUT_COUNT),
+            "--gst-e-pool-size", str(GST_POOL),
+            "--gst-b-pool-size", str(GST_POOL - 2),
+            "--va-e-output-count", str(VA_OUTPUT_COUNT),
+            "--va-b-output-count", str(VA_OUTPUT_COUNT),
             "--gst-e-frames", *map(str, GST_E),
             "--gst-b-frames", *map(str, GST_B),
             "--va-e-outputs", *map(str, VA_E),
@@ -391,10 +397,10 @@ class Cli(unittest.TestCase):
 
     def test_bad_gst_plan_exits_nonzero_with_reason(self):
         arguments = self._valid()
-        arguments[1] = "4"
+        arguments[1] = "3"
         result = self._run(*arguments)
         self.assertEqual(result.returncode, 1)
-        self.assertIn("publication boundary", result.stdout)
+        self.assertIn("ordinary capacity", result.stdout)
 
     def test_json_output_contains_machine_contracts(self):
         result = self._run(*self._valid(), "--json")
@@ -405,20 +411,20 @@ class Cli(unittest.TestCase):
 
     def test_rejected_json_is_machine_readable_and_marks_invalid(self):
         arguments = self._valid()
-        arguments[1] = "4"
+        arguments[1] = "3"
         result = self._run(*arguments, "--json")
         self.assertEqual(result.returncode, 1)
         document = json.loads(result.stdout.split("\n\n")[0])
         self.assertFalse(document["valid"])
         self.assertFalse(document["execution_authorized"])
-        self.assertTrue(any("publication boundary" in item
+        self.assertTrue(any("ordinary capacity" in item
                             for item in document["problems"]))
 
     def test_ambiguous_legacy_cli_is_rejected(self):
         result = self._run("--pool-size", "16", "--e-frames", "2", "5", "9",
                            "--b-frames", "3")
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("--gst-pool-size", result.stderr)
+        self.assertIn("--gst-e-pool-size", result.stderr)
 
 
 if __name__ == "__main__":

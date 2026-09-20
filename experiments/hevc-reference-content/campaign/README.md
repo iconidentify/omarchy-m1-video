@@ -9,7 +9,8 @@ selections:
 
 ```sh
 python3 experiments/hevc-reference-content/campaign/controller.py \
-    --gst-pool-size 16 --va-output-count 20 \
+    --gst-e-pool-size 16 --gst-b-pool-size 14 \
+    --va-e-output-count 20 --va-b-output-count 20 \
     --gst-e-frames 2 5 9 --gst-b-frames 3 \
     --va-e-outputs 1 4 7 --va-b-outputs 2 \
     --gst-e-last-input 9 --gst-b-last-input 4 \
@@ -22,9 +23,11 @@ python3 experiments/hevc-reference-content/campaign/mutations.py
 
 Gst selections are `system_frame_number`s. VA selections are zero-based decoded
 output ordinals. They have separate CLI arguments, JSON domains and bounds:
-Gst alone uses the pre-publication pool boundary; VA alone uses the declared
-decoded-output count. A plan carrying either domain or limit into the other
-client rejects.
+Gst selected frame numbers are not pool indices. Its per-vector capacity check
+instead proves that the negotiated source pool preserves at least one ordinary
+allocation after reserving exactly one never-published allocation per selected
+frame. VA alone uses the declared decoded-output count. A plan carrying either
+domain or limit into the other client rejects.
 
 Parameter-set safety uses a third coordinate: input/submission order. Each
 client/vector row supplies the last input needed to produce its last selected
@@ -46,7 +49,7 @@ observations spend no copied-byte budget.
 | Exact `{B,E} × {VA,Gst} × {copy-off,copy-on}` matrix | CAMPAIGN.md |
 | Paired off/on selectors and input windows are identical | CAMPAIGN.md |
 | Three E and one B target per client; eight copied targets total | CAMPAIGN.md |
-| Gst `system_frame_number` domain and pre-publication pool boundary | Gst scheduling call site |
+| Gst `system_frame_number` domain and ordinary-plus-reserve pool capacity | Gst allocation eligibility path |
 | Gst fresh element, streaming owner, flow-error failure and finish-before-lifecycle | Gst known controller limits |
 | VA output-ordinal domain and decoded-output bound | FFmpeg/VA call site |
 | VA fresh decoder, `threads=1`, `active_thread_type=0` | FFmpeg/VA call site |
@@ -62,7 +65,7 @@ For VA it emits the private `threads`, `va_observer_outputs` and
 `va_observer_copy` option values, the required runner-supplied
 `va_observer_report` destination contract, required owner operations and
 fatal-quarantine policy. For Gst it emits the internal arm API, selector values,
-copy mode and publication bound. These are inputs for a later runner, not
+copy mode and negotiated ordinary/reserve capacity. These are inputs for a later runner, not
 evidence that one ran. The top level always includes `valid`, every rejection
 reason and
 `execution_authorized: false`; an invalid document cannot look like an authorized
@@ -85,8 +88,8 @@ mint or verify those external facts.
 
 ## Evidence and limits
 
-The offline suite has 51 tests. Ten semantic source mutations remove the
-selector-domain, Gst publication-boundary, parameter-input-window, paired-control,
+The offline suite has 52 tests. Ten semantic source mutations remove the
+selector-domain, Gst reserve-capacity, parameter-input-window, paired-control,
 VA thread, VA owner, finish-before-close, fatal-cleanup, JSON no-authorization or
 execution-refusal gate; each must fail its named assertion. A compiler error,
 timeout or unrelated failure is not accepted as mutation detection.

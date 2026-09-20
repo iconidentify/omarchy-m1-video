@@ -1,0 +1,250 @@
+{
+  "derivation": {
+    "gst_capacity_rule": "negotiated_pool=ordinary_capture_pool+selected_reserve",
+    "gst_reserve_rule": "one_never_published_allocation_per_selected_frame",
+    "input_rule": "zero_based_input_index=one_based_picture_number-1",
+    "parameter_set_change_inputs": {
+      "B": [],
+      "E": []
+    },
+    "selected_associations": {
+      "B-gst": [
+        {
+          "output_index": 20,
+          "pic": 25,
+          "poc": 20,
+          "system_frame_number": 24
+        }
+      ],
+      "B-va": [
+        {
+          "layer": 0,
+          "output_index": 20,
+          "pic": 25,
+          "poc": 20
+        }
+      ],
+      "E-gst": [
+        {
+          "output_index": 26,
+          "pic": 32,
+          "poc": 26,
+          "system_frame_number": 31
+        },
+        {
+          "output_index": 28,
+          "pic": 29,
+          "poc": 28,
+          "system_frame_number": 28
+        },
+        {
+          "output_index": 29,
+          "pic": 33,
+          "poc": 29,
+          "system_frame_number": 32
+        }
+      ],
+      "E-va": [
+        {
+          "layer": 0,
+          "output_index": 31,
+          "pic": 31,
+          "poc": 31
+        },
+        {
+          "layer": 0,
+          "output_index": 73,
+          "pic": 80,
+          "poc": 73
+        },
+        {
+          "layer": 0,
+          "output_index": 74,
+          "pic": 81,
+          "poc": 74
+        }
+      ]
+    },
+    "selected_output_indices": {
+      "B-gst": [
+        20
+      ],
+      "B-va": [
+        20
+      ],
+      "E-gst": [
+        26,
+        28,
+        29
+      ],
+      "E-va": [
+        31,
+        73,
+        74
+      ]
+    }
+  },
+  "schema": "omarchy.hevc.target-evidence/v1",
+  "sources": {
+    "associations": {
+      "B-gst": {
+        "outputs": 300,
+        "path": "experiments/hevc-controls/captures/2026-09-17/associations/B-gst.json",
+        "sha256": "ecf96ada51bb2ca854b4442f1810ed597fcd66ca8ea46ae263c20c130f191875"
+      },
+      "B-va": {
+        "outputs": 300,
+        "path": "experiments/hevc-controls/captures/2026-09-17/associations/B-va.json",
+        "sha256": "5e36692af48ff06345c6d288ae290e6daadb4fa9522ef4a871ef387e0a0b32dd"
+      },
+      "E-gst": {
+        "outputs": 300,
+        "path": "experiments/hevc-controls/captures/2026-09-17/associations/E-gst.json",
+        "sha256": "b86f1c3411ecf68f62b10bf69cb52a5a88f2ac4ca95e539f0dff4881b2ee6a03"
+      },
+      "E-va": {
+        "outputs": 300,
+        "path": "experiments/hevc-controls/captures/2026-09-17/associations/E-va.json",
+        "sha256": "d25b9c19de2f3e387d255d711d380f3fd8a424f730b686fb141f2436381318dc"
+      }
+    },
+    "gst_traces": {
+      "B": {
+        "bytes": 20473386,
+        "capture_create_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "ordinary_pool_size": 19,
+        "private_name": "80069_trace.json",
+        "sha256": "c8d99f114f521fa49b003b4deb900124f4921f400d57bc0824bd04f61a9c1eaa"
+      },
+      "E": {
+        "bytes": 21306029,
+        "capture_create_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "ordinary_pool_size": 19,
+        "private_name": "80082_trace.json",
+        "sha256": "69fa27bcf8fd06def713e4d27d95d3757645bc082f8304526f15ddbb26744c9d"
+      }
+    },
+    "streams": {
+      "B": {
+        "bytes": 222629,
+        "initial_parameter_set_types": [
+          32,
+          33,
+          34
+        ],
+        "nal_units": 603,
+        "parameter_set_nals_after_first_vcl": [],
+        "sha256": "a5e2097201740c15824b75540b6d0d5050763681bedf7209cde80d93a3b88996"
+      },
+      "E": {
+        "bytes": 438168,
+        "initial_parameter_set_types": [
+          32,
+          33,
+          34
+        ],
+        "nal_units": 603,
+        "parameter_set_nals_after_first_vcl": [],
+        "sha256": "b82c5c8c251943cc41b59e7f63f72890641fdcdbcec8e916223e4ee28a16c7ad"
+      }
+    }
+  },
+  "targets": [
+    {
+      "client": "gst",
+      "gst_pool_size": 20,
+      "gst_reserve": 1,
+      "last_input": 24,
+      "output_count": 300,
+      "parameter_set_change_inputs": [],
+      "selector_domain": "system_frame_number",
+      "selectors": [
+        24
+      ],
+      "vector": "B"
+    },
+    {
+      "client": "va",
+      "gst_pool_size": null,
+      "gst_reserve": null,
+      "last_input": 24,
+      "output_count": 300,
+      "parameter_set_change_inputs": [],
+      "selector_domain": "output_ordinal",
+      "selectors": [
+        20
+      ],
+      "vector": "B"
+    },
+    {
+      "client": "gst",
+      "gst_pool_size": 22,
+      "gst_reserve": 3,
+      "last_input": 32,
+      "output_count": 300,
+      "parameter_set_change_inputs": [],
+      "selector_domain": "system_frame_number",
+      "selectors": [
+        31,
+        28,
+        32
+      ],
+      "vector": "E"
+    },
+    {
+      "client": "va",
+      "gst_pool_size": null,
+      "gst_reserve": null,
+      "last_input": 80,
+      "output_count": 300,
+      "parameter_set_change_inputs": [],
+      "selector_domain": "output_ordinal",
+      "selectors": [
+        31,
+        73,
+        74
+      ],
+      "vector": "E"
+    }
+  ]
+}

@@ -37,6 +37,11 @@ jobs:
         run: |
           python3 experiments/hevc-reference-content/campaign/tests.py
           python3 experiments/hevc-reference-content/campaign/mutations.py
+      - name: Deployment manifest, target derivation and admission refusal
+        run: |
+          python3 experiments/hevc-reference-content/deployment/target_tests.py
+          python3 experiments/hevc-reference-content/deployment/tests.py
+          python3 experiments/hevc-reference-content/deployment/mutations.py
 
   same-run:
     runs-on: ubuntu-latest
