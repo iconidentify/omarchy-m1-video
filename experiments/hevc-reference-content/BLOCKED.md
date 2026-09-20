@@ -6,15 +6,15 @@ The real VA and Gst producer barriers/retained-allocation APIs are merged in
 PR100 and PR99. [integration/](integration/README.md) adds an experimental bounded
 copy path to those actual implementations, with complete-source offline fixtures.
 It normalizes the divergent receipts and requires reviewed runtime allocation/build
-provenance. Additive Gst and FFmpeg/VA output call sites now exist, but no approved
-live manifest or enabled/shipped activation ships.
+provenance. Additive Gst and FFmpeg/VA output call sites, strict result runners and
+a guarded per-workload same-run join now exist, but no approved live manifest or
+enabled/shipped activation ships.
 
-Remaining gates: full client/dependency/corpus identities, actual same-run kernel
-command/reference association, the Gst client runner and a guarded supervisor
-consuming both distinct contracts, approved loaded builds and the separately
-guarded [campaign](CAMPAIGN.md). The VA call site now has an offline-tested real
-FFmpeg decoder-worker result path and strict normalized collector; that is not a
-hardware run. #82 and driver #42 stay
+Remaining gates: full client/dependency/corpus identities, approved loaded builds,
+proven live target eligibility (including Gst's late published-allocation limit),
+controller-level admission and the separately guarded [campaign](CAMPAIGN.md).
+The [same-run supervisor](same-run/README.md) is offline-tested and executable for
+one later admitted workload; it has not run a device here. #82 and driver #42 stay
 open. Existing synthetic, source-audit and helper evidence is preserved below as
 historical partial work; its statements about missing APIs describe that earlier
 stage and the unchanged Python `real_client_adapter`, not the newer C patches.

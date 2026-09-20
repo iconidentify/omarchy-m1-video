@@ -49,7 +49,16 @@ def _uint(value: object, bits: int, field: str) -> None:
 
 def parse_report(data: bytes, *, expected_outputs: tuple[int, ...] | None = None,
                  expected_copy: bool | None = None) -> dict[str, object]:
-    if not data or len(data) > MAX_REPORT_BYTES or not data.endswith(b"\n"):
+    if expected_outputs is not None:
+        if (not 1 <= len(expected_outputs) <= 8 or
+                any(type(output) is not int or not 0 <= output < 1 << 64
+                    for output in expected_outputs) or
+                len(set(expected_outputs)) != len(expected_outputs)):
+            raise ReportError("expected outputs must be one to eight unique uint64 ordinals")
+    if expected_copy is not None and type(expected_copy) is not bool:
+        raise ReportError("expected copy mode must be boolean")
+    if (not data or len(data) > MAX_REPORT_BYTES or not data.endswith(b"\n") or
+            b"\n" in data[:-1] or b"\r" in data):
         raise ReportError("report must be one bounded newline-terminated record")
     if b"\x00" in data:
         raise ReportError("report contains a NUL byte")
@@ -82,8 +91,14 @@ def parse_report(data: bytes, *, expected_outputs: tuple[int, ...] | None = None
             raise ReportError(f"{prefix}.run must contain two identities")
         _hex(run[0], 16, prefix + ".run[0]")
         _hex(run[1], 16, prefix + ".run[1]")
+        if not (int(run[0], 16) or int(run[1], 16)):
+            raise ReportError(f"{prefix}.run must be nonzero")
         for field in HEX64_FIELDS:
             _hex(output[field], 16, prefix + "." + field)
+            if int(output[field], 16) == 0:
+                raise ReportError(f"{prefix}.{field} must be nonzero")
+        if int(output["completed"], 16) < int(output["submitted"], 16):
+            raise ReportError(f"{prefix}.completion precedes submission")
         identity = (tuple(run), output["context_generation"], output["session"])
         if observation_identity is None:
             observation_identity = identity
@@ -115,6 +130,7 @@ def load_report(path: Path, **expectations: object) -> dict[str, object]:
         fd = os.open(path, flags)
     except OSError as error:
         raise ReportError(f"cannot open report: {error}") from error
+    close_error: OSError | None = None
     try:
         status = os.fstat(fd)
         if not stat.S_ISREG(status.st_mode):
@@ -131,9 +147,20 @@ def load_report(path: Path, **expectations: object) -> dict[str, object]:
             if not chunk:
                 break
             data.extend(chunk)
+        final_status = os.fstat(fd)
+    except OSError as error:
+        raise ReportError(f"cannot read report: {error}") from error
     finally:
-        os.close(fd)
-    if len(data) != status.st_size:
+        try:
+            os.close(fd)
+        except OSError as error:
+            close_error = error
+    if close_error is not None:
+        raise ReportError(f"cannot close report: {close_error}") from close_error
+    stable = ("st_dev", "st_ino", "st_mode", "st_uid", "st_nlink",
+              "st_size", "st_mtime_ns", "st_ctime_ns")
+    if any(getattr(status, field) != getattr(final_status, field)
+           for field in stable) or len(data) != status.st_size:
         raise ReportError("report changed while it was read")
     return parse_report(bytes(data), **expectations)
 
