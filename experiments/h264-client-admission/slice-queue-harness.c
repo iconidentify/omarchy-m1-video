@@ -337,8 +337,48 @@ static int cases(int avcc, int explode)
     n += nal(buf + n, avcc, dpa_nal, sizeof(dpa_nal));
     ret = decode_nal_units(&h, NULL, buf, n);
     CHECK(canary_intact());
-    CHECK(issues == 0 && cancels == 0);
-    CHECK(other_starts >= 1 && starts == 0);
+    CHECK(ret == n && issues == 0 && cancels == 0);
+    CHECK(other_starts == 1 && other_slices == 1 && other_ends == 0 && starts == 0);
+
+    /* The public frame entry point has its own no-picture policy after NAL
+     * dispatch. A skipped standalone NAL is consumed by decode_nal_units,
+     * but a non-CHUNKS frame call must still report that no picture exists.
+     * Exercise both software and fake CUDA in this VA-enabled build. */
+    for (int backend = 0; backend < 2; backend++) {
+        for (int which = 0; which < 3; which++) {
+            const uint8_t *token = which == 0 ? dpa_nal : which == 1 ? aux_nal : ext_nal;
+            int size = which == 0 ? sizeof(dpa_nal) : which == 1 ? sizeof(aux_nal) : sizeof(ext_nal);
+            reset(avcc, explode, 0); memset(buf, 0, sizeof(buf));
+            if (backend)
+                arm_other();
+            else
+                avctx.hwaccel = NULL;
+            n = nal(buf, avcc, token, size);
+            ret = decode_frame(buf, n);
+            CHECK(!backend || canary_intact());
+            CHECK(ret == AVERROR_INVALIDDATA);
+            CHECK(ctx.h264_admit_sticky == 0 && issues == 0 && cancels == 0);
+            CHECK(starts == 0 && slices == 0 && other_starts == 0 && other_slices == 0 && other_ends == 0);
+        }
+    }
+
+    /* An accepted prefix gives the non-VA backend a complete picture. Its
+     * ignored suffix must preserve success and invoke that backend's real
+     * field-end dispatch exactly once, without issuing or cancelling VA. */
+    for (int which = 0; which < 3; which++) {
+        const uint8_t *suffix = which == 0 ? dpa_nal : which == 1 ? aux_nal : ext_nal;
+        int size = which == 0 ? sizeof(dpa_nal) : which == 1 ? sizeof(aux_nal) : sizeof(ext_nal);
+        reset(avcc, explode, 0); memset(buf, 0, sizeof(buf)); arm_other(); n = 0;
+        n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
+        n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
+        n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
+        n += nal(buf + n, avcc, suffix, size);
+        ret = decode_frame(buf, n);
+        CHECK(canary_intact());
+        CHECK(ret == n && issues == 0 && cancels == 0);
+        CHECK(other_starts == 1 && other_slices == 1 && other_ends == 1);
+        CHECK(starts == 0 && slices == 0 && h.current_slice == 0);
+    }
 
     /* A real frame call leaves CHUNKS pending. A subsequent split failure
      * must cancel it before returning, in either packet format/error mode. */

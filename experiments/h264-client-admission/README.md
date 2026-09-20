@@ -65,12 +65,18 @@ chunk, seek flush and EOF cancel once without issuing; repeated rejection or
 cleanup does not cancel again. Decoder `ff_h264_flush_change` retains sticky
 rejection. The same fake non-VA canary is exercised through actual
 `decode_nal_units` for DPA/aux/extension and prefix+DPA; those paths must not
-issue, cancel, or write VA sticky into foreign priv_data. Ten semantic mutations
+issue, cancel, or write VA sticky into foreign priv_data. The actual
+`h264_decode_frame` also runs 36 software/fake-non-VA cases across both packet
+formats and error modes: standalone DPA/aux/extension retains the original
+no-picture error, while a fake-non-VA accepted prefix plus each suffix succeeds
+and calls its own start/slice/end callbacks exactly once. The private canary
+and VA issue/cancel counters remain unchanged. Twelve semantic mutations
 remove header parsing, field-end's callback, error cancellation, split
 cancellation, cancellation-state retirement, flush cancellation, EOF
 cancellation, the actual frame's chunk-completion condition, the real
 frame-thread gate's SPS/PPS branch (below), or the VA pix_fmt backend
-predicate (any-hwaccel). Each must fail a semantic assertion without a sanitizer error.
+predicate (any-hwaccel), accept a frame without a picture, or suppress the
+non-VA end callback. Each must fail its named semantic assertion without a sanitizer error.
 
 The harness also extracts and executes the real `get_last_needed_nal` and calls
 the real `decode_nal_units` gate for `ff_thread_finish_setup`

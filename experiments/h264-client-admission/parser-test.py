@@ -110,7 +110,7 @@ def test(tree):
                 h264_ps_sha256=hashlib.sha256((tree/'libavcodec/h264_ps.c').read_bytes()).hexdigest(),
                 harness_sha256=hashlib.sha256(harness.encode()).hexdigest(),
                 parameter_fixtures_sha256=hashlib.sha256((HERE/'parameter-fixtures.inc').read_bytes()).hexdigest(),
-                results=results,dispatch_calls=34,device_used=False,remap='disabled',
+                results=results,dispatch_calls=50,device_used=False,remap='disabled',
                 limitations=['slice header/queue and picture ownership substituted','start/slice callbacks call actual stop helpers only',
                              'no end_frame or issue callback; no real submission timing','SEI/IDR/thread/error-concealment services stubbed',
                              'no AU/chunk/thread/config/flush proof','linked FFmpeg libraries not fully sanitizer-instrumented',

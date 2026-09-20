@@ -126,6 +126,18 @@ def test(tree):
             decode=decode, queue=queue, field_end=field_end,
             glue=replace_once(glue, backend_pred, 'avctx->hwaccel != NULL'),
         ),
+        'non-va-frame-return': dict(
+            decode=decode, queue=queue, field_end=field_end,
+            frame=replace_once(frame,
+                '        av_log(avctx, AV_LOG_ERROR, "no frame!\\n");\n        return AVERROR_INVALIDDATA;\n',
+                '        av_log(avctx, AV_LOG_ERROR, "no frame!\\n");\n        return buf_size;\n'),
+        ),
+        'non-va-frame-end': dict(
+            decode=decode, queue=queue,
+            field_end=replace_once(field_end,
+                '    if (avctx->hwaccel) {\n',
+                '    if (avctx->hwaccel && avctx->hwaccel->pix_fmt == AV_PIX_FMT_VAAPI) {\n'),
+        ),
     }
     results = {}
     expected_assertions = {
@@ -139,6 +151,8 @@ def test(tree):
         'chunk-completion': 'ret == n && issues == 0 && cancels == 0 && starts == 1',
         'thread-premature': 'ret == n && thread_setups == 0',
         'backend-isolation': 'canary_intact()',
+        'non-va-frame-return': 'ret == AVERROR_INVALIDDATA',
+        'non-va-frame-end': 'other_starts == 1 && other_slices == 1 && other_ends == 1',
     }
     env = os.environ.copy()
     env.update(ASAN_OPTIONS='detect_leaks=1:halt_on_error=1', UBSAN_OPTIONS='halt_on_error=1')
@@ -198,7 +212,7 @@ def test(tree):
                 expected_failure=name != 'actual',
                 assertion=assertion,
             )
-    print('PASS: actual frame/dispatch/slice-header/queue/field-end/flush/frame-thread-gate with issue/cancel stubs; ten semantic mutations fail')
+    print('PASS: actual frame/dispatch/slice-header/queue/field-end/flush/frame-thread-gate with issue/cancel stubs; twelve semantic mutations fail')
     return dict(
         decode_nal_units_sha256=hashlib.sha256(decode.encode()).hexdigest(),
         h264_decode_frame_sha256=hashlib.sha256(frame.encode()).hexdigest(),
@@ -212,6 +226,7 @@ def test(tree):
         field_end_sha256=hashlib.sha256(field_end.encode()).hexdigest(),
         harness_sha256=hashlib.sha256(harness.encode()).hexdigest(),
         results=results,
+        non_va_frame_cases=36,
         device_used=False,
         remap='disabled',
         limitations=[
