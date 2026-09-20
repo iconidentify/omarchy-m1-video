@@ -21,8 +21,17 @@ arm the paired recorders for the exact decoder PID and bind the client result
 through its raw V4L2 lifetime to validated kernel evidence. It does not authorize
 a decoder workload on its own.
 
+The [Gst eligibility layer](gst-eligibility/README.md) now freezes the selected
+frame plan before allocation, adds one bounded capture allocation per selector
+and makes the real allocator preserve never-published storage until each selected
+frame receives it. Ordinary frames preferentially recycle published allocations;
+the policy never clears publication or alias state and leaves the default-off
+path unchanged. Complete-source sanitizer tests drive a late selection after
+twelve real pool reuse cycles, but this remains offline allocation-policy
+evidence rather than a live target or DMA result.
+
 Remaining gates: full client/dependency/corpus identities, approved loaded builds,
-proven live target eligibility (including Gst's pre-publication allocation gate),
+proven live target eligibility and capacity on the admitted hardware stack,
 controller-level workload admission and the separately guarded
 [campaign](CAMPAIGN.md) itself. #82 and
 driver #42 stay
