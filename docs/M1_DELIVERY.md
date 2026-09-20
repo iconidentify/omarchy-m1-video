@@ -2,8 +2,9 @@
 
 Owner-approved reset, 2026-09-20. AI-assisted maintainer planning.
 
-**Next milestone: qualify one reproducible M1 playback candidate against the
-installed baseline, then make an explicit packaging decision.** A merged PR,
+**Delivered today: a reproducible experimental mpv demonstration of C1 on two
+generated clips. Next milestone: unblock sandboxed Chrome graphics and preserve
+the full strict pass sets before changing the package pin.** A merged PR,
 larger test count or completed research ticket is not the delivery milestone.
 This page replaces the old contributor-wave priorities. The
 [live scoreboard](https://github.com/iconidentify/libva-v4l2_request/issues/7)
@@ -12,8 +13,13 @@ records current results; dated evidence remains immutable.
 **First result, 2026-09-20:** the [paired comparison](evidence/m1-delivery-2026-09-20/README.md)
 passed 80,640 exact frame comparisons and 1,680 retained-image checks. Installed
 and C1 also passed the selected OpenGL mpv smoke, with identical rendered-window
-captures. Chrome, sustained playback/recovery, full strict-set preservation and
-packaging remain the next gates. C1 stays uninstalled.
+captures. The [client continuation](evidence/m1-clients-2026-09-20/README.md) then
+passed eight OpenGL mpv rows: 160 seeks, 16 reloads, 241.85 measured seconds,
+48 byte-identical captures and a two-player close/survive check. An exact local
+two-clip preview passed its own hardware smoke. Chrome stopped before hardware:
+default GPU sandboxing is absent; the early-sandbox alternative disables GPU
+graphics. It is rejected. Full strict-set preservation, recovery and stable
+packaging remain open. C1 stays uninstalled; installer pins are unchanged.
 
 ## What the reset changes
 
@@ -43,7 +49,7 @@ below; avoid growing the task graph before using what is already implemented.
 | mpv / graphics | `1:0.41.0-6`, Mesa `26.1.8-1`, OpenGL | Same client and graphics stack, disposable command-line settings |
 | Chrome | `152.0.7977.64-1`, normal sandbox | Same browser, separate test profile when qualified |
 
-C1 is **unpackaged and unqualified for everyday playback**. Select its driver
+C1 has an **experimental two-clip local demo and is unqualified for everyday playback**. Select its driver
 only for the test process. Capture actual binary hashes and runtime identities
 for every run; the vendor string still says r11 and cannot distinguish source
 revisions. The final package and its exact dependencies require their own checks.
@@ -59,7 +65,8 @@ included in C1. Experimental kernel repairs likewise remain separate.
 | Existing r11 hardware pass sets | Installed, measured historical baseline | Preserve exact vector sets on C1; do not substitute eligible-subset percentages |
 | Later userspace lifecycle/error fixes | Merged; selected earlier builds tested | Rebuild C1, compare baseline/candidate and record packaging gap |
 | Decode, drain, seek-to-start, reopen | Paired installed/C1 comparison passed; exact evidence linked above | Broader legal format changes and failed-transition isolation under [driver #45](https://github.com/iconidentify/libva-v4l2_request/issues/45) remain open |
-| Actual mpv/Chrome playback and recovery | Not qualified | [mpv #21](https://github.com/iconidentify/omarchy-m1-video/issues/21), [Chrome #22](https://github.com/iconidentify/omarchy-m1-video/issues/22), [fallback #49](https://github.com/iconidentify/libva-v4l2_request/issues/49) |
+| Actual mpv playback | Selected H.264 NV12 / VP9 P010 direct+copy rows and close/survive passed; experimental local demo delivered | [mpv #21](https://github.com/iconidentify/omarchy-m1-video/issues/21) retains crop/odd-size/resize/fullscreen and broader playback gates |
+| Chrome playback / client recovery | Chrome blocked before hardware by GPU sandbox/startup; early-sandbox flag rejected because graphics becomes disabled | [Chrome #22](https://github.com/iconidentify/omarchy-m1-video/issues/22): restore sandboxed GPU graphics before decode; [fallback #49](https://github.com/iconidentify/libva-v4l2_request/issues/49) retains damaged-input/allocation outcomes |
 | HEVC parameter-set fix | Verified selected client, not packaged | Separate package/client decision; [evidence](evidence/issue15/hevc-parameter-sets-2026-09-19/README.md) |
 | Remaining HEVC corruption | Experimental investigation; still wrong | [#128](https://github.com/iconidentify/omarchy-m1-video/issues/128) campaign, then a decision under driver #42 |
 | Boot/reset confidence | Cause unresolved; four initial matrix attempts clean | [#13](https://github.com/iconidentify/omarchy-m1-video/issues/13); no stable boot-enabled claim |
@@ -84,9 +91,10 @@ included in C1. Experimental kernel repairs likewise remain separate.
 
 ## Work order and stop decisions
 
-- First: paired C1 playback/lifecycle evidence, then a concrete mpv/Chrome result.
-  Separate the deliverable from the broader format-transition matrix. Do not make
-  a narrow client experiment wait for unrelated container/platform coverage.
+- First: retain today's measured mpv demonstration. For Chrome, solve the observed
+  GPU startup/sandbox contract before running hardware decode; fix capture sizing
+  for actual DPR. Do not disable sandboxing or persist the rejected early flag.
+  Preserve full strict pass sets before changing the installer source pin.
 - Second: finish one freshly reviewed HEVC observer attempt under #128's existing
   ownership. Its output must identify the next discriminating corruption
   experiment. If instrumentation fails again, preserve the failure and review
