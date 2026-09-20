@@ -98,3 +98,10 @@ both GPU `sandboxed=true` and GPU/renderer `Seccomp: 2` before proposing a new
 browser playback plan. Run under a fresh 60-second guard and temporary profile.
 Do not persist the flag, operate the user's existing browser or replay video as
 part of this diagnostic. An unsuccessful diagnostic remains a blocker.
+
+That diagnostic is **rejected as a workaround**: it enabled the GPU sandbox but
+the sandbox denied loading native `libEGL.so.1`; Chrome then disabled OpenGL,
+GPU compositing and hardware video decode and exposed no decode profiles. Do
+not recommend or persist the switch. No-media startup evidence is retained;
+there was no decoder/kernel fault. Both the default startup and this attempted
+startup-order alternative block the planned sandboxed Chrome hardware rows.
