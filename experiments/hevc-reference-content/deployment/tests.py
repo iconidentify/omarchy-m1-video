@@ -161,6 +161,12 @@ class DeploymentTest(unittest.TestCase):
         with self.assertRaisesRegex(manifest.ManifestError, text):
             self.verify(value)
 
+    def test_builder_resolves_local_helper_imports(self):
+        import build
+        helper = build.module("deployment_test_va_callsite",
+                              HERE.parent / "va-callsite/tests.py")
+        self.assertTrue(callable(helper.fetch_tree))
+
     def test_complete_manifest_and_admission(self):
         self.verify()
         approved = self.fixture.write()

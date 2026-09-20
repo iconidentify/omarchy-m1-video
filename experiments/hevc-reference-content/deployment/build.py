@@ -39,7 +39,11 @@ def module(name: str, path: Path):
         raise ValueError("cannot load " + str(path))
     value = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = value
-    spec.loader.exec_module(value)
+    sys.path.insert(0, str(path.parent))
+    try:
+        spec.loader.exec_module(value)
+    finally:
+        sys.path.pop(0)
     return value
 
 
