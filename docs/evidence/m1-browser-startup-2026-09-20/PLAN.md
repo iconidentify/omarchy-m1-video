@@ -119,3 +119,29 @@ existing startup collector splits that representation correctly. Preserve this
 tool-only child-error/idle attempt and restore the existing parsing method;
 check separate and rewritten argument representations offline, then start a
 newly named software reference. Keep all isolation assertions unchanged.
+
+## Installed playback stop and display-boundary diagnosis
+
+Software-reference v2 passed the selected operations. Installed-driver playback
+then selected FFmpegVideoDecoder/platform=false and stopped before the seek
+matrix. Its GPU log reports `Could not get a valid VA display`; C1 stays unrun.
+Do not infer unsupported codec profiles from the legacy GPUInfo list alone.
+
+Versioned libva 2.24.1 calls `drmGetNodeTypeFromFd` before creating a display.
+libdrm 2.4.134 validates `/sys/dev/char/<major>:<minor>/device/drm` using stat.
+Chrome 152's generic Linux GPU broker permissions omit that path. This suggests
+a display recreation failure after sandboxing, not an Intel-only codec gate
+(the non-Intel check is in the Vulkan branch; these rows use GL).
+
+One final diagnostic may observe that boundary using a tiny, process-local
+interposer which forwards stat and drmGetNodeTypeFromFd unchanged, logs their
+actual return/errno and restores errno. Resolve targets before sandboxing; do
+not synthesize success, broaden permissions, retain a display or change a driver.
+Build/check it offline with bounded-build first. Reuse the existing runner for
+one loaded-frame-only attempt under a fresh 60-second whole-boot exclusive guard,
+the same installed driver, fixture and three cache selectors. Add VA verbosity.
+Require sandboxed AGX and sampled isolation; stop on the known fallback or any
+new failure, before seeks. This is diagnosis, excluded from qualification.
+Preserve original uninstrumented failure. If observed denial matches source,
+publish the specific browser/libdrm integration blocker and stop this campaign;
+no browser rebuild or sandbox-policy patch is included in this continuation.
