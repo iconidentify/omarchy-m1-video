@@ -61,3 +61,25 @@ At closeout, publish exact rows completed, actual errors and unrun rows, release
 all owned processes/leases, and make an explicit packaging go/no-go decision.
 These selected small clips cannot close the broader crop/odd-size/adaptation,
 damaged-input/allocation-fallback, full strict-suite or boot/release gates.
+
+## Preparation findings and scoped continuation
+
+The first Chrome software row completed all 20 seeks, the whole 12-second clip
+with zero drop delta, the two-element survivor check and reopen. It is preserved
+as preparation, not qualification: the 640x360 CSS capture is 1280x720 at the
+desktop's actual DPR 2, and the installed browser reports GPU `sandboxed=false`.
+A separate guarded diagnostic with no video confirmed GPU `Seccomp: 0`, while
+renderer processes have `Seccomp: 2`; no sandbox-disabling launch flag was added.
+Its GPU log reports sandbox initialization with multiple threads. This is not
+evidence that C1 caused a sandbox problem: C1 was not selected in these runs.
+
+The Chrome qualification matrix stops before its two hardware rows. Preserve
+the default-browser sandbox finding for a scoped startup investigation; do not
+weaken sandbox flags or count the default GPU state as a passing sandbox gate.
+The independent mpv matrix may continue after fresh idle/fault preflight.
+
+FFprobe also showed the initial encoder output retained the BT.709 matrix but
+not primaries/transfer metadata. Prepare a separate explicitly tagged copy with
+the existing H.264 metadata bitstream filter and prove identical software frame
+hashes before player use. Keep the original clip and software preparation.
+The player comparison uses the tagged copy; the initial browser result does not.
