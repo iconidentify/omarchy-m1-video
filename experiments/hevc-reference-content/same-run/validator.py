@@ -72,9 +72,13 @@ def safe_read(path: Path, maximum: int, name: str, *, private: bool = True) -> b
     try:
         before = os.fstat(fd)
         join.need(stat.S_ISREG(before.st_mode), f"{name} is not a regular file")
-        join.need(before.st_uid == os.geteuid() and before.st_nlink == 1,
+        # Private captures belong to the run user. Public immutable tool inputs
+        # may instead belong to root after deployment has secured its inventory.
+        owner_ok = before.st_uid == os.geteuid() or (not private and before.st_uid == 0)
+        join.need(owner_ok and before.st_nlink == 1,
                   f"{name} ownership/link count is ambiguous")
         join.need(not private or before.st_mode & 0o077 == 0, f"{name} is not private")
+        join.need(private or before.st_mode & 0o022 == 0, f"{name} is publicly writable")
         join.need(0 < before.st_size <= maximum, f"{name} has an invalid extent")
         chunks: list[bytes] = []
         total = 0

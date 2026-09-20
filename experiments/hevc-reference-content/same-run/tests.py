@@ -616,6 +616,26 @@ class RawValidatorBoundary(unittest.TestCase):
                         reference_snapshot_path=paths["reference"],
                         uapi_path=paths["uapi"], oracle_path=paths["oracle"])
 
+    def test_readonly_root_owned_tool_input_is_not_a_private_capture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'tool-input'
+            path.write_bytes(b'locked')
+            path.chmod(0o644)
+            original = os.fstat
+            def root_stat(fd):
+                source = original(fd)
+                fields = {name: getattr(source, name) for name in dir(source)
+                          if name.startswith('st_')}
+                return SimpleNamespace(**(fields | {'st_uid': 0}))
+            with mock.patch.object(os, 'fstat', side_effect=root_stat), \
+                 mock.patch.object(os, 'geteuid', return_value=1001):
+                self.assertEqual(supervisor.validator.safe_read(path, 10, 'tool', private=False), b'locked')
+                with self.assertRaisesRegex(join.JoinError, 'ownership'):
+                    supervisor.validator.safe_read(path, 10, 'capture')
+                path.chmod(0o666)
+                with self.assertRaisesRegex(join.JoinError, 'publicly writable'):
+                    supervisor.validator.safe_read(path, 10, 'tool', private=False)
+
     def test_stable_private_file_boundary_rejects_mode_and_symlink(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); path = root / "evidence"; path.write_bytes(b"x")

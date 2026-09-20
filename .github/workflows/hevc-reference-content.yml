@@ -54,6 +54,8 @@ jobs:
           python3 experiments/hevc-reference-content/same-run/tests.py
           python3 experiments/hevc-reference-content/same-run/mutations.py
           python3 experiments/hevc-avd-command-capture/tests.py
+      - name: Single-use live-campaign orchestration model (no device)
+        run: python3 experiments/hevc-reference-content/live-campaign/tests.py
   gst-observer:
     runs-on: ubuntu-latest
     timeout-minutes: 30
