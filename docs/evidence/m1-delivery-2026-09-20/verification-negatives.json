@@ -1,0 +1,18 @@
+[
+  {
+    "case": "missing_frame",
+    "semantic_rejection": true
+  },
+  {
+    "case": "guard_busy",
+    "semantic_rejection": true
+  },
+  {
+    "case": "software_fallback",
+    "semantic_rejection": true
+  },
+  {
+    "case": "wrong_driver",
+    "semantic_rejection": true
+  }
+]

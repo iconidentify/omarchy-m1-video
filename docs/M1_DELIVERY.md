@@ -9,6 +9,12 @@ This page replaces the old contributor-wave priorities. The
 [live scoreboard](https://github.com/iconidentify/libva-v4l2_request/issues/7)
 records current results; dated evidence remains immutable.
 
+**First result, 2026-09-20:** the [paired comparison](evidence/m1-delivery-2026-09-20/README.md)
+passed 80,640 exact frame comparisons and 1,680 retained-image checks. Installed
+and C1 also passed the selected OpenGL mpv smoke, with identical rendered-window
+captures. Chrome, sustained playback/recovery, full strict-set preservation and
+packaging remain the next gates. C1 stays uninstalled.
+
 ## What the reset changes
 
 The work has produced real parser/lifetime fixes, exact hardware comparisons,
@@ -52,7 +58,7 @@ included in C1. Experimental kernel repairs likewise remain separate.
 | --- | --- | --- |
 | Existing r11 hardware pass sets | Installed, measured historical baseline | Preserve exact vector sets on C1; do not substitute eligible-subset percentages |
 | Later userspace lifecycle/error fixes | Merged; selected earlier builds tested | Rebuild C1, compare baseline/candidate and record packaging gap |
-| Decode, drain, seek-to-start, reopen | Existing bounded resource evidence | Reuse the existing runner for a paired C1 comparison; [driver #45](https://github.com/iconidentify/libva-v4l2_request/issues/45) remains broader |
+| Decode, drain, seek-to-start, reopen | Paired installed/C1 comparison passed; exact evidence linked above | Broader legal format changes and failed-transition isolation under [driver #45](https://github.com/iconidentify/libva-v4l2_request/issues/45) remain open |
 | Actual mpv/Chrome playback and recovery | Not qualified | [mpv #21](https://github.com/iconidentify/omarchy-m1-video/issues/21), [Chrome #22](https://github.com/iconidentify/omarchy-m1-video/issues/22), [fallback #49](https://github.com/iconidentify/libva-v4l2_request/issues/49) |
 | HEVC parameter-set fix | Verified selected client, not packaged | Separate package/client decision; [evidence](evidence/issue15/hevc-parameter-sets-2026-09-19/README.md) |
 | Remaining HEVC corruption | Experimental investigation; still wrong | [#128](https://github.com/iconidentify/omarchy-m1-video/issues/128) campaign, then a decision under driver #42 |

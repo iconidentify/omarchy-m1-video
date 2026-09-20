@@ -3,7 +3,7 @@
 Snapshot of driver issue #7, retrieved 2026-09-20. This entire body is historical;
 its old readiness, ownership and completion statements are not current instructions.
 The [live scoreboard](https://github.com/iconidentify/libva-v4l2_request/issues/7)
-controls current status. Original body follows unchanged.
+controls current status. Original prose follows; only trailing blank lines are trimmed.
 
 ---
 
@@ -195,5 +195,3 @@ There are no open PRs in either repository at this closeout. Companion [PR #40](
 ## New contribution review closeout — 2026-09-17
 
 Driver #87 merged at `c3cad962386ffc49835f8778d4e375f5c8b334b9`; companion #48 at `64e2647c12ddea869f181c0b2cfa294685d9a8fe` and #49 at `845c332e14c343bbff3ca8fd470ec77dfc2f05ff`. The contributor-wave section above is the current queue snapshot (39 open task/research tickets), superseding historical pending-review and overlap statements below it. Both source checkouts are fast-forwarded to the merged defaults. The original #46/#47/#86 histories are preserved. Hardware-dependent parent outcomes and all workstreams remain open.
-
-
