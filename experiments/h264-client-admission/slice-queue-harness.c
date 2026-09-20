@@ -129,12 +129,51 @@ static const FFHWAccel va = {
     .decode_slice = decode_slice_cb,
     .end_frame = vaapi_h264_end_frame,
 };
+static int other_starts, other_slices, other_ends;
+static int other_start_frame(AVCodecContext *avctx, const AVBufferRef *ref,
+                             const uint8_t *buf, uint32_t size)
+{
+    (void)avctx; (void)ref; (void)buf; (void)size;
+    ++other_starts;
+    return 0;
+}
+static int other_decode_slice(AVCodecContext *avctx, const uint8_t *buf, uint32_t size)
+{
+    (void)avctx; (void)buf; (void)size;
+    ++other_slices;
+    return 0;
+}
+static int other_end_frame(AVCodecContext *avctx)
+{
+    (void)avctx;
+    ++other_ends;
+    return 0;
+}
+static const FFHWAccel other = {
+    .p = { .pix_fmt = AV_PIX_FMT_CUDA },
+    .start_frame = other_start_frame,
+    .decode_slice = other_decode_slice,
+    .end_frame = other_end_frame,
+};
 static AVCodecContext avctx;
 static AVCodecInternal internal;
 static VAAPIDecodeContext ctx;
 static H264Context h;
 static H264SliceContext sl;
 static H264Picture picture;
+static unsigned char canary[sizeof(VAAPIDecodeContext)];
+static unsigned char canary_before[sizeof(canary)];
+static void arm_other(void)
+{
+    memset(canary, 0xa5, sizeof(canary));
+    memcpy(canary_before, canary, sizeof(canary));
+    internal.hwaccel_priv_data = canary;
+    avctx.hwaccel = &other.p;
+}
+static int canary_intact(void)
+{
+    return memcmp(canary, canary_before, sizeof(canary)) == 0;
+}
 
 static void cleanup(void)
 {
@@ -161,6 +200,7 @@ static void reset(int avcc, int explode, int chunks)
     picture.f = &owned_frame;
     picture.hwaccel_picture_private = &va_pic;
     starts = slices = executes = issues = cancels = field_starts = slice_inits = thread_setups = 0;
+    other_starts = other_slices = other_ends = 0;
 }
 static int nal(uint8_t *dst, int avcc, const uint8_t *data, int size)
 {
@@ -270,6 +310,76 @@ static int cases(int avcc, int explode)
     ret = decode_nal_units(&h, NULL, buf, n);
     CHECK(ret == n && ctx.h264_admit_sticky == 0 && issues == 0);
 
+    /* Actual dispatch with a fake non-VA hwaccel. Foreign priv_data is a
+     * canary; DPA/aux/extension must not write VA sticky or cancel. */
+    reset(avcc, explode, 0); memset(buf, 0, sizeof(buf)); arm_other();
+    n = nal(buf, avcc, dpa_nal, sizeof(dpa_nal));
+    ret = decode_nal_units(&h, NULL, buf, n);
+    CHECK(canary_intact());
+    CHECK(ret == n && issues == 0 && cancels == 0 && other_ends == 0);
+
+    reset(avcc, explode, 0); memset(buf, 0, sizeof(buf)); arm_other();
+    n = nal(buf, avcc, aux_nal, sizeof(aux_nal));
+    ret = decode_nal_units(&h, NULL, buf, n);
+    CHECK(canary_intact());
+    CHECK(ret == n && issues == 0 && cancels == 0 && other_ends == 0);
+
+    reset(avcc, explode, 0); memset(buf, 0, sizeof(buf)); arm_other();
+    n = nal(buf, avcc, ext_nal, sizeof(ext_nal));
+    ret = decode_nal_units(&h, NULL, buf, n);
+    CHECK(canary_intact());
+    CHECK(ret == n && issues == 0 && cancels == 0 && other_ends == 0);
+
+    reset(avcc, explode, 0); memset(buf, 0, sizeof(buf)); arm_other(); n = 0;
+    n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
+    n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
+    n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
+    n += nal(buf + n, avcc, dpa_nal, sizeof(dpa_nal));
+    ret = decode_nal_units(&h, NULL, buf, n);
+    CHECK(canary_intact());
+    CHECK(ret == n && issues == 0 && cancels == 0);
+    CHECK(other_starts == 1 && other_slices == 1 && other_ends == 0 && starts == 0);
+
+    /* The public frame entry point has its own no-picture policy after NAL
+     * dispatch. A skipped standalone NAL is consumed by decode_nal_units,
+     * but a non-CHUNKS frame call must still report that no picture exists.
+     * Exercise both software and fake CUDA in this VA-enabled build. */
+    for (int backend = 0; backend < 2; backend++) {
+        for (int which = 0; which < 3; which++) {
+            const uint8_t *token = which == 0 ? dpa_nal : which == 1 ? aux_nal : ext_nal;
+            int size = which == 0 ? sizeof(dpa_nal) : which == 1 ? sizeof(aux_nal) : sizeof(ext_nal);
+            reset(avcc, explode, 0); memset(buf, 0, sizeof(buf));
+            if (backend)
+                arm_other();
+            else
+                avctx.hwaccel = NULL;
+            n = nal(buf, avcc, token, size);
+            ret = decode_frame(buf, n);
+            CHECK(!backend || canary_intact());
+            CHECK(ret == AVERROR_INVALIDDATA);
+            CHECK(ctx.h264_admit_sticky == 0 && issues == 0 && cancels == 0);
+            CHECK(starts == 0 && slices == 0 && other_starts == 0 && other_slices == 0 && other_ends == 0);
+        }
+    }
+
+    /* An accepted prefix gives the non-VA backend a complete picture. Its
+     * ignored suffix must preserve success and invoke that backend's real
+     * field-end dispatch exactly once, without issuing or cancelling VA. */
+    for (int which = 0; which < 3; which++) {
+        const uint8_t *suffix = which == 0 ? dpa_nal : which == 1 ? aux_nal : ext_nal;
+        int size = which == 0 ? sizeof(dpa_nal) : which == 1 ? sizeof(aux_nal) : sizeof(ext_nal);
+        reset(avcc, explode, 0); memset(buf, 0, sizeof(buf)); arm_other(); n = 0;
+        n += nal(buf + n, avcc, sps_nal, sizeof(sps_nal));
+        n += nal(buf + n, avcc, pps_nal, sizeof(pps_nal));
+        n += nal(buf + n, avcc, idr_nal, sizeof(idr_nal));
+        n += nal(buf + n, avcc, suffix, size);
+        ret = decode_frame(buf, n);
+        CHECK(canary_intact());
+        CHECK(ret == n && issues == 0 && cancels == 0);
+        CHECK(other_starts == 1 && other_slices == 1 && other_ends == 1);
+        CHECK(starts == 0 && slices == 0 && h.current_slice == 0);
+    }
+
     /* A real frame call leaves CHUNKS pending. A subsequent split failure
      * must cancel it before returning, in either packet format/error mode. */
     reset(avcc, explode, 1); memset(buf, 0, sizeof(buf)); n = 0;
@@ -359,6 +469,6 @@ int main(void)
         for (int explode = 0; explode < 2; explode++)
             if (cases(avcc, explode))
                 return 1;
-    puts("PASS actual slice-header/queue/frame/field-end/flush/frame-thread-gate: complete picture issues once; pending chunk rejects, flush and EOF cancel once; real get_last_needed_nal withholds thread setup while trailing param NALs remain; no config/remap claim");
+    puts("PASS actual slice-header/queue/frame/field-end/flush/frame-thread-gate: complete picture issues once; pending chunk rejects, flush and EOF cancel once; real get_last_needed_nal withholds thread setup while trailing param NALs remain; non-VA canary intact through actual dispatch; no config/remap claim");
     return 0;
 }
