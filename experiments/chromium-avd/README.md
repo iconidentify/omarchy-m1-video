@@ -1,8 +1,9 @@
 # Experimental Chromium M1 VA-API device access
 
-**Source patch and offline checks only. Full Chromium compilation, independent
-sandbox review and browser hardware playback are outstanding. Do not install this
-experiment or use it as a normal browsing configuration.** Refs
+**Both modified GPU objects compile on the M1, offline checks pass, and a
+separate AI source review is complete. Full browser linking, integrated tests
+and hardware playback remain outstanding. Do not install this experiment or
+use it as a normal browsing configuration.** Refs
 [browser #22](https://github.com/iconidentify/omarchy-m1-video/issues/22).
 
 The [measured startup failure](../../docs/evidence/m1-browser-startup-2026-09-20/README.md)
@@ -168,4 +169,11 @@ New C++ overlay files are BSD-3-Clause under [LICENSE.apple-avd](overlay/LICENSE
 Chromium authors retain their notices and [upstream license](CHROMIUM-LICENSE).
 The Python support follows this repository's GPL-2.0-only license. Original
 Arch packaging authors remain in the generated recipe. No binary is redistributed.
-See [self-review and open gates](REVIEW.md). AI-authored implementation and prose.
+See [self-review and open gates](REVIEW.md) and the separate
+[AI source review](AI_REVIEW_2026-09-20.md) of `88715ec`. The latter supports
+one guarded local experiment only after build/runtime verification and fresh
+preflight; it is not human review or general sandbox/hardware qualification.
+Its two acceptance findings are fixed: hosted CI verifies fatal UBSan handling,
+and the prepared, unexecuted playback runner requires normal browser exit and
+a fresh final check for all decoder holders and whole-boot faults before success.
+AI-authored implementation and prose.

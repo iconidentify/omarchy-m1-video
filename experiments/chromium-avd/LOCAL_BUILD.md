@@ -72,3 +72,28 @@ generation `1775663926405386`, 33,413,117 bytes, SHA-256
 After hash verification, extract into `third_party/test_fonts/test_fonts` and
 retain the existing licence file. All 83 font paths in the pinned BUILD.gn are
 present in the local tree. They are test inputs, not installed fonts.
+
+## Build and review checkpoint — 2026-09-20
+
+Both real GPU objects completed at source head `fb175d5`; their AArch64 ELF
+identities and hashes are retained in `gpu-objects-verified.json`. Head `88715ec`
+changes the isolated sanitizer gate and documentation only. Its
+[hosted job](https://github.com/iconidentify/omarchy-m1-video/actions/runs/35537832691)
+actually ran and passed all 12 tests, the fatal-UBSan probe and four compiled
+assertion-detecting mutations.
+
+The separate [AI source review](AI_REVIEW_2026-09-20.md) records both resolved
+acceptance findings and the conditional first-run decision. Its reviewed
+runtime runner v3 has SHA-256
+`ae8d8916cb8c4ef4c958afd8fdb99e19c031e419a3878a15a842ccd2723ab943`;
+the runner remains unexecuted. This is not human security certification.
+
+The current `browser-04` attempt started at 21:06 UTC, with 51,666 remaining
+browser build steps. It builds `chrome` and `chrome_sandbox` before the
+integrated policy-test object, under the unchanged six-hour budget. Step counts
+are not a time estimate. `build-inputs-browser-04.json` records unchanged
+prepared source/recipe/GN hashes, the restored-font receipt and current scripts.
+The earlier `browser-03` test-object attempt was deliberately interrupted to
+put the runnable browser first; its exit 130 and retained objects are not a
+test pass or a compiler defect. Full linking and integrated test execution
+remain pending. Check the live PR/logs for progress beyond this checkpoint.

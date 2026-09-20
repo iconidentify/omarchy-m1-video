@@ -4,9 +4,12 @@ Session `codex-m1-chromium-access-20260920`, refs companion #22. Base
 `bc0090a063387213033177f617617d841660fa12`; plan commit `1330101` precedes code.
 The PR records the final tested SHA. Chromium 153.0.8010.36 and Arch packaging
 pins are in sources.json. Codex authored and reviewed this change with AI;
-**this is not independent review**. A qualified Chromium/Linux sandbox reviewer
-remains unassigned. The owner subsequently requested building on the existing M1;
-LOCAL_BUILD.md records its private tools, budget and incremental evidence.
+**this is not independent review**. A separate Codex reviewer has since completed
+the [AI source review](AI_REVIEW_2026-09-20.md) of `88715ec`; its identity,
+findings, fixes and limitations are recorded separately. No human security
+review or general sandbox qualification is claimed. The owner subsequently
+requested building on the existing M1; LOCAL_BUILD.md records its private tools,
+budget and incremental evidence.
 
 | Stage | Evidence and disposition |
 | --- | --- |
@@ -17,10 +20,10 @@ LOCAL_BUILD.md records its private tools, budget and incremental evidence.
 | 5 Concurrency | Startup snapshot, no shared mutable state. Synthetic selected-node deletion/inode changes before publication reject. New device appearance or privileged replacement after recheck is not covered; retain trusted non-hotplug SoC/root path assumption for independent review. |
 | 6 Trust/bounds | Fixed /dev ranges, char/root/lstat checks, numeric sysfs match, canonical platform path, exact driver/compatible and physical media parent. Actual upstream broker tests reject recursive access, unrelated nodes, dot traversal, creation and metadata writes. Existing Chromium grants are outside the added-policy test. No ioctl filtering is claimed. |
 | 7 Hardware | Source tracing: libdrm fstat/stat/access, driver media enumeration then video uevent/context opens. Node topology observed read-only before implementation. No candidate device open/ioctl/browser playback; DMA import, color and client behavior unverified. |
-| 8 Consolidate | Open gates: full compilation/integration, independent sandbox review, selected hardware run. Startup metadata confidence is separate from runtime access correctness. |
+| 8 Consolidate | Open gates: full compilation/integration and selected hardware run. The separate AI source review is complete with the scope and assumptions in its own record. Startup metadata confidence is separate from runtime access correctness. |
 | 9 Resolve | A metadata-only stat grant is insufficient: libdrm also probes the render path with access; later driver contexts open media/video and read video uevent. Exact separate permissions retained. Driver .so preloading/lifetime is unchanged; libva uses RTLD_NODELETE on this Linux path. |
 | 10 Verify | 12 real GoogleTest cases and four compiled assertion-detecting mutations pass under ASan/UBSan. GCC 16.1.1 and Clang 22.1.8 used; host GoogleTest 1.18.0. Exact applied source plus upstream broker cc/h/command header; explicitly listed infrastructure shims. Recipe hash/syntax/refusal tests pass. |
-| 11 Report | Draft only. No merge or runtime qualification recommendation. The owner-directed local build is underway; qualified sandbox review is still required before guarded playback. #22's playback/adaptation criteria and driver #48 remain open. |
+| 11 Report | Draft only. No merge or runtime qualification recommendation. The owner-directed local build is underway. The separate AI source review conditionally supports one guarded experiment after completed build/runtime verification and fresh preflight; broader sandbox qualification remains open. #22's playback/adaptation criteria and driver #48 remain open. |
 
 ## Findings resolved during implementation
 
@@ -87,6 +90,14 @@ log contains no sanitizer diagnostic; this finding does not imply a policy-code
 defect or erase the observed clean run. The new head's hosted result is recorded
 in the PR. The separate review and its runtime limitations remain separately
 identified; this document is still the author's self-review.
+
+That review also found that the prepared runtime runner could accept completion
+before teardown, and the existing external guard's final idle calculation
+excludes owned holders. Prepared runner v3 delays success until a fresh,
+unfiltered whole-boot state has no observed holders, wedge or faults and the
+browser exits zero without forced termination. This correction has source
+review only; no browser was launched. The external guard is unchanged and
+observer visibility remains an explicit condition of the first run.
 
 Local checks use tools/bounded-build (one CPU/worker, 1.5 GiB maximum, disk TMPDIR).
 Successful initial GCC policy/mutation run: 44.6 seconds, 435.1 MiB reported peak;
