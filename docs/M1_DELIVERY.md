@@ -3,7 +3,8 @@
 Owner-approved reset, 2026-09-20. AI-assisted maintainer planning.
 
 **Delivered today: a reproducible experimental mpv demonstration of C1 on two
-generated clips. Next milestone: unblock sandboxed Chrome graphics and preserve
+generated clips. Sandboxed Chrome graphics now work in a scoped experiment;
+hardware video is blocked by VA display recreation. Next: fix that integration and preserve
 the full strict pass sets before changing the package pin.** A merged PR,
 larger test count or completed research ticket is not the delivery milestone.
 This page replaces the old contributor-wave priorities. The
@@ -16,9 +17,12 @@ and C1 also passed the selected OpenGL mpv smoke, with identical rendered-window
 captures. The [client continuation](evidence/m1-clients-2026-09-20/README.md) then
 passed eight OpenGL mpv rows: 160 seeks, 16 reloads, 241.85 measured seconds,
 48 byte-identical captures and a two-player close/survive check. An exact local
-two-clip preview passed its own hardware smoke. Chrome stopped before hardware:
-default GPU sandboxing is absent; the early-sandbox alternative disables GPU
-graphics. It is rejected. Full strict-set preservation, recovery and stable
+two-clip preview passed its own hardware smoke. The [browser continuation](evidence/m1-browser-startup-2026-09-20/README.md)
+then established sandboxed AGX graphics by disabling all three Mesa shader-cache
+backends for the test process. Its software reference passed; installed-driver
+playback selected software because the sandbox denied libdrm's device-information
+lookup during VA display recreation. C1 browser playback remains unrun. Full
+strict-set preservation, recovery and stable
 packaging remain open. C1 stays uninstalled; installer pins are unchanged.
 
 ## What the reset changes
@@ -66,7 +70,7 @@ included in C1. Experimental kernel repairs likewise remain separate.
 | Later userspace lifecycle/error fixes | Merged; selected earlier builds tested | Rebuild C1, compare baseline/candidate and record packaging gap |
 | Decode, drain, seek-to-start, reopen | Paired installed/C1 comparison passed; exact evidence linked above | Broader legal format changes and failed-transition isolation under [driver #45](https://github.com/iconidentify/libva-v4l2_request/issues/45) remain open |
 | Actual mpv playback | Selected H.264 NV12 / VP9 P010 direct+copy rows and close/survive passed; experimental local demo delivered | [mpv #21](https://github.com/iconidentify/omarchy-m1-video/issues/21) retains crop/odd-size/resize/fullscreen and broader playback gates |
-| Chrome playback / client recovery | Chrome blocked before hardware by GPU sandbox/startup; early-sandbox flag rejected because graphics becomes disabled | [Chrome #22](https://github.com/iconidentify/omarchy-m1-video/issues/22): restore sandboxed GPU graphics before decode; [fallback #49](https://github.com/iconidentify/libva-v4l2_request/issues/49) retains damaged-input/allocation outcomes |
+| Chrome playback / client recovery | Process-local cache workaround passes sandboxed AGX startup and software lifecycle; hardware selection fails on a sandbox-denied libdrm lookup | [Chrome #22](https://github.com/iconidentify/omarchy-m1-video/issues/22): qualified review of browser display/device integration, then actual hardware selection and pixel gates; [fallback #49](https://github.com/iconidentify/libva-v4l2_request/issues/49) retains damaged-input/allocation outcomes |
 | HEVC parameter-set fix | Verified selected client, not packaged | Separate package/client decision; [evidence](evidence/issue15/hevc-parameter-sets-2026-09-19/README.md) |
 | Remaining HEVC corruption | Experimental investigation; still wrong | [#128](https://github.com/iconidentify/omarchy-m1-video/issues/128) campaign, then a decision under driver #42 |
 | Boot/reset confidence | Cause unresolved; four initial matrix attempts clean | [#13](https://github.com/iconidentify/omarchy-m1-video/issues/13); no stable boot-enabled claim |
@@ -91,9 +95,11 @@ included in C1. Experimental kernel repairs likewise remain separate.
 
 ## Work order and stop decisions
 
-- First: retain today's measured mpv demonstration. For Chrome, solve the observed
-  GPU startup/sandbox contract before running hardware decode; fix capture sizing
-  for actual DPR. Do not disable sandboxing or persist the rejected early flag.
+- First: retain today's measured mpv demonstration. For Chrome, address the observed
+  VA display recreation/device-information denial with a narrowly reviewed browser
+  integration change. The process-local cache workaround passes startup; actual-DPR
+  capture sizing is corrected. Require actual hardware decoder selection before
+  further seeks/captures. Do not weaken sandboxing or persist experimental settings.
   Preserve full strict pass sets before changing the installer source pin.
 - Second: finish one freshly reviewed HEVC observer attempt under #128's existing
   ownership. Its output must identify the next discriminating corruption

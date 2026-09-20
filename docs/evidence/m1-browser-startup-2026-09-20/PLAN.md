@@ -1,0 +1,147 @@
+# Browser startup and selected playback continuation — 2026-09-20
+
+Owner-authorized session `codex-m1-browser-startup-20260920`, base
+`861b54ce6b339900e5e06eb50fd89271b045c313`. Ref companion #22; independently
+useful startup scope, not completion of its driver #48/adaptation dependencies.
+No competing browser claim or open companion PR was present at preparation.
+
+Compare the two already installed binaries directly: Google Chrome
+`152.0.7977.64-1` and Chromium `153.0.8010.36-1`. Use a fresh disposable profile,
+Wayland, ordinary defaults and no media. Reuse the prior dated DevTools helper
+with explicit binary selection, logging and per-thread Seccomp snapshots. Pin
+binary/helper hashes, packages, current boot/kernel/module and installed driver.
+Each row has a separate 60-second exclusive AVD guard with whole-boot idle/fault
+preflight. A startup diagnostic may truthfully report a failed qualification
+gate; a guard fault, timeout, foreign client or script failure stops the campaign.
+
+Record GPUInfo sandbox status, GPU/renderer process and thread isolation,
+OpenGL/renderer/compositing/video profile state and relevant startup logs.
+Require GPU and renderer Seccomp=2, GPU sandboxed=true and actual hardware
+graphics together before proposing playback. Software graphics/fallback does
+not qualify. Do not replay the rejected early-sandbox switch alone or disable
+isolation. Diagnose negative results against exact available source/package
+evidence; label source-version mismatches explicitly. A further diagnostic needs
+a concrete hypothesis and recorded plan before execution.
+
+If startup passes, pin that browser and commit a small playback plan using the
+existing tagged H.264 fixture, a software reference, actual-DPR compositor
+captures and actual decoder/driver/AVD-holder evidence. Preserve identical
+content/timestamps/dimensions for comparisons, >=40 dB PSNR without resizing,
+20 seeks, full 12-second playback with zero drop delta, reopen and two-element
+close/survive. Only then compare installed and C1 under separate finite guards.
+Do not run the known large-capture ENOMEM reproduction, HEVC corruption corpus
+or adaptive resolution transitions as part of this small row.
+
+Reuse existing tools. Builds and CPU tests use bounded-build, one worker and no
+overlap with hardware. No package installation, persistent config, kernel/module
+operation, reboot or release/tag is included. Preserve every failed/partial
+result; no automatic retry/reset, journal cutoff advance or threshold relaxation.
+Publish the measured result or a specific source-level blocker and release the
+scope at closeout. Full codec/package/boot qualification remains separate.
+
+## Cache-thread hypothesis after the paired startup result
+
+Both default browsers report working Mesa AGX OpenGL but GPU sandboxed=false
+and Seccomp=0, with disk-cache worker threads present. Chromium also defaults
+video decode to software; neither qualifies. Both guarded diagnostics exited
+normally and idle. No video was loaded.
+
+Mesa's documented `MESA_SHADER_CACHE_DISABLE=true` disables its disk shader
+cache while preserving the separate EGL blob-cache interface. Test that one
+environment change on Chrome in a fresh profile and 60-second guard. Record the
+environment explicitly. Hypothesis: avoiding the early disk-cache worker lets
+normal sandbox initialization complete, without the early-sandbox flag or
+library permission changes. Require actual GPU/renderer thread Seccomp=2,
+sandboxed=true and AGX hardware OpenGL/compositing together. A cache-off pass
+would still be a scoped launch alternative with unmeasured cache/performance
+cost, not a persistent setting or proof of playback. Preserve a negative result
+and stop this hypothesis if it does not satisfy the gate.
+
+That single-variable attempt is rejected: sandboxing enabled, but GPU startup
+hit a Seccomp scheduling violation (aarch64 syscall 119, SCHED_BATCH, target a
+different worker thread), followed by Chrome's own three GPU restarts and
+software graphics. No AVD/kernel fault or media decode occurred. Preserve all
+three crash records locally; extracted core copies are removed after inspection.
+Core stacks are partially unsymbolized; do not invent missing function names.
+
+Exact versioned source explains a narrower next hypothesis. Mesa 26.1.8
+`disk_cache_type_create()` retains a cache object when the disk cache is disabled;
+`disk_cache_set_callbacks()` later initializes its queue. `util_queue_create_thread()`
+requests SCHED_BATCH for the new thread from its creator. Chrome 152's
+`RestrictSchedTarget`/`SIGSYSSchedHandler` allow self-targeted scheduling, not
+that other-thread target. The core/log combination supports this path but is
+not a fully symbolized caller stack.
+
+Test one new no-media Chrome startup with all existing Mesa cache backend
+selectors false: `MESA_DISK_CACHE_MULTI_FILE=0`, `MESA_DISK_CACHE_DATABASE=0`,
+`MESA_DISK_CACHE_SINGLE_FILE=0`; leave `MESA_SHADER_CACHE_DISABLE` unset.
+Versioned `disk_cache_create()` then returns NULL before creating the object;
+the DRI callback setter explicitly returns on NULL. This removes the late
+callback-worker path as well as the initial disk worker, without changing
+sandbox policy or suppressing a syscall. Same 60-second guard and success gates;
+no persistent configuration. Cache/performance costs remain unmeasured. A
+failure stops this hypothesis too; no cache-off setting is a playback claim.
+
+## Startup pass and exact playback gate
+
+The all-backends-off row passed: Chrome reports sandboxed=true, AGX hardware
+OpenGL/compositing, zero GPU crashes, and every sampled GPU/renderer thread has
+Seccomp=2. Its guard ended healthy/idle. Proceed with the already tagged
+12-second 640x360 H.264 BT.709 clip, SHA-256
+`befc52cf1eabc751f35ba254c47943b252cc93601724f015871f114d3da4dc0a`.
+All three cache backend selectors remain 0, with the disk-disable variable unset.
+Use Chrome 152 with normal sandbox flags and the installed kernel/clients.
+
+First complete one software-reference row, then installed-driver hardware,
+then C1 hardware only if installed passes. Each separate guard is 180 seconds.
+Reuse the prior runner's 20 exact seeks (1/4/2/6 seconds repeated), full playback,
+two elements, survivor and reopen. Enable Media diagnostics before loading.
+Require FFmpegVideoDecoder/platform=false for software and a named VA platform
+decoder/platform=true plus owned AVD holders and selected-driver mappings for
+hardware before advancing into the seek matrix. Software fallback stops the
+hardware row. Verify GPU sandbox/AGX and per-thread isolation before and after.
+
+Use actual DPR as measured, preserving the 640x360 CSS content and capture at
+native compositor resolution: expected 1280x720 at DPR 2 on this display. Bind
+metadata and require identical dimensions, frame timestamps and >=40 dB PSNR
+against software without resizing. Five captures cover four seek positions and
+reopen. These are selected compositor frames, not all played frames or panel
+photographs. Require a full 12-second completion with zero dropped-frame delta.
+Preserve the first failed gate and stop its matrix; no immediate retry or switch
+to sandbox-disabling flags. Successful default startup does not itself prove
+decode selection, so the first loaded-frame gate is decisive.
+
+The first software reference attempt stopped before loading media: the new
+isolation collector treated `/proc/.../cmdline` as separately NUL-delimited
+flags, while Chrome can rewrite its process title into a space-separated field.
+It recorded no GPU/renderer entries and correctly refused an empty sample. The
+existing startup collector splits that representation correctly. Preserve this
+tool-only child-error/idle attempt and restore the existing parsing method;
+check separate and rewritten argument representations offline, then start a
+newly named software reference. Keep all isolation assertions unchanged.
+
+## Installed playback stop and display-boundary diagnosis
+
+Software-reference v2 passed the selected operations. Installed-driver playback
+then selected FFmpegVideoDecoder/platform=false and stopped before the seek
+matrix. Its GPU log reports `Could not get a valid VA display`; C1 stays unrun.
+Do not infer unsupported codec profiles from the legacy GPUInfo list alone.
+
+Versioned libva 2.24.1 calls `drmGetNodeTypeFromFd` before creating a display.
+libdrm 2.4.134 validates `/sys/dev/char/<major>:<minor>/device/drm` using stat.
+Chrome 152's generic Linux GPU broker permissions omit that path. This suggests
+a display recreation failure after sandboxing, not an Intel-only codec gate
+(the non-Intel check is in the Vulkan branch; these rows use GL).
+
+One final diagnostic may observe that boundary using a tiny, process-local
+interposer which forwards stat and drmGetNodeTypeFromFd unchanged, logs their
+actual return/errno and restores errno. Resolve targets before sandboxing; do
+not synthesize success, broaden permissions, retain a display or change a driver.
+Build/check it offline with bounded-build first. Reuse the existing runner for
+one loaded-frame-only attempt under a fresh 60-second whole-boot exclusive guard,
+the same installed driver, fixture and three cache selectors. Add VA verbosity.
+Require sandboxed AGX and sampled isolation; stop on the known fallback or any
+new failure, before seeks. This is diagnosis, excluded from qualification.
+Preserve original uninstrumented failure. If observed denial matches source,
+publish the specific browser/libdrm integration blocker and stop this campaign;
+no browser rebuild or sandbox-policy patch is included in this continuation.
