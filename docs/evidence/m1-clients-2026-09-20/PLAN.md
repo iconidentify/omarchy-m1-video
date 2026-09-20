@@ -105,3 +105,18 @@ GPU compositing and hardware video decode and exposed no decode profiles. Do
 not recommend or persist the switch. No-media startup evidence is retained;
 there was no decoder/kernel fault. Both the default startup and this attempted
 startup-order alternative block the planned sandboxed Chrome hardware rows.
+
+## Local preview closeout
+
+All eight mpv hardware rows and the C1 two-player survivor row completed with
+healthy idle guard exits. Prepare a local experimental demo containing the exact
+measured C1 binary, complete corresponding source/licence, the unmodified source
+guard, both generated clips and a manifest. The launcher verifies those bytes,
+the recorded package/kernel/module identities and accepts only the two measured
+clips. It selects OpenGL/VA copy for one process, with a finite whole-boot guard;
+it does not install a package or change settings. Validate bundle integrity and
+version refusal offline, then run its H.264 sample once with a 30-second guard
+deadline. Preserve that result separately from the eight comparison rows.
+
+This demo is a delivery of measured selected playback, not general video-file
+support, a stable release, full C1 qualification or a change to the installer pin.
