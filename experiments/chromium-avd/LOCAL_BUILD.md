@@ -1,5 +1,10 @@
 # Owner-directed build on the existing M1
 
+**Current continuation:** the owner subsequently supplied a dedicated remote
+ARM64 VM. See [remote build plan](REMOTE_BUILD.md). The local full-browser
+attempt stopped on a Rust component-link error; this page preserves its budget
+and earlier milestones. No local full build is currently running.
+
 On 2026-09-20 the owner explicitly requested using this machine after discussion
 of the default small-build limits. A separate machine is no longer a dependency
 for this attempt. This does not authorize installing the experimental browser,

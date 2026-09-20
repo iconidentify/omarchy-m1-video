@@ -94,6 +94,8 @@ and `prepare_local.py` for private dependencies and its explicit resource budget
 A separate machine is an option, not a requirement. The instructions below retain
 the original native package-build route; successful full compilation is not yet
 claimed. Do not change the general small-test limits to run this experiment.
+The owner has now provided a dedicated ARM64 VM; its explicit parallel-build
+budget and non-component configuration are in [REMOTE_BUILD.md](REMOTE_BUILD.md).
 
 1. Obtain the exact packaging directory at the revision above in an isolated
    checkout, with all its adjacent patch files. Preserve the original PKGBUILD.

@@ -11,6 +11,13 @@ review or general sandbox qualification is claimed. The owner subsequently
 requested building on the existing M1; LOCAL_BUILD.md records its private tools,
 budget and incremental evidence.
 
+The local full-browser attempt later failed linking a component against the
+prebuilt Rust standard library. The owner's dedicated remote ARM64 VM now uses
+the original distribution's non-component layout and an explicit four-worker
+budget; see [REMOTE_BUILD.md](REMOTE_BUILD.md). The selector, broker policy and
+hook are unchanged. That later recipe delta is author-reviewed, not covered by
+the earlier separate review SHA; full linking remains pending.
+
 | Stage | Evidence and disposition |
 | --- | --- |
 | 1 Intent | Browser-owned fix candidate for measured post-sandbox libdrm lookup failure. Driver/kernel/installation untouched. Experimental added device access is default-off. |

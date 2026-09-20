@@ -20,6 +20,10 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--tools', type=Path, required=True)
     parser.add_argument('--rust-sysroot', type=Path, required=True)
+    parser.add_argument('--jobs', type=int, choices=range(1, 9), default=1,
+                        help='Explicit worker budget; shared desktop default remains one')
+    parser.add_argument('--non-component', action='store_true',
+                        help='Use the distribution link layout on a provisioned builder')
     args = parser.parse_args()
     prefix = args.tools.resolve(strict=True)
     rust = args.rust_sysroot.resolve(strict=True)
@@ -35,7 +39,8 @@ def main():
                       ('rust_sysroot_absolute', rust)]:
         data = replace_once(data, shlex.quote(key + '="/usr"'),
                             shlex.quote(key + '=' + json.dumps(str(path))))
-    data = replace_once(data, "'is_component_build=false'", "'is_component_build=true'")
+    if not args.non_component:
+        data = replace_once(data, "'is_component_build=false'", "'is_component_build=true'")
     data = replace_once(data, "'use_gold=false'", "'use_mold=false'\n    'use_lld=true'")
     # The lite archive bundles an x86 esbuild for non-official builds. Keep
     # DevTools on the type-checked TypeScript path used by official builds;
@@ -47,8 +52,14 @@ def main():
     data = replace_once(data,
                         'ninja -j1 -C out/Release chrome chrome_sandbox chromedriver.unstripped content_unittests',
                         'if [[ ${CHROMIUM_AVD_CONFIGURE_ONLY:-0} != 1 ]]; then\n'
-                        '    ninja -j1 -C out/Release chrome chrome_sandbox\n'
+                        f'    ninja -j{args.jobs} -C out/Release chrome chrome_sandbox\n'
                         '  fi')
+    for hint in ['MAKEFLAGS', 'ALARM_NINJA_JOBS']:
+        old = f'export {hint}="' + ('-j1' if hint == 'MAKEFLAGS' else '1') + '"'
+        new = f'export {hint}="' + (f'-j{args.jobs}' if hint == 'MAKEFLAGS' else str(args.jobs)) + '"'
+        if data.count(old) != 2:
+            raise ValueError('Missing or ambiguous worker hints: ' + hint)
+        data = data.replace(old, new)
     # The pinned distribution patch uses /usr/bin/tsc; redirect that one source
     # location into the private tool prefix, retaining the rest of its behavior.
     anchor = '  patch -Np1 -i ../chromium-153-typescript.patch'
@@ -59,7 +70,9 @@ def main():
     data = replace_once(data, anchor, anchor + '\n  python3 -c ' + shlex.quote(script))
     with args.output.open('x') as output:
         output.write(data)
-    print('Prepared private-tool component-build recipe; no build or install performed.')
+    layout = 'non-component' if args.non_component else 'component'
+    print(f'Prepared private-tool {layout} recipe with {args.jobs} worker(s); '
+          'no build or install performed.')
 
 
 if __name__ == '__main__':
