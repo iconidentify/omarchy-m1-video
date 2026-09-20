@@ -53,6 +53,14 @@ def copy_record(row, destination):
     return row | {'path': str(destination)}
 
 
+def rehouse_external_artifacts(document, destination, build_root):
+    for name, row in document['artifacts'].items():
+        path = Path(row['path'])
+        if not path.is_relative_to(build_root) and not path.is_relative_to('/usr'):
+            document['artifacts'][name] = copy_record(
+                row, destination / 'artifacts' / (name + '-' + path.name))
+
+
 def prepare(path):
     _, document = manifest.read_document(path)
     manifest.need(document['state'] == 'candidate', 'not a candidate')
@@ -78,6 +86,7 @@ def prepare(path):
     manifest.need(manifest.digest(guard) == document['artifacts']['hwguard']['sha256'],
                   'guard source differs from staged guard')
     document['artifacts']['hwguard'] = manifest.file_record(guard)
+    rehouse_external_artifacts(document, destination, stage.parent)
     artifacts = {name: Path(row['path']) for name, row in document['artifacts'].items()}
     document['commands'] = admission._builder_module().command_matrix(
         artifacts, document['corpus'], document['targets'])

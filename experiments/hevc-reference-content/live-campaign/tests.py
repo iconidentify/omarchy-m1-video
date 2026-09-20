@@ -82,6 +82,19 @@ class FakeCampaign(run.Campaign):
 
 
 class Tests(unittest.TestCase):
+    def test_external_uapi_is_rehoused_before_commands_are_rebuilt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'external.h'
+            source.write_text('locked UAPI\n')
+            record = run.manifest.file_record(source)
+            document = {'artifacts': {'uapi': record}}
+            prepare.rehouse_external_artifacts(document, root / 'stage/inputs', root / 'stage')
+            actual = document['artifacts']['uapi']
+            self.assertTrue(Path(actual['path']).is_relative_to(root / 'stage'))
+            self.assertEqual(actual['sha256'], record['sha256'])
+            self.assertEqual(Path(actual['path']).read_bytes(), source.read_bytes())
+
     def test_note_parser_requires_one_bounded_id(self):
         note = struct.pack('<III', 4, 20, 3) + b'GNU\0' + b'\x17' * 20
         self.assertEqual(prepare.note_id(note), '17' * 20)
