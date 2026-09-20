@@ -18,35 +18,28 @@ reviewed hardware evidence.
 The [live roadmap](https://github.com/iconidentify/libva-v4l2_request/issues/7)
 controls current status. These are entry points, not permanent reservations:
 
-Updated after the 2026-09-18 concurrency qualification and new PR intake. Start from the current default branch;
-merged prerequisites are already there. Re-read live claims before choosing.
+## Current contribution priorities — 2026-09-20
 
-| Scope | Next concrete deliverable | State at this handoff |
-| --- | --- | --- |
-| [GStreamer observer API #96](https://github.com/iconidentify/omarchy-m1-video/issues/96) | Actual direct-V4L2 pause/retain/writer-receipt API and real-entrypoint offline tests in its own experimental subtree | Ready offline; no live copy or hardware claim |
-| [VA observer API #95](https://github.com/iconidentify/omarchy-m1-video/issues/95) | Actual default-off VA producer barrier, retained surface/allocation ownership and writer receipts | Claimed by z23; coordinate, do not duplicate |
-| [H.264 actual admission #79](https://github.com/iconidentify/omarchy-m1-video/issues/79) | Actual slice/issue/cancel, AU/thread/configuration/profile admission beyond merged NAL/SPS/PPS coverage | New [PR97](https://github.com/iconidentify/omarchy-m1-video/pull/97) under adversarial review; remap disabled, not yet accepted |
-| [HEVC observer integration #82](https://github.com/iconidentify/omarchy-m1-video/issues/82) | Integrate the two actual adapters with verified exporter/mapping identity, bounded copying and a reviewed campaign | Blocked on #95/#96 and original integration criteria; model/static/helper research already delivered |
-| [HEVC parameter sets #15](https://github.com/iconidentify/omarchy-m1-video/issues/15) | Review the exact selected-client hardware qualification and plan separate package/upstream integration | In progress: child #44 merged; local M1 result is 145/147 with no lost pass, but the client remains unshipped |
-| [Concurrency #36](https://github.com/iconidentify/libva-v4l2_request/issues/36) / [worker #94](https://github.com/iconidentify/libva-v4l2_request/issues/94) | Completed real client and selected M1 qualification: 180 groups, 2,560 exact frame hashes, 200 retained frames | Accepted through driver [PR96](https://github.com/iconidentify/libva-v4l2_request/pull/96) / [PR97](https://github.com/iconidentify/libva-v4l2_request/pull/97); wider codec/client/boot gates remain separate |
-| [Allocator #81](https://github.com/iconidentify/omarchy-m1-video/issues/81) / [AV1 unwind #86](https://github.com/iconidentify/omarchy-m1-video/issues/86) | Actual-source repairs and combined isolated candidate qualification | Complete through PR84/89/91; original module restored, not shipped or AV1 runtime-qualified |
-| [Capture backing #52](https://github.com/iconidentify/omarchy-m1-video/issues/52) / [driver #90](https://github.com/iconidentify/libva-v4l2_request/issues/90) | Establish allocation/export/import/CPU coherence before changing cache policy, then qualify Chromium | Blocked on reviewed contract; respect #90's contributor claim |
+The owner has selected [M1 playback delivery](M1_DELIVERY.md) as the next milestone.
+Use that scoreboard and the live roadmap instead of older contributor-wave tables.
+The first step reuses existing decode/drain/seek/reopen tests on one pinned
+candidate; the next results must address actual mpv/Chrome playback and recovery.
 
-Completed research/tools are inputs, not new assignments: client-selection #41/#73,
-HEVC control traces driver #84, VP9 state validator companion #42, field-feasibility
-#43 and reference-memory audit #77. Their hardware/feature parents remain open.
-Driver [#22](https://github.com/iconidentify/libva-v4l2_request/issues/22) fuzzing
-retains its active claim. The completed concurrency evidence and its limits are
-[reproducible offline](https://github.com/iconidentify/libva-v4l2_request/blob/avd-fixes/docs/concurrency-2026-09-18/README.md).
-Preserve the merged work and claim only an available concrete leaf. The live queue
-can change after this dated snapshot; check comments as well as labels.
+Existing #128 HEVC and driver #22 fuzzing ownership remain in their live tickets.
+#128 has one bounded campaign decision point; its merged tooling is not a
+corruption fix. New owner-directed platform/advanced-codec expansion is deferred
+until the candidate decision. Independently contributed work and its credits are
+preserved; coordinate before changing another contributor's scope.
 
-Check the **open, ready** queues in the
+Use `tools/bounded-build` for local builds and CPU tests on the shared desktop,
+with one build/test worker. Hardware has its separate exclusive guarded window.
+No general-purpose test framework is required for the first comparison.
+
+Check the open ready queues in the
 [driver](https://github.com/iconidentify/libva-v4l2_request/issues?q=is%3Aissue%20is%3Aopen%20label%3Astatus%3Aready)
-and [companion](https://github.com/iconidentify/omarchy-m1-video/issues?q=is%3Aissue%20is%3Aopen%20label%3Astatus%3Aready)
-before choosing. Existing claims and PRs take precedence over this table. A ticket
-marked blocked is not available for its whole implementation; claim its ready
-offline child instead. No task here promises a specific increase in passing videos.
+and [companion](https://github.com/iconidentify/omarchy-m1-video/issues?q=is%3Aissue%20is%3Aopen%20label%3Astatus%3Aready),
+then read the complete ticket and current claims. A blocked parent is not made
+ready by this prioritization, and a merged experiment is not shipped support.
 
 ## Claim one bounded task
 
