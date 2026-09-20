@@ -86,6 +86,14 @@ copy-readback option and fatal-error flag in all VA commands. These checks do
 not establish live MMAP selection or observation noninterference; a fresh
 reviewed build and guarded campaign are still required.
 
+Pre-run review also reproduced an offline join defect using the preserved
+reference snapshot: selected detailed windows contain table/list/motion records
+between their start and completion. The join now selects only the two lifetime
+record kinds after the existing full reference validator has checked every
+record. It still rejects duplicate, missing or reversed endpoints. A regression
+uses all 44 detailed windows from the accepted public B/E VA/Gst captures, and
+a source mutation restores the old refusal to prove the test distinguishes it.
+
 Self-review found two deployment integration gaps before device access: the
 standalone guard copy had no real source-root metadata, and the same-run reader
 required even public immutable oracle/UAPI inputs to belong to the ordinary run

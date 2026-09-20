@@ -21,6 +21,10 @@ FILES = (
 )
 
 MUTATIONS = (
+    ("detailed-lifetime", "experiments/hevc-reference-content/same-run/join.py",
+     'if row.get("picture") == picture and row.get("kind") in (1, 2)]',
+     'if row.get("picture") == picture]',
+     "ClientJoin.test_detailed_reference_windows_have_one_exact_lifetime_pair"),
     ("exact-pid-arm", "experiments/hevc-avd-command-capture/capture.py",
      "b.control(f'arm {run} {pid}')", "b.control(f'arm {run} {os.getpid()}')",
      "SupervisorBoundary.test_paired_supervisor_binds_environment_cwd_logs_and_exact_pid"),
