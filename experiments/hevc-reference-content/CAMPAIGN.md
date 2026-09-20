@@ -22,7 +22,7 @@ workload and binds either client result through its actual queue/V4L2 lifetime t
 paired sealed kernel evidence. There is still no executable eight-workload
 campaign command. Remaining: exact loaded build/client/tool/corpus evidence, an
 approved deployment manifest, proven live target eligibility (including Gst's
-pre-publication allocation limit), controller-level workload admission and the
+negotiated ordinary-plus-reserve pool capacity), controller-level workload admission and the
 authorized guarded campaign. Re-review this plan against that exact head. The manifest verifier alone covers the
 observer object, kernel, AVD and modular vb2 components; it does not cover the
 full clients.

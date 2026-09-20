@@ -127,12 +127,18 @@ def client_contract(plan: Plan, workload: Workload) -> dict[str, object]:
         "last_required_input_index": workload.last_required_input_index,
     }
     if workload.client == "gst":
+        reserve = len(workload.selectors)
         return {
             "arm_api": "gst_hevc_callsite_arm_frames",
             "copy": workload.copy,
             "selector": selector,
             "input_window": input_window,
-            "publication_pool_size": workload.gst_pool_size,
+            "allocation_capacity": {
+                "negotiated_source_pool_size": workload.gst_pool_size,
+                "reserved_unpublished_allocations": reserve,
+                "ordinary_allocations": (workload.gst_pool_size - reserve
+                                         if workload.gst_pool_size is not None else None),
+            },
             "requirements": asdict(plan.gst),
         }
     if workload.client == "va":
@@ -159,7 +165,7 @@ def client_contract(plan: Plan, workload: Workload) -> dict[str, object]:
     raise ValueError(f"unknown client: {workload.client}")
 
 
-def build_plan(*, gst_pool_size: int, va_output_count: int,
+def build_plan(*, gst_pool_sizes: dict[str, int], va_output_counts: dict[str, int],
                gst_frames: dict[str, tuple[int, ...]],
                va_outputs: dict[str, tuple[int, ...]],
                last_required_inputs: dict[str, dict[str, int]],
@@ -185,8 +191,8 @@ def build_plan(*, gst_pool_size: int, va_output_count: int,
                     arm_input_index=0,
                     last_required_input_index=last_input,
                     parameter_set_change_inputs=tuple(changes.get(vector, ())),
-                    gst_pool_size=gst_pool_size if client == "gst" else None,
-                    va_output_count=va_output_count if client == "va" else None,
+                    gst_pool_size=gst_pool_sizes.get(vector) if client == "gst" else None,
+                    va_output_count=va_output_counts.get(vector) if client == "va" else None,
                 ))
     return Plan(run_id=run_id or uuid.uuid4().hex, workloads=workloads)
 
@@ -251,12 +257,10 @@ def validate_plan(plan: Plan) -> list[str]:
                 problems.append(f"{workload.name}: VA output count attached to a Gst workload")
             if workload.gst_pool_size is None or workload.gst_pool_size <= 0:
                 problems.append(f"{workload.name}: Gst pool size must be known")
-            else:
-                late = [value for value in workload.selectors if value >= workload.gst_pool_size]
-                if late:
-                    problems.append(f"{workload.name}: system_frame_numbers {sorted(late)} fall "
-                                    f"outside the publication boundary "
-                                    f"(pool_size={workload.gst_pool_size})")
+            elif workload.gst_pool_size <= len(workload.selectors):
+                problems.append(f"{workload.name}: Gst pool size {workload.gst_pool_size} "
+                                f"cannot preserve ordinary capacity plus "
+                                f"{len(workload.selectors)} selected reserves")
         elif workload.client == "va":
             if workload.gst_pool_size is not None:
                 problems.append(f"{workload.name}: Gst pool size attached to a VA workload")
@@ -363,8 +367,10 @@ class Controller:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--gst-pool-size", type=int, required=True)
-    parser.add_argument("--va-output-count", type=int, required=True)
+    parser.add_argument("--gst-e-pool-size", type=int, required=True)
+    parser.add_argument("--gst-b-pool-size", type=int, required=True)
+    parser.add_argument("--va-e-output-count", type=int, required=True)
+    parser.add_argument("--va-b-output-count", type=int, required=True)
     parser.add_argument("--gst-e-frames", type=int, nargs="+", required=True)
     parser.add_argument("--gst-b-frames", type=int, nargs="+", required=True)
     parser.add_argument("--va-e-outputs", type=int, nargs="+", required=True)
@@ -378,8 +384,8 @@ def main() -> int:
     args = parser.parse_args()
 
     plan = build_plan(
-        gst_pool_size=args.gst_pool_size,
-        va_output_count=args.va_output_count,
+        gst_pool_sizes={"E": args.gst_e_pool_size, "B": args.gst_b_pool_size},
+        va_output_counts={"E": args.va_e_output_count, "B": args.va_b_output_count},
         gst_frames={"E": tuple(args.gst_e_frames), "B": tuple(args.gst_b_frames)},
         va_outputs={"E": tuple(args.va_e_outputs), "B": tuple(args.va_b_outputs)},
         last_required_inputs={

@@ -296,6 +296,15 @@ class VACollectorHardening(unittest.TestCase):
 
 
 class SupervisorBoundary(unittest.TestCase):
+    def test_va_association_accepts_ffmpeg_debug_prefix(self):
+        evidence = SimpleNamespace(requests=({"poc": 4, "pic": 1}, {"poc": 2, "pic": 2}))
+        raw = b"[hevc @ 0xab12] Output frame with POC 0/2.\n[hevc @ 0xab12] Output frame with POC 0/4.\n"
+        self.assertEqual(supervisor.va_associations(raw, evidence), [
+            {"output_index": 0, "pic": 2, "poc": 2},
+            {"output_index": 1, "pic": 1, "poc": 4}])
+        with self.assertRaises(join.JoinError):
+            supervisor.va_associations(raw.replace(b"hevc @", b"h264 @"), evidence)
+
     def test_va_command_is_exact_and_placeholder_is_private(self):
         command = ("ffmpeg", "-threads:v:0", "1", "-hwaccel", "vaapi",
                    "-va_observer_outputs:v:0", "1,3", "-va_observer_copy:v:0", "1",

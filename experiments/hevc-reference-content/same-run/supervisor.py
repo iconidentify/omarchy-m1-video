@@ -180,7 +180,8 @@ def va_associations(stderr: bytes, evidence: join.KernelEvidence) -> list[dict[s
     except UnicodeDecodeError as error:
         raise join.JoinError(f"VA stderr is not UTF-8: {error}") from error
     pairs = [(int(layer), int(poc)) for layer, poc in
-             re.findall(r"^Output frame with POC (\d+)/(-?\d+)$", text, re.MULTILINE)]
+             re.findall(r"^(?:\[hevc @ 0x[0-9a-fA-F]+\] )?"
+                        r"Output frame with POC (\d+)/(-?\d+)\.?$", text, re.MULTILINE)]
     join.need(len(pairs) == len(evidence.requests) and all(layer == 0 for layer, _ in pairs),
               "VA output trace is incomplete or contains another layer")
     by_poc: dict[int, int] = {}
