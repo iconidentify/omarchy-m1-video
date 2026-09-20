@@ -37,6 +37,11 @@ def main():
                             shlex.quote(key + '=' + json.dumps(str(path))))
     data = replace_once(data, "'is_component_build=false'", "'is_component_build=true'")
     data = replace_once(data, "'use_gold=false'", "'use_mold=false'\n    'use_lld=true'")
+    # The lite archive bundles an x86 esbuild for non-official builds. Keep
+    # DevTools on the type-checked TypeScript path used by official builds;
+    # its compiler is already selected from our verified private prefix.
+    data = replace_once(data, "'blink_enable_generated_code_formatting=false'",
+                        "'blink_enable_generated_code_formatting=false'\n    'devtools_skip_typecheck=false'")
     data = replace_once(data, "'symbol_level=0'", "'symbol_level=0'\n    'blink_symbol_level=0'\n    'v8_symbol_level=0'\n    'use_thin_lto=false'")
     # Native test/browser targets remain available; build the browser first.
     data = replace_once(data,

@@ -54,3 +54,8 @@ the build graph in a separate shell does not preserve that exported value.
 The local sequence compiles the GPU hook, the integrated policy test object,
 then chrome and chrome_sandbox, stopping at the first failed stage. No
 successful object build is counted as a linked browser or executed test.
+
+The non-official build also selects a bundled x86 esbuild for DevTools. Set
+`devtools_skip_typecheck=false` to retain the supported, type-checked TypeScript
+path used by official builds and the already verified private compiler. This
+avoids introducing a mismatched native esbuild version or skipping type checks.

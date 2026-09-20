@@ -64,6 +64,13 @@ configuration; select native lld explicitly for the local ARM64 build. Preserve
 these preparation failures; they are not hardware faults or passing browser runs.
 The first bindgen action then exposed a missing private-prefix libclang link;
 link the existing matching installed library and require it during preparation.
+After 2,918 further steps, the DevTools action selected its bundled x86 esbuild.
+Set `devtools_skip_typecheck=false` in the local recipe, using the supported
+TypeScript path and existing verified private compiler. Preserve the failed
+action and earlier objects. Regenerated GN configuration passes, and the exact
+failed ColorUtils output now builds successfully with TypeScript. The resumed
+hook stage retains earlier work (1,146 remaining steps at restart); full browser
+compilation is still pending.
 
 Local checks use tools/bounded-build (one CPU/worker, 1.5 GiB maximum, disk TMPDIR).
 Successful initial GCC policy/mutation run: 44.6 seconds, 435.1 MiB reported peak;
