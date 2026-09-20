@@ -121,6 +121,8 @@ def build_ffmpeg(root: Path, archive: Path, jobs: int,
     source_root = root / "ffmpeg-source"
     source_root.mkdir()
     tree = calls.fetch_tree(source_root, archive)
+    readback_patch = PARENT / "live-campaign/ffmpeg-observer-copy-readback.patch"
+    apply(tree, readback_patch, record)
     build = root / "ffmpeg-build"
     build.mkdir()
     run([
@@ -135,10 +137,12 @@ def build_ffmpeg(root: Path, archive: Path, jobs: int,
     if "ffmpeg version 9.0.1" not in version:
         raise ValueError("staged FFmpeg identity mismatch")
     strings = run(["strings", artifact])
-    for token in ("va_observer_outputs", "va_observer_copy", "va_observer_report"):
+    for token in ("va_observer_outputs", "va_observer_copy", "va_observer_report",
+                  "observer_copy_readback"):
         if token not in strings:
             raise ValueError("FFmpeg artifact lacks observer option: " + token)
-    return artifact, [PARENT / "va-callsite/ffmpeg-n9.0.1-va-observer-callsite.patch"]
+    return artifact, [PARENT / "va-callsite/ffmpeg-n9.0.1-va-observer-callsite.patch",
+                      readback_patch]
 
 
 def build_gst(root: Path, archive: Path, jobs: int,
@@ -245,8 +249,10 @@ def command_matrix(artifacts: dict[str, Path], corpus: dict[str, dict],
             for copied in (False, True):
                 name = f"{vector}-{client}-{'on' if copied else 'off'}"
                 if client == "va":
-                    client_argv = [str(artifacts["ffmpeg"]), "-nostdin", "-loglevel", "debug",
+                    client_argv = [str(artifacts["ffmpeg"]), "-nostdin", "-xerror", "-loglevel", "debug",
+                            "-init_hw_device", "vaapi=observer:,connection_type=drm,observer_copy_readback=1",
                             "-threads:v:0", "1", "-hwaccel", "vaapi",
+                            "-hwaccel_device", "observer",
                             "-hwaccel_output_format", "vaapi", "-va_observer_outputs:v:0", selected,
                             "-va_observer_copy:v:0", "1" if copied else "0",
                             "-va_observer_report:v:0", "@OMARCHY_OBSERVER_REPORT@",

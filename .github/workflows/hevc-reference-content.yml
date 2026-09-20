@@ -56,6 +56,17 @@ jobs:
           python3 experiments/hevc-avd-command-capture/tests.py
       - name: Single-use live-campaign orchestration model (no device)
         run: python3 experiments/hevc-reference-content/live-campaign/tests.py
+  va-copy-readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libva-dev libdrm-dev nasm
+      - name: Actual libavutil device, frame pool and pixel readback; named mutations
+        run: python3 experiments/hevc-reference-content/live-campaign/readback-tests.py
   gst-observer:
     runs-on: ubuntu-latest
     timeout-minutes: 30

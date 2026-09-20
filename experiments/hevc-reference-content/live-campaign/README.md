@@ -44,13 +44,47 @@ Offline checks:
 python3 experiments/hevc-reference-content/live-campaign/tests.py
 python3 experiments/hevc-reference-content/same-run/tests.py
 python3 experiments/hevc-reference-content/same-run/mutations.py
+python3 experiments/hevc-reference-content/live-campaign/readback-tests.py
 ```
 
-Ten orchestration groups cover single-use/no-replay, healthy restoration,
+Twelve orchestration groups cover single-use/no-replay, healthy restoration,
 fault-blocked restoration, stop at a software refusal, strict frame extent and
 sequence, separate prior/pair pixel gates, real accepted cross-client reference
 projections, bounded ELF note parsing, sanitized placeholder expansion and config
-digest refusal. These are no-device models, not measured decoder behavior.
+digest refusal, external UAPI relocation and privileged argv serialization.
+These are no-device models, not measured decoder behavior.
+
+## First measured refusal and copy-readback correction
+
+The first guarded attempt stopped before any decoder workload because event
+logging received a `Path`; normalization now precedes logging and execution.
+The second reached `B-va-off`: the kernel completed 300 pictures with zero
+recorder errors, but the observer refused selected output 20. FFmpeg's ordinary
+error handling then spun; the exact child was terminated and reaped, and no
+same-run join or complete pixel result is claimed. Both attempts restored the
+original module while healthy/idle. Their raw evidence/configs remain preserved.
+
+Source and measured ioctl traces identify the mismatch: FFmpeg's startup
+`vaDeriveImage` probe creates exported backing before decode, selecting DMABUF.
+The observer deliberately admits only private MMAP backing. Its memory, alias
+and lifetime checks are unchanged.
+
+The experimental FFmpeg patch adds a default-off device option,
+`observer_copy_readback=1`, which skips that startup probe. Ordinary pixel
+readback continues through an independent `vaCreateImage`/`vaGetImage` copy;
+direct mapping is unavailable in this mode. Invalid option values are rejected
+before device access. The attested VA commands explicitly select this device
+and `-xerror` so a decode error is fatal. This is instrumentation compatibility,
+not a shipped decoder fix or a new passing vector.
+
+The no-device readback fixture compiles the actual pinned libavutil source and
+runs its device option, frame-pool and pixel-transfer entrypoints with synthetic
+libva calls under ASan/UBSan. It checks absent/0/1 values, invalid-before-open,
+derive-probe counts and copied pixels. Four compiling source mutations must hit
+their named assertions. Two deployment mutations independently require the
+copy-readback option and fatal-error flag in all VA commands. These checks do
+not establish live MMAP selection or observation noninterference; a fresh
+reviewed build and guarded campaign are still required.
 
 Self-review found two deployment integration gaps before device access: the
 standalone guard copy had no real source-root metadata, and the same-run reader

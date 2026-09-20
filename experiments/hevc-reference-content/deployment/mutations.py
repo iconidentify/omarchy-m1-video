@@ -19,6 +19,12 @@ def replace_once(text: str, old: str, new: str) -> str:
 
 
 MUTATIONS = (
+    ("fatal-client-error", "build.py",
+     [('"-nostdin", "-xerror", "-loglevel"', '"-nostdin", "-loglevel"')],
+     "test_va_commands_require_private_readback_and_fatal_errors"),
+    ("private-copy-readback", "build.py",
+     [("observer_copy_readback=1", "observer_copy_readback=0")],
+     "test_va_commands_require_private_readback_and_fatal_errors"),
     ("manifest-digest", "manifest.py",
      [("    need(hashlib.sha256(raw).hexdigest() == approved_sha256,\n"
        "         \"manifest differs from reviewed digest\")\n",

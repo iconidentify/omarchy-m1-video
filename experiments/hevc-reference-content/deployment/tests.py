@@ -50,7 +50,7 @@ class Fixture:
             "void v4l2r_content_init(void){}\n"
             "void v4l2r_content_snapshot(void){}\n"
             'const char observer_tokens[] = "va_observer_outputs va_observer_copy '
-            'va_observer_report hevc-observer-frames hevc-observer-copy '
+            'va_observer_report observer_copy_readback hevc-observer-frames hevc-observer-copy '
             'hevc-observer-report observer-queue h265parse videoconvert filesink";\n'
             "int main(void){return observer_tokens[0] == 0;}\n")
         self.elf = root / "artifact"
@@ -212,6 +212,18 @@ class DeploymentTest(unittest.TestCase):
         helper = build.module("deployment_test_va_callsite",
                               HERE.parent / "va-callsite/tests.py")
         self.assertTrue(callable(helper.fetch_tree))
+
+    def test_va_commands_require_private_readback_and_fatal_errors(self):
+        for row in self.fixture.document["commands"]:
+            if row["client"] != "va":
+                continue
+            argv = row["argv"][row["argv"].index("--") + 1:]
+            self.assertIn("-xerror", argv)
+            self.assertIn("-init_hw_device", argv)
+            self.assertEqual(argv[argv.index("-init_hw_device") + 1],
+                             "vaapi=observer:,connection_type=drm,observer_copy_readback=1")
+            self.assertIn("-hwaccel_device", argv)
+            self.assertEqual(argv[argv.index("-hwaccel_device") + 1], "observer")
 
     def test_va_symbol_contract_matches_ffmpeg_loader(self):
         patch = (HERE.parent / "va-callsite/ffmpeg-n9.0.1-va-observer-callsite.patch").read_text()
