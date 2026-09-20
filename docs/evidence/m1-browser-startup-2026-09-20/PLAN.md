@@ -110,3 +110,12 @@ photographs. Require a full 12-second completion with zero dropped-frame delta.
 Preserve the first failed gate and stop its matrix; no immediate retry or switch
 to sandbox-disabling flags. Successful default startup does not itself prove
 decode selection, so the first loaded-frame gate is decisive.
+
+The first software reference attempt stopped before loading media: the new
+isolation collector treated `/proc/.../cmdline` as separately NUL-delimited
+flags, while Chrome can rewrite its process title into a space-separated field.
+It recorded no GPU/renderer entries and correctly refused an empty sample. The
+existing startup collector splits that representation correctly. Preserve this
+tool-only child-error/idle attempt and restore the existing parsing method;
+check separate and rewritten argument representations offline, then start a
+newly named software reference. Keep all isolation assertions unchanged.
