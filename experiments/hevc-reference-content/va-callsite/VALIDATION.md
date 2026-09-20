@@ -81,3 +81,62 @@ VA-only; the existing hosted matrix still runs all reference-content/Gst jobs.
 No decoder device, hardware guard, module, installation, reboot, raw corpus byte,
 or live campaign was used. Same-run kernel association, live dependency/corpus
 attestation and the guarded B/E × VA/Gst × off/on campaign remain open.
+
+## 2026-09-20 re-run — report-path ownership (#128)
+
+The record above is the 2026-09-19 run. This section supersedes only the FFmpeg
+patch identity, for the report-path ownership correction made while diagnosing
+attempt 4 of the #128 campaign. AI-executed implementation and self-review; no
+independent specialist review and no hardware access.
+
+- FFmpeg patch SHA-256
+  `dbf5d4920dce9e06a459dcae5020f5f93bfc49d2064a7c29894bb3dc8c0a1ff9`.
+- FFmpeg source pin, archive SHA-256 and the paired driver ABI patch are
+  unchanged.
+
+Command:
+
+```sh
+python3 experiments/hevc-reference-content/va-callsite/tests.py \
+  --archive /home/chrisk/src/video-114-work-20260919/runner-self-review2/ffmpeg.tar.gz \
+  --keep /home/chrisk/hevc-callsite-reportfix-20260920
+```
+
+The runner rebuilt the complete selected FFmpeg libraries twice and ran 29 cases
+under each sanitizer — 58 executions — with no sanitizer diagnostic, plus five
+collector-rejection checks under each sanitizer and 14 semantic mutations,
+including the existing
+`report-owner` and `worker-before-free` cases. `assert_actual_callsites` now also
+requires the demuxer to make the report-path copy in `ist_add` and release it in
+`ist_free`, exactly once each.
+
+| Build | `vaapi_decode.o` SHA-256 | Fixture SHA-256 |
+| --- | --- | --- |
+| ASan/UBSan | `48d152cd5f25f6ba6edbe6c8f7909b722ebd37d93d23a90f221db06593ed7352` | `981b2ef03c64f3a784c39a6cf51326baf3af9ed1eca9fc079e7aacd1fdac0dd2` |
+| TSan | `0c21ed97d93e16579e890663c33b6e3227c5507739f68bedd1fdb89683207c82` | `7257cd6e931e8404f68900e259c416eb31f7a04d5851dbeb242bd46050281f38` |
+
+### Actual CLI report-path regression
+
+```sh
+python3 experiments/hevc-reference-content/live-campaign/report-path-tests.py \
+  --archive /home/chrisk/src/video-114-work-20260919/runner-self-review2/ffmpeg.tar.gz \
+  --keep /home/chrisk/hevc-report-path-after-20260920
+```
+
+Before the correction this command reproduced the defect on its first armed
+case: ASan `heap-use-after-free` reading the option string at
+`fftools/ffmpeg_dec.c:1552` in `dec_open`, freed at `fftools/ffmpeg_opt.c:116`
+in `uninit_options`, originally allocated at `fftools/cmdutils.c:309` in
+`write_option`. That log is preserved at
+`/home/chrisk/hevc-report-path-before-20260920/armed.log`.
+
+After the correction all six cases pass — armed, default-off, unused stream
+copy, unpaired options and both owned allocation failures — with traced owned
+copy counts 3/0/2/2/2/3 and no sanitizer diagnostic. Both mutations fail as
+intended: restoring the borrowed pointer trips ASan `heap-use-after-free` at
+`dec_open`, and removing the `ist_free` release trips an LSan leak.
+
+The regression does not reach the decoder worker's publication call: with the
+observer armed the patch refuses non-VAAPI frames by design, so its armed case
+ends in that refusal. Publication itself remains covered by the fake-driver
+fixture above, not by a live device.

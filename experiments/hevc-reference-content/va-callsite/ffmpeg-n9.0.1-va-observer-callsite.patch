@@ -857,7 +857,7 @@ index b0595b3..5c38bf2 100644
      enum HWAccelID              hwaccel_id;
      enum AVHWDeviceType         hwaccel_device_type;
      char                       *hwaccel_device;
-+    const char                 *va_observer_report;
++    char                       *va_observer_report;
      enum AVPixelFormat          hwaccel_output_format;
 
      AVRational                  time_base;
@@ -879,7 +879,15 @@ diff --git i/fftools/ffmpeg_demux.c w/fftools/ffmpeg_demux.c
 index 20e133e..9f73440 100644
 --- i/fftools/ffmpeg_demux.c
 +++ w/fftools/ffmpeg_demux.c
-@@ -1427,6 +1427,7 @@ static int ist_add(const OptionsContext *o, Demuxer *d, AVStream *st, AVDictiona
+@@ -902,6 +902,7 @@ static void ist_free(InputStream **pist)
+     av_dict_free(&ds->decoder_opts);
+     av_freep(&ist->filters);
+     av_freep(&ds->dec_opts.hwaccel_device);
++    av_freep(&ds->dec_opts.va_observer_report);
+
+     avcodec_parameters_free(&ist->par);
+
+@@ -1427,6 +1428,7 @@ static int ist_add(const OptionsContext *o, Demuxer *d, AVStream *st, AVDictiona
      const char *hwaccel = NULL;
      const char *apply_cropping = NULL;
      const char *hwaccel_output_format = NULL;
@@ -887,13 +895,17 @@ index 20e133e..9f73440 100644
      const char *codec_tag = NULL;
      const char *bsfs = NULL;
      char *next;
-@@ -1509,6 +1510,9 @@ static int ist_add(const OptionsContext *o, Demuxer *d, AVStream *st, AVDictiona
+@@ -1509,6 +1511,13 @@ static int ist_add(const OptionsContext *o, Demuxer *d, AVStream *st, AVDictiona
          opt_match_per_stream_str(ist, &o->hwaccels, ic, st, &hwaccel);
          opt_match_per_stream_str(ist, &o->hwaccel_output_formats, ic, st,
                                         &hwaccel_output_format);
 +        opt_match_per_stream_str(ist, &o->va_observer_reports, ic, st,
 +                                       &va_observer_report);
-+        ds->dec_opts.va_observer_report = va_observer_report;
++        if (va_observer_report) {
++            ds->dec_opts.va_observer_report = av_strdup(va_observer_report);
++            if (!ds->dec_opts.va_observer_report)
++                return AVERROR(ENOMEM);
++        }
          if (!hwaccel_output_format && hwaccel && !strcmp(hwaccel, "cuvid")) {
              av_log(ist, AV_LOG_WARNING,
                  "WARNING: defaulting hwaccel_output_format to cuda for compatibility "

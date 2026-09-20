@@ -45,6 +45,7 @@ python3 experiments/hevc-reference-content/live-campaign/tests.py
 python3 experiments/hevc-reference-content/same-run/tests.py
 python3 experiments/hevc-reference-content/same-run/mutations.py
 python3 experiments/hevc-reference-content/live-campaign/readback-tests.py
+python3 experiments/hevc-reference-content/live-campaign/report-path-tests.py
 ```
 
 Twelve orchestration groups cover single-use/no-replay, healthy restoration,
@@ -119,3 +120,58 @@ The exact reviewed config/digest, hardware transcript and interpretation will be
 recorded in the issue/PR and normalized evidence. Until those runs complete,
 neither observation noninterference, DMA coherence, RPS_E correction nor a support
 count increase has been established. Opaque hash differences are not firmware blame.
+
+## Attempt 4 and the report-path ownership defect
+
+Attempt 4 decoded the whole `B-va-off` workload: 300 kernel pictures and
+completions, matching context 10, 767/767 reference records, zero recorder or
+decoder errors, and 300 persisted frame hashes matching both the locked
+reference and the prior accepted B/VA baseline. Publishing the observer result
+then failed with `EEXIST`, the exact child exited 239 and was reaped normally in
+0.727 seconds. There is no `client-result.json`, no same-run join and no pass.
+The original module was restored healthy and idle and the temporary native
+approval removed. Saved frames do not change that classification.
+
+The cause is in our own experimental FFmpeg patch, not in FFmpeg's shipped
+behaviour. `ist_add` stored the borrowed `-va_observer_report` option string
+straight into `ds->dec_opts`. `open_files` then calls `uninit_options`, which
+frees every parsed per-stream option string, before output and filter binding
+reach `ist_use -> dec_init -> dec_open`, where the patch finally duplicated it
+for the decoder. The neighbouring `hwaccel_device` option had always taken
+ownership at input-stream creation and released it in `ist_free`; the report
+option omitted both steps. `DecoderOpts` now holds a mutable copy made in
+`ist_add` with an `ENOMEM` check and released in `ist_free`, which covers used,
+stream-copied and partially initialised streams because `demux_stream_alloc`
+registers the stream before any option handling. The decoder keeps its separate
+duplicate and its existing `dec_free` cleanup, so the worker's lifetime stays
+independent of the demuxer's.
+
+Publication still uses a mode-0600 temporary file, `fsync`, `close` and
+`renameat2(RENAME_NOREPLACE)`; exclusive publication is unchanged. The exact
+allocator reuse that turned the stale read into attempt 4's `EEXIST` was not
+traced, and nothing stronger than the confirmed borrowed-pointer defect is
+claimed.
+
+`report-path-tests.py` builds the pinned patched FFmpeg under ASan/UBSan and
+drives its real CLI, demuxer, decoder and teardown with software HEVC decoding
+only, replacing the final report sink through a test-only linker wrapper. The
+wrapper also traces every duplication of the requested path, so each case pins
+the exact number of owned copies: three when a decoder opens (parsed option,
+demuxer, decoder), two for an unused stream copy or unpaired options, none when
+the option is absent. It covers the armed path, the default-off path, an unused
+stream copy, unpaired options and both owned allocation failures. Two mutations
+must fail: restoring the borrowed pointer trips ASan `heap-use-after-free` at
+`dec_open`, and removing the `ist_free` release trips an LSan leak. The existing
+call-site suite separately asserts that the copy is made in `ist_add` and
+released in `ist_free`.
+
+The regression deliberately does not assert that the decoder worker publishes a
+report. With the observer armed, the patch refuses non-VAAPI frames by design,
+so a software decode cannot reach publication; the `va-callsite` fixture covers
+actual publication against the attempt-4 libraries, plainly and under the
+`libv4l2tracer` preload. Reaching that boundary offline would mean faking
+hardware, which these tests do not do.
+
+None of this changes decoded output, packaged HEVC support, or the status of
+parent #82 and driver #42. A fresh reviewed build and a new guarded campaign
+are still required before any measured claim.
