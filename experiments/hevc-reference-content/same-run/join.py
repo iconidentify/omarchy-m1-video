@@ -322,7 +322,10 @@ def validate_report(document: object, client: str, selectors: tuple[int, ...],
 
 def _reference_pair(evidence: KernelEvidence, picture: int,
                     capture: int) -> tuple[dict[str, object], dict[str, object]]:
-    rows = [row for row in evidence.reference_records if row.get("picture") == picture]
+    # Full reference validation already checks the intervening table/list/motion
+    # records. Select the lifetime pair without discarding duplicate endpoints.
+    rows = [row for row in evidence.reference_records
+            if row.get("picture") == picture and row.get("kind") in (1, 2)]
     need(len(rows) == 2 and rows[0].get("kind") == 1 and rows[1].get("kind") == 2,
          f"kernel picture {picture} has no complete reference lifetime")
     start, done = rows

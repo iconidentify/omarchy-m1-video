@@ -17,6 +17,7 @@ PARENT = HERE.parent
 BASE = Path('subprojects/gst-plugins-bad/sys/v4l2codecs')
 MODES = '''copy padded disabled missing-manifest bad-kernel bad-vb2 bad-avd bad-client
 builtin untrusted-owner untrusted-directory writable-manifest wrong-device changed-proof
+wrong-cap-driver cap-driver-prefix cap-driver-empty
 stale foreign-run foreign-lease overflow bad-planes bad-extent no-retention mmap-failure munmap-failure slow-copy expired'''.split()
 ENV = os.environ | {'ASAN_OPTIONS': 'detect_leaks=1:halt_on_error=1',
                     'UBSAN_OPTIONS': 'halt_on_error=1', 'TSAN_OPTIONS': 'halt_on_error=1',
@@ -120,6 +121,10 @@ def positive(binary, client, sanitizer):
 def mutations(root, client, build=None):
     directory = root / ('src' if client == 'va' else BASE)
     cases = [
+        ('actual-cap-driver', 'runtime.h', 'memcmp(cap.driver, "avd\\0", sizeof("avd"))',
+         'memcmp(cap.driver, "apple-avd\\0", sizeof("apple-avd"))', 'copy', "Assertion `ok' failed"),
+        ('exact-cap-driver', 'runtime.h', 'memcmp(cap.driver, "avd\\0", sizeof("avd"))',
+         '0', 'wrong-cap-driver', '!ok && !pool.slot[0].valid'),
         ('range', 'content.h', '(const unsigned char *)map + HEVC_CONTENT_COMP_START,',
          '(const unsigned char *)map + HEVC_CONTENT_COMP_START + 1,', 'copy', 'pool->slot[index].bytes[n]'),
         ('kernel-build', 'runtime.h', 'if (!hevc_content_build_id("/sys/kernel/notes", values[2])) return false;',

@@ -304,6 +304,13 @@ def assert_actual_callsites(tree: Path) -> None:
     if ("&o->va_observer_reports" not in demux or
             '"va_observer_report"' not in option):
         raise AssertionError("per-stream report option is not wired to DecoderOpts")
+    duplicate = "ds->dec_opts.va_observer_report = av_strdup(va_observer_report)"
+    release = "av_freep(&ds->dec_opts.va_observer_report)"
+    if demux.count(duplicate) != 1 or demux.count(release) != 1:
+        raise AssertionError("the demuxer's report-path copy is not made and released once")
+    if not (demux.index("static void ist_free") < demux.index(release) <
+            demux.index("static int ist_add") < demux.index(duplicate)):
+        raise AssertionError("the demuxer does not own the report path across option teardown")
 
     implementation = (tree / "libavcodec/vaapi_decode.c").read_text()
     serializer = implementation.index("static int vaapi_observer_report_json")

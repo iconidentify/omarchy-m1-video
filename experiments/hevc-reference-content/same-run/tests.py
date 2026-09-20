@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+from dataclasses import replace
 import hashlib
 import importlib.util
 import json
@@ -127,6 +128,29 @@ def gst_material(copy_mode: bool = True):
 
 
 class ClientJoin(unittest.TestCase):
+    def test_detailed_reference_windows_have_one_exact_lifetime_pair(self):
+        captures = HERE.parents[1] / "hevc-avd-trace/captures/2026-09-17-schema2/kernel"
+        for vector in "BE":
+            for client in ("va", "gst"):
+                records = tuple(json.loads(line) for line in
+                                (captures / f"{vector}-{client}-on.jsonl").read_text().splitlines())
+                ev = replace(evidence(), reference_records=records)
+                for picture in range(24, 35):
+                    group = [row for row in records if row["picture"] == picture]
+                    self.assertGreater(len(group), 2)
+                    capture = group[0]["buffer"]
+                    try:
+                        start, done = join._reference_pair(ev, picture, capture)
+                    except join.JoinError as error:
+                        self.fail(f"valid detailed lifetime refused: {vector}/{client}/{picture}: {error}")
+                    self.assertEqual((start["kind"], done["kind"]), (1, 2))
+                    self.assertEqual((start["writer"], done["writer"]), (picture, picture))
+                    for bad in (group + [start], group + [done], group[:-1],
+                                [done, *group[1:-1], start]):
+                        with self.assertRaises(join.JoinError):
+                            join._reference_pair(replace(ev, reference_records=tuple(bad)),
+                                                 picture, capture)
+
     def test_va_exact_identity_chain(self):
         ev, report, raw, associations = va_material()
         result = join.join_va(ev, report, raw, associations, (1,), True, join.digest(raw))
@@ -615,6 +639,26 @@ class RawValidatorBoundary(unittest.TestCase):
                         command_snapshot_path=paths["command"],
                         reference_snapshot_path=paths["reference"],
                         uapi_path=paths["uapi"], oracle_path=paths["oracle"])
+
+    def test_readonly_root_owned_tool_input_is_not_a_private_capture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'tool-input'
+            path.write_bytes(b'locked')
+            path.chmod(0o644)
+            original = os.fstat
+            def root_stat(fd):
+                source = original(fd)
+                fields = {name: getattr(source, name) for name in dir(source)
+                          if name.startswith('st_')}
+                return SimpleNamespace(**(fields | {'st_uid': 0}))
+            with mock.patch.object(os, 'fstat', side_effect=root_stat), \
+                 mock.patch.object(os, 'geteuid', return_value=1001):
+                self.assertEqual(supervisor.validator.safe_read(path, 10, 'tool', private=False), b'locked')
+                with self.assertRaisesRegex(join.JoinError, 'ownership'):
+                    supervisor.validator.safe_read(path, 10, 'capture')
+                path.chmod(0o666)
+                with self.assertRaisesRegex(join.JoinError, 'publicly writable'):
+                    supervisor.validator.safe_read(path, 10, 'tool', private=False)
 
     def test_stable_private_file_boundary_rejects_mode_and_symlink(self):
         with tempfile.TemporaryDirectory() as directory:

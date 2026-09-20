@@ -1,0 +1,65 @@
+--- a/libavutil/hwcontext_vaapi.c
++++ b/libavutil/hwcontext_vaapi.c
+@@ -90,6 +90,9 @@ typedef struct VAAPIDeviceContext {
+     // Surface formats which can be used with this device.
+     VAAPISurfaceFormat *formats;
+     int              nb_formats;
++    // Explicit experiment mode: keep decoder backing private and read pixels
++    // through independent VA images, never through the early derive probe.
++    int observer_copy_readback;
+ } VAAPIDeviceContext;
+ 
+ typedef struct VAAPIFramesContext {
+@@ -692,7 +695,8 @@ static int vaapi_frames_init(AVHWFramesContext *hwfc)
+     test_surface_id = (VASurfaceID)(uintptr_t)test_surface->data;
+ 
+     ctx->derive_works = 0;
+-    if (expected_format) {
++    if (expected_format &&
++        !((VAAPIDeviceContext *)hwfc->device_ctx->hwctx)->observer_copy_readback) {
+         vas = vaDeriveImage(hwctx->display, test_surface_id, &test_image);
+         if (vas == VA_STATUS_SUCCESS) {
+             if (expected_format->fourcc == test_image.format.fourcc) {
+@@ -712,6 +716,9 @@ static int vaapi_frames_init(AVHWFramesContext *hwfc)
+                    "deriving image does not work: "
+                    "%d (%s).\n", vas, vaErrorStr(vas));
+         }
++    } else if (((VAAPIDeviceContext *)hwfc->device_ctx->hwctx)->observer_copy_readback) {
++        av_log(hwfc, AV_LOG_DEBUG,
++               "Observer copy readback: skipping the VA derive-image probe.\n");
+     } else {
+         av_log(hwfc, AV_LOG_DEBUG, "Direct mapping disabled: "
+                "image format is not supported.\n");
+@@ -1709,6 +1716,21 @@ static int vaapi_device_connect(AVHWDeviceContext *ctx,
+     return 0;
+ }
+ 
++static int vaapi_observer_readback_option(AVHWDeviceContext *ctx, AVDictionary *opts)
++{
++    VAAPIDeviceContext *hwctx = ctx->hwctx;
++    const AVDictionaryEntry *entry = av_dict_get(opts, "observer_copy_readback", NULL, 0);
++
++    if (!entry)
++        return 0;
++    if (strcmp(entry->value, "0") && strcmp(entry->value, "1")) {
++        av_log(ctx, AV_LOG_ERROR, "observer_copy_readback must be 0 or 1.\n");
++        return AVERROR(EINVAL);
++    }
++    hwctx->observer_copy_readback = !strcmp(entry->value, "1");
++    return 0;
++}
++
+ static int vaapi_device_create(AVHWDeviceContext *ctx, const char *device,
+                                AVDictionary *opts, int flags)
+ {
+@@ -1717,6 +1739,10 @@ static int vaapi_device_create(AVHWDeviceContext *ctx, const char *device,
+     const AVDictionaryEntry *ent;
+     int try_drm, try_x11, try_win32, try_all av_unused;
+ 
++    int observer_err = vaapi_observer_readback_option(ctx, opts);
++    if (observer_err < 0)
++        return observer_err;
++
+     priv = av_mallocz(sizeof(*priv));
+     if (!priv)
+         return AVERROR(ENOMEM);

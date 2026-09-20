@@ -308,7 +308,7 @@ def validate(document: dict, *, root_owned: bool = False,
                        VA_OBSERVER_SYMBOLS, "VA driver")
         require_tokens(artifact_paths["ffmpeg"], "strings",
                        ("va_observer_outputs", "va_observer_copy",
-                        "va_observer_report"), "FFmpeg")
+                        "va_observer_report", "observer_copy_readback"), "FFmpeg")
         require_tokens(artifact_paths["gst_plugin"], "strings",
                        ("hevc-observer-frames", "hevc-observer-copy",
                         "hevc-observer-report", "observer-queue"), "Gst decoder")

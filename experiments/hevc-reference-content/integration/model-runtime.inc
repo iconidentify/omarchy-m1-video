@@ -14,6 +14,19 @@ static unsigned model_stats, model_directories, model_links, model_fortified_lin
 static int last_stat_fd;
 static unsigned last_stat_mode;
 static char last_evidence[256];
+/* avd_querycap copies avd_driver.driver.name, which is "avd", not the
+ * module filename "apple-avd". Verified against kernel 94fb23346d52 and
+ * the accepted recorder source, and measured in attempt 3's QUERYCAP. */
+static void model_capability(struct v4l2_capability *cap) {
+    const char *name = "avd";
+    if (manifest_reads) {
+        if (!strcmp(mode,"wrong-cap-driver")) name = "apple-avd";
+        if (!strcmp(mode,"cap-driver-prefix")) name = "avd-other";
+        if (!strcmp(mode,"cap-driver-empty")) name = "";
+    }
+    memset(cap->driver,0,sizeof(cap->driver));
+    strcpy((char *)cap->driver,name);
+}
 int __real_fstat(int, struct stat *);
 int __real_close(int);
 int __real_clock_gettime(clockid_t, struct timespec *);
@@ -95,6 +108,7 @@ static void check_slot(struct hevc_content_pool *pool,unsigned index,bool copy,u
 static bool is_refusal(void) {
     const char *cases[]={"missing-manifest","bad-kernel","bad-vb2","bad-avd","bad-client","builtin",
         "untrusted-owner","untrusted-directory","writable-manifest","wrong-device",
+        "wrong-cap-driver","cap-driver-prefix","cap-driver-empty",
         "changed-proof","disabled","stale","foreign-run","foreign-lease","overflow","bad-planes","bad-extent","no-retention","mmap-failure","munmap-failure","slow-copy","expired","wrong-codec","noncoherent"};
     for(unsigned i=0;i<sizeof(cases)/sizeof(*cases);i++) if(!strcmp(mode,cases[i])) return true;
     return false;

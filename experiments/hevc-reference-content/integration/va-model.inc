@@ -21,7 +21,7 @@ int __wrap_ioctl(int fd,unsigned long op,...) {
     int result=base_ioctl(fd,op,arg);if(result) return result;
     if(op==VIDIOC_ENUM_FMT && V4L2_TYPE_IS_OUTPUT(((struct v4l2_fmtdesc*)arg)->type))
         ((struct v4l2_fmtdesc*)arg)->pixelformat=V4L2_PIX_FMT_HEVC_SLICE;
-    if(op==VIDIOC_QUERYCAP) strcpy((char*)((struct v4l2_capability*)arg)->driver,"apple-avd");
+    if(op==VIDIOC_QUERYCAP) model_capability(arg);
     if(op==VIDIOC_S_FMT || op==VIDIOC_G_FMT) {
         struct v4l2_format *f=arg;
         if(!V4L2_TYPE_IS_OUTPUT(f->type)) {
