@@ -9,6 +9,24 @@ This page replaces the old contributor-wave priorities. The
 [live scoreboard](https://github.com/iconidentify/libva-v4l2_request/issues/7)
 records current results; dated evidence remains immutable.
 
+## What the reset changes
+
+The work has produced real parser/lifetime fixes, exact hardware comparisons,
+resource and concurrency evidence, and a selected FFmpeg HEVC improvement.
+Reviews also caught errors in our tests and experimental tooling before they
+could support stronger claims. Preserve that work and its contributor credits.
+
+Delivery has lagged behind integration: the installed package still points to
+an older source; ordinary browser/player behaviour remains unqualified; and
+repeated observer/tooling work has not yet explained the remaining corruption.
+Accumulated handoffs made historical states look current. The recent desktop
+freeze also exposed a shared-build coordination problem: memory pressure was
+recorded, but the forced restart's cause remains unproven.
+
+Measure progress by a reproducible playback result, a defect removed or a clear
+stop decision. Keep one current scoreboard, bounded builds and the work order
+below; avoid growing the task graph before using what is already implemented.
+
 ## One candidate
 
 | Component | Installed baseline | Candidate C1 |

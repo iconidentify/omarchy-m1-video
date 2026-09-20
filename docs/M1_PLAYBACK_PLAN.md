@@ -61,3 +61,23 @@ transition isolation, suspend, boot stability, performance or complete #45.
 The next visible-client row uses a disposable mpv configuration on OpenGL with
 hardware-selection logs and software-rendered comparison frames, followed by a
 normal-sandbox Chrome test profile. Those results must remain separate.
+
+## Subsequent bounded mpv smoke plan
+
+Only after all four resource rows pass and the guard is idle: reuse the existing
+local `avdlab.playback` entry point with explicit OpenGL `vaapi` and `vaapi-copy`
+configurations. Run installed then C1, under separate 120-second guards. Use only
+the same synthetic 640x360 H.264 clip, start at zero, play for 0.5 seconds and
+close the temporary windows. Each call also produces its own software-rendered
+reference with `--no-config`; do not include the helper's default Vulkan rows.
+
+Require `hwdec-current` to equal the requested VA mode, a hardware-selection log,
+play position at least 0.2 seconds, zero decode/render drops, and rendered-window
+PSNR at least 40 dB. Inspect equal screenshot dimensions so the helper's scaling
+fallback cannot hide a geometry difference. Preserve failed/partial runs and
+stop on the first failure. Bind the exact helper and input hashes.
+
+This is a displayed-render-path smoke check with a GPU window capture, not a
+compositor screenshot, complete frame-by-frame visual proof, mpv seek/recovery
+qualification, a performance benchmark or any Chrome qualification. The full
+client matrix remains the next delivery gap.
