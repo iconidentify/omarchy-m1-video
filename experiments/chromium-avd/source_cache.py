@@ -5,9 +5,32 @@ import base64
 import hashlib
 import json
 from pathlib import Path
+import urllib.error
 import urllib.request
 
 HERE = Path(__file__).resolve().parent
+
+
+def download(row, opener=urllib.request.urlopen):
+    urls = [row['url']] + ([row['fallback_url']] if 'fallback_url' in row else [])
+    for index, url in enumerate(urls):
+        print('Fetch ' + row['path'] + ' from ' + url, flush=True)
+        try:
+            with opener(url, timeout=15) as response:
+                data = response.read(2 * 1024 * 1024 + 1)
+        except (urllib.error.URLError, TimeoutError) as error:
+            if index + 1 == len(urls):
+                raise
+            print('Transport failed; trying the pinned official mirror: ' + str(error), flush=True)
+            continue
+        if len(data) > 2 * 1024 * 1024:
+            raise ValueError('Oversized source response')
+        if url.endswith('?format=TEXT'):
+            data = base64.b64decode(data, validate=True)
+        # A response with wrong bytes is a hard failure, never a fallback trigger.
+        if hashlib.sha256(data).hexdigest() != row['sha256']:
+            raise ValueError('Downloaded source mismatch: ' + row['path'])
+        return data
 
 
 def verified(cache):
@@ -27,14 +50,7 @@ def main():
         path = args.cache / row['path']
         if path.exists():
             continue  # verified below; never repair/overwrite mismatching input
-        with urllib.request.urlopen(row['url'], timeout=30) as response:
-            data = response.read(2 * 1024 * 1024 + 1)
-        if len(data) > 2 * 1024 * 1024:
-            raise ValueError('Oversized source response')
-        if row['url'].endswith('?format=TEXT'):
-            data = base64.b64decode(data, validate=True)
-        if hashlib.sha256(data).hexdigest() != row['sha256']:
-            raise ValueError('Downloaded source mismatch: ' + row['path'])
+        data = download(row)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open('xb') as output:
             output.write(data)

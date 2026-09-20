@@ -41,6 +41,12 @@ and an appropriately provisioned ARM64 build worker remain unassigned.
   declarations allow Chromium test targets to link via the content component;
   the intended recipe is explicitly non-component. Full link verification remains
   unresolved, so this is not a tested component-build claim.
+- **Hosted source transport, confirmed and fixed:** the first GitHub job
+  ([35531401890](https://github.com/iconidentify/omarchy-m1-video/actions/runs/35531401890))
+  timed out fetching Gitiles before any C++ test executed. Add Chromium's official
+  GitHub mirror after transport failure, verify its bytes against every unchanged
+  source pin, and regress that checksum failures never trigger fallback. A failed
+  fetch is not a policy-test pass or a policy defect.
 
 ## Validation scope and next decision
 

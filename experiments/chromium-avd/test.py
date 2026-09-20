@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Offline C++ policy tests and pinned overlay checks; no device operations."""
 import argparse
+import base64
+import hashlib
+import io
 import os
 from pathlib import Path
 import shutil
@@ -9,7 +12,7 @@ import tempfile
 
 from prepare_source import prepare, TARGETS, VERSION
 from prepare_recipe import recipe
-from source_cache import verified
+from source_cache import download, verified
 
 HERE = Path(__file__).resolve().parent
 COMMON = Path('content/common')
@@ -24,6 +27,28 @@ def main():
     parser.add_argument('--source-cache', type=Path, required=True)
     args = parser.parse_args()
     cache = verified(args.source_cache.resolve())
+    row = dict(path='synthetic', url='https://test.invalid/?format=TEXT',
+               fallback_url='https://mirror.invalid/file',
+               sha256=hashlib.sha256(b'expected').hexdigest())
+    calls = []
+    def timeout_then_mirror(url, timeout):
+        calls.append(url)
+        if url == row['url']:
+            raise TimeoutError('synthetic timeout')
+        return io.BytesIO(b'expected')
+    assert download(row, timeout_then_mirror) == b'expected'
+    assert calls == [row['url'], row['fallback_url']]
+    calls.clear()
+    def corrupt_response(url, timeout):
+        calls.append(url)
+        return io.BytesIO(base64.b64encode(b'corrupt'))
+    try:
+        download(row, corrupt_response)
+    except ValueError:
+        assert calls == [row['url']]
+        print('PASS: transport fallback retains hash enforcement; corruption never falls back')
+    else:
+        raise AssertionError('Corrupt source accepted')
     with tempfile.TemporaryDirectory(prefix='chromium-avd-offline-') as temporary:
         work = Path(temporary)
         for relative in TARGETS:

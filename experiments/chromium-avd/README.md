@@ -58,6 +58,9 @@ SoC devices. These assumptions require independent review before runtime use.
 Needs Python 3, patch, a C++20 Linux compiler, real GoogleTest headers/libraries,
 and ASan/UBSan. Fetch source inputs separately; the test itself has no network
 access requirement and never opens a GPU, video or media device.
+The fetch step may use Chromium's official GitHub mirror after a transport
+failure. Both endpoints must produce the same pinned bytes; a checksum mismatch
+stops immediately, without fallback. Each request has a 15-second socket timeout.
 
 ```sh
 python3 experiments/chromium-avd/source_cache.py /absolute/path/source-cache
