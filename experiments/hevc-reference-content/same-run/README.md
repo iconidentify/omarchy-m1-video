@@ -107,6 +107,8 @@ The tests use fake recorder backends and invented normalized identities. They
 exercise real fork/exec/reap, exact-PID arming, environment/cwd/log binding,
 strict VA and Gst joins, existing-validator orchestration, private stable reads,
 exclusive publication and injected failures. No device or sudo command runs.
+Exact results and hashes are in [VALIDATION.md](VALIDATION.md); adversarial
+findings and unresolved limits are in [REVIEW.md](REVIEW.md).
 
 ## Remaining boundary
 
