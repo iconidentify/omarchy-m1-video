@@ -83,3 +83,10 @@ not primaries/transfer metadata. Prepare a separate explicitly tagged copy with
 the existing H.264 metadata bitstream filter and prove identical software frame
 hashes before player use. Keep the original clip and software preparation.
 The player comparison uses the tagged copy; the initial browser result does not.
+
+The first mpv software preparation stopped before any seek when `time-pos`
+became available before `hwdec-current`. Its guard ended idle, with no hardware
+decode or kernel fault. Preserve that failed preparation. The corrected runner
+waits for actual output parameters and an explicit decoder mode before recording
+identity; unavailable properties cannot satisfy the condition. Start a new
+software preparation row and only advance to hardware after it completes.
