@@ -73,6 +73,11 @@ def main():
               'assert s.count(old) == 1; p.write_text(s.replace(old, ' +
               repr(json.dumps(str(prefix / 'bin/tsc'))) + '))')
     data = replace_once(data, anchor, anchor + '\n  python3 -c ' + shlex.quote(script))
+    # Distribution warning suppression must not silence diagnostic tests.
+    anchor = '  python3 ' + shlex.quote(str(Path(__file__).resolve().parent / 'prepare_source.py')) + ' "$PWD" --apply'
+    data = replace_once(data, anchor, anchor + '\n  python3 ' +
+                        shlex.quote(str(Path(__file__).resolve().parent / 'prepare_test_build.py')) +
+                        ' "$PWD" --apply')
     with args.output.open('x') as output:
         output.write(data)
     layout = 'non-component' if args.non_component else 'component'

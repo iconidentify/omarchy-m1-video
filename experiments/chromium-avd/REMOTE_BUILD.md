@@ -20,7 +20,7 @@ shared library without the corresponding allocator implementation. The failing
 QUIC link includes those standard libraries without the allocator crate.
 The remote recipe uses the original distribution's non-component layout,
 retaining Rust, PartitionAlloc and linker undefined-symbol checks. This is the
-selected correction; successful full linking remains to be demonstrated.
+selected correction; the full remote browser link passed on 2026-09-21.
 
 ## Remote preparation and budget
 
@@ -65,8 +65,32 @@ the supplied private sysroot; the VM need not have `/usr/bin/rustc` installed.
 Recipe generation and shell syntax have been checked. Real remote preparation
 passed (32,229 GN targets, all 83 fonts restored); the first compile refused
 the original broken system-Rust symlink before doing work. That link is
-corrected without changing Rust versions or Chromium code. Full linking
-and integrated tests remain pending.
+corrected without changing Rust versions or Chromium code.
+
+## Browser built; integrated test continuation — 2026-09-21
+
+Remote `browser-02` compiled both modified GPU objects and successfully linked
+`chrome` and `chrome_sandbox` at 09:37 UTC. The content test binary build stopped
+at 10:07 UTC after 2,622/3,366 additional steps. This was an ordinary test-build
+failure after 11 hours 20 minutes overall, before the 12-hour deadline; the
+completed browser and all logs/output are retained.
+
+`browser_thread_nocompile.nc` expected two thread-safety diagnostics that were
+not emitted. The original distribution `0002-Fix-distcc.patch` adds `-w` in two
+configurations inherited by the test, suppressing those diagnostics. Removing
+only `-w` restores them but exposes two unsupported warning switches. A direct
+run with the same private Clang 22, omitting exactly `-w`,
+`-Wno-stringop-overread` and `-Wno-unused-but-set-global`, passes both original
+expectations. A deliberately wrong expected diagnostic still fails.
+
+`prepare_test_build.py` verifies the pinned wrapper hash and filters those
+three flags only for diagnostic tests. It retains `-verify`, `-Werror`, all
+expected diagnostics and all test dependencies. The private recipe applies
+this adapter after the browser overlay. No browser source, browser compiler
+command or runtime sandbox permission changes. Hosted checks execute the actual
+adapted wrapper with Clang: expected warnings pass; missing/unexpected warnings
+and an unrelated unknown option fail. Only its unused Windows depfile import
+is shimmed. Full integrated test linking/execution remains pending.
 
 ## Return and test
 

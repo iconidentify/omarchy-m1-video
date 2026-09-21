@@ -64,6 +64,13 @@ the earlier separate review SHA; full linking remains pending.
 
 ## Validation scope and next decision
 
+Current build checkpoint: the complete remote browser/helper link passed on
+2026-09-21. The integrated test build then found distribution `-w` suppression
+silencing required thread-safety diagnostics. The test-only wrapper correction,
+actual positive/negative diagnostic checks and remaining integration gates are
+recorded in [REMOTE_BUILD.md](REMOTE_BUILD.md). The following paragraphs retain
+the earlier preparation history. The browser policy is unchanged by this fix.
+
 The first real local GN configuration exposed a patch defect that the isolated
 test could not cover: the added test dependency used `deps +=` before that target
 initialized `deps`. Move it to the later Linux dependency block. Configuration

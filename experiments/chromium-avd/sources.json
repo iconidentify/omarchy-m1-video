@@ -71,6 +71,12 @@
     "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/sandbox/linux/syscall_broker/broker_command.h"
   },
   {
+    "path": "tools/nocompile/wrapper.py",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/tools/nocompile/wrapper.py?format=TEXT",
+    "sha256": "a6b85a00066487f1eeab48de2fa7beb07be1c3d493499d4a5d7b3606853a30df",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/tools/nocompile/wrapper.py"
+  },
+  {
     "path": "sandbox/linux/BUILD.gn",
     "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/sandbox/linux/BUILD.gn",
     "sha256": "8052dbdce4791c53d5cb12bc946e84b91aa23f0a77a9ac3610b38ef3d118ce61"
