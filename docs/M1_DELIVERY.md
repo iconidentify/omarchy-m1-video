@@ -4,7 +4,7 @@ Owner-approved reset, 2026-09-20. AI-assisted maintainer planning.
 
 **Delivered: an experimental mpv demonstration of C1 on two generated clips,
 and now a first sandboxed Chromium H.264 hardware-playback result. Next: browser
-pixel/seek/reopen checks and preservation of full strict pass sets before changing
+color-import correction and preservation of full strict pass sets before changing
 the package pin.** A merged PR,
 larger test count or completed research ticket is not the delivery milestone.
 This page replaces the old contributor-wave priorities. The
@@ -33,6 +33,15 @@ dropped-frame increase, retained sandboxed AGX graphics and closed normally.
 Final all-holder/whole-boot inspection was idle and fault-free. This used the
 installed VA driver and newer Mesa 26.2.3; it is a short experiment, not a C1 or
 daily-browser qualification. PR #133 stays draft; color, seeks and adaptation remain open.
+
+The subsequent [same-client lifecycle comparison](../experiments/chromium-avd/lifecycle-2026-09-21/README.md)
+passed 20 hardware seeks, full 12-second playback with zero dropped-frame
+increase, and a freshly identified hardware player after reopen. Both modes
+closed normally and left the decoder idle/fault-free. All five software/hardware
+RGB comparisons failed consistently: hardware's six sampled flat colors match
+BT.601 while software matches the fixture's BT.709. Source inspection points to
+Chromium's EGL import forcing REC601 for BT709. Correct that narrow conversion
+before broader browser tests; selected lifecycle success is not picture correctness.
 
 ## What the reset changes
 
@@ -79,7 +88,7 @@ included in C1. Experimental kernel repairs likewise remain separate.
 | Later userspace lifecycle/error fixes | Merged; selected earlier builds tested | Rebuild C1, compare baseline/candidate and record packaging gap |
 | Decode, drain, seek-to-start, reopen | Paired installed/C1 comparison passed; exact evidence linked above | Broader legal format changes and failed-transition isolation under [driver #45](https://github.com/iconidentify/libva-v4l2_request/issues/45) remain open |
 | Actual mpv playback | Selected H.264 NV12 / VP9 P010 direct+copy rows and close/survive passed; experimental local demo delivered | [mpv #21](https://github.com/iconidentify/omarchy-m1-video/issues/21) retains crop/odd-size/resize/fullscreen and broader playback gates |
-| Chrome playback / client recovery | Patched Chromium passes short sandboxed H.264 hardware selection, advancing frames and normal teardown | [Chrome #22](https://github.com/iconidentify/omarchy-m1-video/issues/22): same-client pixel/color, seeks/reopen, multiple elements and adaptation; [fallback #49](https://github.com/iconidentify/libva-v4l2_request/issues/49) retains damaged-input/allocation outcomes |
+| Chrome playback / client recovery | Hardware selection, 20 seeks, full 12-second clip and reopen pass; picture comparison exposes BT.601/BT.709 import mismatch | [Chrome #22](https://github.com/iconidentify/omarchy-m1-video/issues/22): correct the EGL import hint, recheck pixels, then multiple elements/adaptation; [fallback #49](https://github.com/iconidentify/libva-v4l2_request/issues/49) retains damaged-input/allocation outcomes |
 | HEVC parameter-set fix | Verified selected client, not packaged | Separate package/client decision; [evidence](evidence/issue15/hevc-parameter-sets-2026-09-19/README.md) |
 | Remaining HEVC corruption | Experimental investigation; still wrong | [#128](https://github.com/iconidentify/omarchy-m1-video/issues/128) campaign, then a decision under driver #42 |
 | Boot/reset confidence | Cause unresolved; four initial matrix attempts clean | [#13](https://github.com/iconidentify/omarchy-m1-video/issues/13); no stable boot-enabled claim |
@@ -105,8 +114,8 @@ included in C1. Experimental kernel repairs likewise remain separate.
 ## Work order and stop decisions
 
 - First: retain the measured mpv demonstration and Chromium hardware-selection pass.
-  Next prepare a bounded same-client hardware/software pixel and seek/reopen check,
-  then multiple-element and adaptation gates. Retain normal sandboxing, fresh
+  Next correct the measured BT.709-to-BT.601 EGL import decision and repeat the
+  bounded paired pixel check, then multiple-element and adaptation gates. Retain normal sandboxing, fresh
   preflight and actual-DPR capture sizing; do not persist experimental settings.
   Preserve full strict pass sets before changing the installer source pin.
 - Second: finish one freshly reviewed HEVC observer attempt under #128's existing

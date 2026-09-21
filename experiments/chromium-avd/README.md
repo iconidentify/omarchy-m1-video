@@ -4,6 +4,10 @@
 One short sandboxed M1 H.264 experiment passed with 61 advancing frames, zero
 dropped-frame increase and normal teardown. See the
 [runtime evidence and open gates](runtime-2026-09-21/README.md).
+The [lifecycle continuation](lifecycle-2026-09-21/README.md) then passed 20
+hardware seeks, full 12-second playback and reopen, but all five picture
+comparisons exposed a BT.601/BT.709 import-matrix mismatch. Color correctness
+remains blocked; a focused EGL import correction is next.
 Do not install this experiment or
 use it as a normal browsing configuration.** Refs
 [browser #22](https://github.com/iconidentify/omarchy-m1-video/issues/22).
