@@ -1,8 +1,10 @@
 # Experimental Chromium M1 VA-API device access
 
-**Both modified GPU objects compile on the M1, offline checks pass, and a
-separate AI source review is complete. Full browser linking, integrated tests
-and hardware playback remain outstanding. Do not install this experiment or
+**The full browser and integrated test binary build; all 12 policy tests pass.
+One short sandboxed M1 H.264 experiment passed with 61 advancing frames, zero
+dropped-frame increase and normal teardown. See the
+[runtime evidence and open gates](runtime-2026-09-21/README.md).
+Do not install this experiment or
 use it as a normal browsing configuration.** Refs
 [browser #22](https://github.com/iconidentify/omarchy-m1-video/issues/22).
 
@@ -92,8 +94,8 @@ already provisioned and a reviewed resource budget. The owner subsequently
 requested using the existing M1: see [the scoped local build plan](LOCAL_BUILD.md)
 and `prepare_local.py` for private dependencies and its explicit resource budget.
 A separate machine is an option, not a requirement. The instructions below retain
-the original native package-build route; successful full compilation is not yet
-claimed. Do not change the general small-test limits to run this experiment.
+the original native package-build route; the completed build used the remote
+recipe below. Do not change general small-test limits to run this experiment.
 The owner has now provided a dedicated ARM64 VM; its explicit parallel-build
 budget and non-component configuration are in [REMOTE_BUILD.md](REMOTE_BUILD.md).
 
@@ -125,8 +127,8 @@ budget and non-component configuration are in [REMOTE_BUILD.md](REMOTE_BUILD.md)
    all three touched Chromium originals still match their pinned hashes. The
    second compiles and stages package files within the build directory. A pinned
    distribution patch that changes those originals is a stop for review, not a
-   reason to bypass the source check. The generated recipe is syntax-tested only;
-   dependency/toolchain compatibility and successful linking remain unverified.
+   reason to bypass the source check. This original package route has syntax
+   checks; the separately recorded remote recipe has completed linking.
 4. Run the built `content_unittests` with
    `--gtest_filter=AppleAvdPermissions.* --test-launcher-jobs=1`, under the worker's
    agreed limits. Preserve complete build/test logs, actual GN args, compiler and
@@ -140,10 +142,11 @@ The checked-in preparer may also validate an isolated Chromium tree directly:
 validated sources and adds the overlay. This is a source preparation utility,
 not an installer or a complete toolchain bootstrap.
 
-## Next playback gate
+## Scoped playback configuration
 
-After full compilation and qualified independent sandbox review, prepare one
-bounded guarded run with a disposable profile and the normal sandbox. Explicitly
+The first run followed full compilation, runtime verification and separate AI
+source review. Further experiments retain a bounded guard, disposable profile
+and the normal sandbox. Explicitly
 select the validated render node using `--render-node-override`: upstream VA-API
 preinitialization otherwise prefers PCI devices, while this GPU is a platform
 device. Enable the experimental feature and required supported VA-API feature
@@ -158,7 +161,7 @@ LIBVA_DRIVERS_PATH=/usr/lib/dri
 MESA_SHADER_CACHE_DISABLE unset
 ```
 
-This is a plan, **not a qualified launch command**. Fresh whole-current-boot
+This is configuration context, **not a general-use launch command**. Fresh whole-current-boot
 preflight, exclusive hwguard lease and finite deadline remain mandatory. Prove
 actual `VaapiVideoDecoder` / platform=true, AGX graphics, normal sandbox and no GPU
 crashes before any seek/capture matrix. Stop on the first failure. Do not retry
@@ -176,6 +179,7 @@ See [self-review and open gates](REVIEW.md) and the separate
 one guarded local experiment only after build/runtime verification and fresh
 preflight; it is not human review or general sandbox/hardware qualification.
 Its two acceptance findings are fixed: hosted CI verifies fatal UBSan handling,
-and the prepared, unexecuted playback runner requires normal browser exit and
-a fresh final check for all decoder holders and whole-boot faults before success.
+and the executed playback runner requires normal browser exit and a fresh final
+check for all decoder holders and whole-boot faults before success. The exact
+observer/launcher received [additional AI review](AI_REVIEW_2026-09-21.md).
 AI-authored implementation and prose.

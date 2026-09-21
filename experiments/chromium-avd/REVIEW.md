@@ -16,7 +16,13 @@ prebuilt Rust standard library. The owner's dedicated remote ARM64 VM now uses
 the original distribution's non-component layout and an explicit four-worker
 budget; see [REMOTE_BUILD.md](REMOTE_BUILD.md). The selector, broker policy and
 hook are unchanged. That later recipe delta is author-reviewed, not covered by
-the earlier separate review SHA; full linking remains pending.
+the earlier separate review SHA. Full linking and all 12 integrated tests now
+pass. The [2026-09-21 runtime result](runtime-2026-09-21/README.md) records one
+passing sandboxed H.264 selection/frame/normal-teardown run and its limits.
+The concrete observer/launcher received [separate AI review](AI_REVIEW_2026-09-21.md).
+The table and preparation narrative below preserve the earlier checkpoint;
+current open gates are color, pixel-reference comparison, seeks/reopen/adaptation
+and broader stability.
 
 | Stage | Evidence and disposition |
 | --- | --- |
@@ -64,7 +70,7 @@ the earlier separate review SHA; full linking remains pending.
 
 ## Validation scope and next decision
 
-Current build checkpoint: the complete remote browser/helper link passed on
+Completed build checkpoint: the complete remote browser/helper link passed on
 2026-09-21; the integrated test binary subsequently linked and all 12 policy
 cases passed at 16:11 UTC. The earlier test build found distribution `-w` suppression
 silencing required thread-safety diagnostics. The test-only wrapper correction,
@@ -119,9 +125,10 @@ That review also found that the prepared runtime runner could accept completion
 before teardown, and the existing external guard's final idle calculation
 excludes owned holders. Prepared runner v3 delays success until a fresh,
 unfiltered whole-boot state has no observed holders, wedge or faults and the
-browser exits zero without forced termination. This correction has source
-review only; no browser was launched. The external guard is unchanged and
-observer visibility remains an explicit condition of the first run.
+browser exits zero without forced termination. At that checkpoint this had
+source review only. It subsequently executed successfully in v4 after the
+per-FD observer fix and exact outer-launcher review linked above. The external
+guard is unchanged.
 
 Local checks use tools/bounded-build (one CPU/worker, 1.5 GiB maximum, disk TMPDIR).
 Successful initial GCC policy/mutation run: 44.6 seconds, 435.1 MiB reported peak;

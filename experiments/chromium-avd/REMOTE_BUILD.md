@@ -99,8 +99,9 @@ no skipped cases. The runner exited zero after 26 minutes 10 seconds. The
 browser/helper hashes match their pre-correction artifacts exactly. No build
 service remains running. [The completion receipt](build-result-2026-09-21.json)
 records executable identities, cases and hashes of the retained raw evidence.
-This completes the build/integrated-policy gate; runtime bundle compatibility
-and M1 playback remain unverified.
+This completes the build/integrated-policy gate. Subsequent runtime bundle
+verification and one short M1 playback experiment also passed; see the
+[dated runtime evidence](runtime-2026-09-21/README.md).
 
 ## Return and test
 
@@ -110,4 +111,5 @@ the M1's libraries before launching. Compilation in the VM cannot qualify the
 M1 video decoder or graphics stack. The separate AI review's conditions and
 fresh whole-boot preflight, exclusive finite hardware guard, normal sandbox,
 actual hardware selection, displayed frames and clean teardown remain required.
-PR #133 stays draft while runtime verification and playback are unfinished.
+PR #133 stays draft: initial hardware selection passed, while pixel/color
+correctness, seeks, adaptation and broader stability remain open.
