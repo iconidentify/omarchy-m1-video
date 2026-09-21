@@ -1,0 +1,102 @@
+[
+  {
+    "path": "content/common/gpu_pre_sandbox_hook_linux.cc",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/content/common/gpu_pre_sandbox_hook_linux.cc?format=TEXT",
+    "sha256": "6484df28cc337258695fdcb99b44f4c28e741e2bb229adde75fefc6fd5612f05",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/content/common/gpu_pre_sandbox_hook_linux.cc"
+  },
+  {
+    "path": "content/common/gpu_pre_sandbox_hook_linux.h",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/content/common/gpu_pre_sandbox_hook_linux.h?format=TEXT",
+    "sha256": "6497decb3b7386a763649e9278ba4f5e9a506be4621218b4b0cbaf373512b237",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/content/common/gpu_pre_sandbox_hook_linux.h"
+  },
+  {
+    "path": "content/gpu/BUILD.gn",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/content/gpu/BUILD.gn?format=TEXT",
+    "sha256": "7c8c7a74f3642698bddf6dc06798986bbac835fbe2a35ba7a618dc93f80e52e8",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/content/gpu/BUILD.gn"
+  },
+  {
+    "path": "content/common/BUILD.gn",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/content/common/BUILD.gn?format=TEXT",
+    "sha256": "006903f755c3d87eded7eec0ff9820e301db1a6fb23cf20e100828b9378f8b76",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/content/common/BUILD.gn"
+  },
+  {
+    "path": "content/test/BUILD.gn",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/content/test/BUILD.gn?format=TEXT",
+    "sha256": "8007585633d957eda68cd5c878ba7659e1d2f86c612d27b6cd6028567b2bb825",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/content/test/BUILD.gn"
+  },
+  {
+    "path": "sandbox/linux/syscall_broker/broker_file_permission.h",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/sandbox/linux/syscall_broker/broker_file_permission.h?format=TEXT",
+    "sha256": "a3a7eca4421fc9321217f727fd87ae6cf0096d7f42d95fa8e3531d90448c9cd4",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/sandbox/linux/syscall_broker/broker_file_permission.h"
+  },
+  {
+    "path": "sandbox/linux/syscall_broker/broker_file_permission.cc",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/sandbox/linux/syscall_broker/broker_file_permission.cc?format=TEXT",
+    "sha256": "e6a734d55e76135fae50d78469c280f41270bfec6acf95e56de454d97f1a9436",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/sandbox/linux/syscall_broker/broker_file_permission.cc"
+  },
+  {
+    "path": "sandbox/linux/syscall_broker/broker_file_permission_unittest.cc",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/sandbox/linux/syscall_broker/broker_file_permission_unittest.cc?format=TEXT",
+    "sha256": "6a1051122e9b7f8d793de95c25dbddac66b4ef44c1d068540fc717005045e6c9",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/sandbox/linux/syscall_broker/broker_file_permission_unittest.cc"
+  },
+  {
+    "path": "media/gpu/args.gni",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/media/gpu/args.gni?format=TEXT",
+    "sha256": "c177a6591e0f64c7d4ceedb7335da9225d376ec0c3bae45cdbc2d3a078c38dd1",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/media/gpu/args.gni"
+  },
+  {
+    "path": "LICENSE",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/LICENSE?format=TEXT",
+    "sha256": "368cca1106be99d39ecd32a38d8305585d802a475effb66380b91ffc9bcf709b",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/LICENSE"
+  },
+  {
+    "path": "arch-PKGBUILD",
+    "url": "https://raw.githubusercontent.com/archlinuxarm/PKGBUILDs/3d45100a45e945ac14f0fbb0c6e67c5540f9e6c9/extra/chromium/PKGBUILD",
+    "sha256": "5de1f8a09e6a85cb726c72bf7be9152ab56afba486ce4758e6fe68903a4fd2f5"
+  },
+  {
+    "path": "sandbox/linux/syscall_broker/broker_command.h",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/sandbox/linux/syscall_broker/broker_command.h?format=TEXT",
+    "sha256": "09a136f4ebb39249f247420d4e584631cf2596a71beb5c25308e1418c416fca6",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/sandbox/linux/syscall_broker/broker_command.h"
+  },
+  {
+    "path": "tools/nocompile/wrapper.py",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/tools/nocompile/wrapper.py?format=TEXT",
+    "sha256": "a6b85a00066487f1eeab48de2fa7beb07be1c3d493499d4a5d7b3606853a30df",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/tools/nocompile/wrapper.py"
+  },
+  {
+    "path": "sandbox/linux/BUILD.gn",
+    "url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/sandbox/linux/BUILD.gn",
+    "sha256": "8052dbdce4791c53d5cb12bc946e84b91aa23f0a77a9ac3610b38ef3d118ce61"
+  },
+  {
+    "path": "ui/ozone/common/native_pixmap_egl_binding.cc",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/ui/ozone/common/native_pixmap_egl_binding.cc?format=TEXT",
+    "sha256": "4ace0a021f9a02f7a61e2295b1cd2af4d6a3566088f9b1ac025c88240c0cc978",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/ui/ozone/common/native_pixmap_egl_binding.cc"
+  },
+  {
+    "path": "ui/gfx/color_space.h",
+    "url": "https://chromium.googlesource.com/chromium/src/+/153.0.8010.36/ui/gfx/color_space.h?format=TEXT",
+    "sha256": "11ed3b2abbaacedf9df63dd465ac7a20c51b9f4e4977188e8c18e9cfafe0ee21",
+    "fallback_url": "https://raw.githubusercontent.com/chromium/chromium/153.0.8010.36/ui/gfx/color_space.h"
+  },
+  {
+    "path": "third_party/angle/include/EGL/eglext.h",
+    "url": "https://chromium.googlesource.com/angle/angle/+/fca5efdfeff5daf430bc4458375c8d6b7e457400/include/EGL/eglext.h?format=TEXT",
+    "sha256": "92fe2e491f9374afb88e9c8d96be7288f33f27db97d06610ba5671ea732f8aae",
+    "fallback_url": "https://raw.githubusercontent.com/google/angle/fca5efdfeff5daf430bc4458375c8d6b7e457400/include/EGL/eglext.h"
+  }
+]

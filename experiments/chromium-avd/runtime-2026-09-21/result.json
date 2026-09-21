@@ -1,0 +1,333 @@
+{
+  "scope": "One guarded sandboxed Chromium H.264 selection/frame/normal-teardown experiment; broader stability and color qualification remain open",
+  "source_head": "af3f3d677a19f58f107ab025e958ea1182f72b59",
+  "started_utc": "2026-09-21T16:46:09.156726+00:00",
+  "ended_utc": "2026-09-21T16:46:15.417655+00:00",
+  "accepted": true,
+  "runtime_files_verified": 242,
+  "runtime_bundle_bytes": 877609463,
+  "elf_loader_checks_passed": 8,
+  "browser_sha256": "4ffc59ef85dc2b0eebfc07987655201366c75e1af854003549674510fb6811b1",
+  "browser_version": "153.0.8010.36",
+  "kernel": "7.1.13-3-1-ARCH",
+  "packages": [
+    "linux-asahi 7.1.13.asahi3-2",
+    "mesa 1:26.2.3-1",
+    "libva 2.24.1-1",
+    "libva-v4l2_request-avd 1.3.r11-2",
+    "libdrm 2.4.134-1",
+    "nss 3.129-1",
+    "glibc 2.43+r22+g8362e8ce10b2-2",
+    "qt6-base 6.11.2-3"
+  ],
+  "system_sha256": {
+    "installed_driver": "ff01edf14cf85f52cf07073da2cf642a9d9b0dde9f055e366478fdb1d2d89a10",
+    "module_note": "1d262e61dbd686f4231313ae7843ef5b213ce83349f785a1db59b02c7d991f8b",
+    "guard": "45d65351b33b13dbdd2145b3d37a83bf48c27cc08f1df08c5f37b196d7643d60",
+    "websocket_helper": "716c4dfb63066fb3b44c4781b0fc6f2abc0080c7936f9f0e156ab231e5f46a43",
+    "process_helper": "a8c0984cf6f2476e916b3f05efd90446a59e4fadb3c3d2ded675ac458a92648c"
+  },
+  "reviewed_runtime_sha256": {
+    "launcher_sha256": "e57fbc1b56f633cc2b5e18eef1244df5b2c837d7cde6641d9d20e7cfd4946c84",
+    "observer_sha256": "a72f3294442ed4fc58cc57c721c4c076862d0f0f4cb8bce47d198139147cf064",
+    "harness_sha256": "221c79c70f37f4241e1fb9798d5be6d785232578c5c266302d836c808d83ebe5"
+  },
+  "nominal_guard_deadline_seconds": 90,
+  "guard": {
+    "status": "ok",
+    "returncode": 0,
+    "timed_out": false,
+    "wedged": false,
+    "abort_reason": null,
+    "busy_owner": null
+  },
+  "clip": {
+    "name": "h264-12s-tagged.mp4",
+    "sha256": "befc52cf1eabc751f35ba254c47943b252cc93601724f015871f114d3da4dc0a",
+    "coded_size": "640x360",
+    "duration_seconds": 12,
+    "codec": "H.264 High"
+  },
+  "selection": {
+    "video_decoder": "VaapiVideoDecoder",
+    "platform": "true",
+    "reported_color_space": {
+      "matrix": "SMPTE170M",
+      "primaries": "SMPTE170M",
+      "range": "LIMITED",
+      "transfer": "SMPTE170M"
+    },
+    "owned_gpu_holds_video_and_media": true,
+    "installed_va_driver_mapped": true
+  },
+  "playback": {
+    "before": {
+      "total": 4,
+      "dropped": 0,
+      "time": 0,
+      "error": null,
+      "width": 640,
+      "height": 360
+    },
+    "after": {
+      "total": 65,
+      "dropped": 0,
+      "time": 2.002693,
+      "error": null,
+      "width": 640,
+      "height": 360
+    },
+    "frame_delta": 61,
+    "dropped_delta": 0,
+    "time_delta_seconds": 2.002693
+  },
+  "gpu_samples": [
+    {
+      "label": "before_media",
+      "renderer": "ANGLE (Mesa, AGX G13/G14, OpenGL ES 3.2 Mesa 26.2.3-arch1.1)",
+      "sandboxed": true,
+      "process_crash_count": 0,
+      "opengl": "enabled_on",
+      "compositing": "enabled"
+    },
+    {
+      "label": "final",
+      "renderer": "ANGLE (Mesa, AGX G13/G14, OpenGL ES 3.2 Mesa 26.2.3-arch1.1)",
+      "sandboxed": true,
+      "process_crash_count": 0,
+      "opengl": "enabled_on",
+      "compositing": "enabled"
+    }
+  ],
+  "isolation_samples": [
+    {
+      "label": "before_media",
+      "processes": [
+        {
+          "type": "--type=renderer",
+          "threads_observed": 9,
+          "seccomp_values": [
+            "2"
+          ]
+        },
+        {
+          "type": "--type=renderer",
+          "threads_observed": 10,
+          "seccomp_values": [
+            "2"
+          ]
+        },
+        {
+          "type": "--type=renderer",
+          "threads_observed": 14,
+          "seccomp_values": [
+            "2"
+          ]
+        },
+        {
+          "type": "--type=renderer",
+          "threads_observed": 9,
+          "seccomp_values": [
+            "2"
+          ]
+        },
+        {
+          "type": "--type=gpu-process",
+          "threads_observed": 9,
+          "seccomp_values": [
+            "2"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "final",
+      "processes": [
+        {
+          "type": "--type=renderer",
+          "threads_observed": 16,
+          "seccomp_values": [
+            "2"
+          ]
+        },
+        {
+          "type": "--type=renderer",
+          "threads_observed": 10,
+          "seccomp_values": [
+            "2"
+          ]
+        },
+        {
+          "type": "--type=renderer",
+          "threads_observed": 14,
+          "seccomp_values": [
+            "2"
+          ]
+        },
+        {
+          "type": "--type=renderer",
+          "threads_observed": 9,
+          "seccomp_values": [
+            "2"
+          ]
+        },
+        {
+          "type": "--type=gpu-process",
+          "threads_observed": 12,
+          "seccomp_values": [
+            "2"
+          ]
+        }
+      ]
+    }
+  ],
+  "capture": {
+    "kind": "capture",
+    "name": "selection-frame",
+    "display": {
+      "dpr": 2,
+      "rect": {
+        "width": 640,
+        "height": 360
+      },
+      "time": 2.002693
+    },
+    "dimensions": [
+      1280,
+      720
+    ],
+    "sha256": "ab8d500a7384088e07003f1d028b01e7643463846f876776c81115b4edefaaf6"
+  },
+  "normal_exit": {
+    "kind": "browser_exit",
+    "close_requested": true,
+    "forced_cleanup": false,
+    "returncode": 0
+  },
+  "forced_outer_cleanup": false,
+  "surviving_guard_group": [],
+  "preflight": {
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  "final_all_holder_state": {
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  },
+  "metadata_selection": [
+    "read-write /dev/dri/renderD128",
+    "stat-only /sys/dev/char/226:128/device/drm",
+    "read-write /dev/video0",
+    "read-only /sys/dev/char/81:0/uevent",
+    "read-write /dev/media0"
+  ],
+  "environment": {
+    "MESA_DISK_CACHE_MULTI_FILE": "0",
+    "MESA_DISK_CACHE_DATABASE": "0",
+    "MESA_DISK_CACHE_SINGLE_FILE": "0",
+    "MESA_SHADER_CACHE_DISABLE": null,
+    "LIBVA_DRIVER_NAME": "v4l2_request",
+    "LIBVA_DRIVERS_PATH": "/usr/lib/dri"
+  },
+  "browser_flags": [
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-extensions",
+    "--disable-background-networking",
+    "--ozone-platform=wayland",
+    "--remote-debugging-port=0",
+    "--force-device-scale-factor=1",
+    "--autoplay-policy=no-user-gesture-required",
+    "--enable-logging=stderr",
+    "--v=0",
+    "--app=about:blank",
+    "--window-size=1280,720",
+    "--render-node-override=/dev/dri/renderD128",
+    "--use-gl=angle",
+    "--use-angle=gl",
+    "--enable-features=VaapiAppleAvd,AcceleratedVideoDecoder,AcceleratedVideoDecodeLinuxGL",
+    "--disable-features=UseOutOfProcessVideoDecoding"
+  ],
+  "observer_regression": {
+    "tests": 2,
+    "result": "passed",
+    "hardware_access": false,
+    "runner": "tools/bounded-build",
+    "invocation": "8d45abb9694742b1b0c536fb846152ec"
+  },
+  "raw_local_artifacts": [
+    {
+      "name": "selection-result-01.json",
+      "bytes": 1665,
+      "sha256": "6d87f69097d6396afec87f2756ae384938b065c403cd746d0a62422619fbde4b"
+    },
+    {
+      "name": "selection-guard-01.jsonl",
+      "bytes": 808,
+      "sha256": "056852011070b0f49a07bc14a06bcd26363ebe385990bea5a1da4d2179b1552c"
+    },
+    {
+      "name": "runtime-verified.json",
+      "bytes": 36635,
+      "sha256": "10264d16cd04de3876ec92515ff34d90bbde35a16fa19370c146451775fc7e51"
+    },
+    {
+      "name": "runtime-bundle-20260921.json",
+      "bytes": 58619,
+      "sha256": "1f59b4b945fdba03ab37c6d7b15f0c7aee49b9dd74591467d2e7d60755e8bda8"
+    },
+    {
+      "name": "selection-v4.py",
+      "bytes": 12621,
+      "sha256": "221c79c70f37f4241e1fb9798d5be6d785232578c5c266302d836c808d83ebe5"
+    },
+    {
+      "name": "privileged_observer.py",
+      "bytes": 3615,
+      "sha256": "a72f3294442ed4fc58cc57c721c4c076862d0f0f4cb8bce47d198139147cf064"
+    },
+    {
+      "name": "run-selection.py",
+      "bytes": 8806,
+      "sha256": "e57fbc1b56f633cc2b5e18eef1244df5b2c837d7cde6641d9d20e7cfd4946c84"
+    },
+    {
+      "name": "test-observer.py",
+      "bytes": 2155,
+      "sha256": "3fcccdb2ded6964b0665e93c69ad9bc5f2da15b12e1c8d6d6fabf361525fc95a"
+    },
+    {
+      "name": "events.jsonl",
+      "bytes": 41004,
+      "sha256": "de536a6c9279ec8dd356ad01b9f2416ae20d641743c83cd89867963ec7a99a53"
+    },
+    {
+      "name": "chrome.log",
+      "bytes": 6274,
+      "sha256": "94368c09f9db52c21ecc708ff02954db29c36c2bd180a1eb284b58a4ba99d68e"
+    },
+    {
+      "name": "selection-frame.png",
+      "bytes": 160412,
+      "sha256": "ab8d500a7384088e07003f1d028b01e7643463846f876776c81115b4edefaaf6"
+    }
+  ],
+  "limitations": [
+    "One two-second playback sample; no seeks/reopen/multiple elements/fullscreen/adaptation or long soak",
+    "No pixel or color-reference comparison; SMPTE170M reported despite BT.709-tagged fixture",
+    "Chromium log retains pre-playback SharedImage mailbox errors and other Wayland/metrics/teardown messages; no general error-free-browser claim",
+    "Mesa changed from 26.1.8-1 in previous experiment to 26.2.3-1; this is not an isolated one-variable comparison",
+    "Installed VA driver only; C1 comparison and full strict suites remain open",
+    "Earlier full-desktop freeze cause unknown",
+    "Separate AI source review, not human security certification"
+  ],
+  "ai_disclosure": "AI-assisted maintainer execution and evidence preparation; separate AI source review of exact runtime files"
+}

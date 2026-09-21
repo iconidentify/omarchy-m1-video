@@ -1,0 +1,690 @@
+{
+  "scope": "Same-client H.264 seek/full-playback/reopen and rendered-pixel comparison",
+  "source_head": "18d848dbf9174e189460c3d895d643c2658645d1",
+  "result": "Both lifecycle executions passed; exact software/hardware picture comparison failed",
+  "rows": {
+    "software": {
+      "accepted_execution": true,
+      "started_utc": "2026-09-21T18:24:05.966587+00:00",
+      "ended_utc": "2026-09-21T18:24:29.326817+00:00",
+      "identity": {
+        "clip_sha256": "befc52cf1eabc751f35ba254c47943b252cc93601724f015871f114d3da4dc0a",
+        "boot_id": "d0a40094-af95-4bea-8dc2-85693b2f727f",
+        "kernel": "7.1.13-3-1-ARCH",
+        "packages": "linux-asahi 7.1.13.asahi3-2\nmesa 1:26.2.3-1\nlibva 2.24.1-1\nlibva-v4l2_request-avd 1.3.r11-2\nlibdrm 2.4.134-1\nnss 3.129-1\nglibc 2.43+r22+g8362e8ce10b2-2\nqt6-base 6.11.2-3\n",
+        "browser_sha256": "4ffc59ef85dc2b0eebfc07987655201366c75e1af854003549674510fb6811b1",
+        "launcher_sha256": "b53f3f563e811ccac1e3393404672c77f15e7eeadfbea8a9549c7b702ed68325",
+        "observer_sha256": "a72f3294442ed4fc58cc57c721c4c076862d0f0f4cb8bce47d198139147cf064",
+        "harness_sha256": "88ebb0271fa7616311d6fe2cdd23ee524734d49065d987f451a30333c0d32ebd"
+      },
+      "seek_count": 20,
+      "seek_targets": [
+        1,
+        4,
+        2,
+        6,
+        1,
+        4,
+        2,
+        6,
+        1,
+        4,
+        2,
+        6,
+        1,
+        4,
+        2,
+        6,
+        1,
+        4,
+        2,
+        6
+      ],
+      "full_playback": {
+        "before": {
+          "total": 88,
+          "dropped": 0,
+          "time": 0,
+          "error": null,
+          "width": 640,
+          "height": 360
+        },
+        "after": {
+          "total": 444,
+          "dropped": 0,
+          "time": 12,
+          "error": null,
+          "width": 640,
+          "height": 360
+        }
+      },
+      "full_playback_frame_delta": 356,
+      "full_playback_dropped_delta": 0,
+      "reopen": {
+        "total": 8,
+        "dropped": 0,
+        "time": 1,
+        "error": null,
+        "width": 640,
+        "height": 360,
+        "frame": {
+          "mediaTime": 1,
+          "presentedFrames": 2,
+          "width": 640,
+          "height": 360
+        }
+      },
+      "decoder_samples": [
+        {
+          "label": "loaded",
+          "players": {
+            "726F898D4CB76D34190D02266BCB2E4C": {
+              "kVideoDecoderName": "FFmpegVideoDecoder",
+              "kIsPlatformVideoDecoder": "false"
+            }
+          },
+          "retired_players": []
+        },
+        {
+          "label": "after_seeks",
+          "players": {
+            "726F898D4CB76D34190D02266BCB2E4C": {
+              "kVideoDecoderName": "FFmpegVideoDecoder",
+              "kIsPlatformVideoDecoder": "false"
+            }
+          },
+          "retired_players": []
+        },
+        {
+          "label": "after_full_playback",
+          "players": {
+            "726F898D4CB76D34190D02266BCB2E4C": {
+              "kVideoDecoderName": "FFmpegVideoDecoder",
+              "kIsPlatformVideoDecoder": "false"
+            }
+          },
+          "retired_players": []
+        },
+        {
+          "label": "after_reopen",
+          "players": {
+            "88074F15A5446D61F1648E3436AFC1A9": {
+              "kVideoDecoderName": "FFmpegVideoDecoder",
+              "kIsPlatformVideoDecoder": "false"
+            }
+          },
+          "retired_players": [
+            "726F898D4CB76D34190D02266BCB2E4C"
+          ]
+        },
+        {
+          "label": "final",
+          "players": {
+            "88074F15A5446D61F1648E3436AFC1A9": {
+              "kVideoDecoderName": "FFmpegVideoDecoder",
+              "kIsPlatformVideoDecoder": "false"
+            }
+          },
+          "retired_players": [
+            "726F898D4CB76D34190D02266BCB2E4C"
+          ]
+        }
+      ],
+      "gpu_samples": [
+        {
+          "label": "before_media",
+          "sandboxed": true,
+          "renderer": "ANGLE (Mesa, AGX G13/G14, OpenGL ES 3.2 Mesa 26.2.3-arch1.1)",
+          "crashes": 0
+        },
+        {
+          "label": "final",
+          "sandboxed": true,
+          "renderer": "ANGLE (Mesa, AGX G13/G14, OpenGL ES 3.2 Mesa 26.2.3-arch1.1)",
+          "crashes": 0
+        }
+      ],
+      "seccomp_samples": [
+        {
+          "label": "before_media",
+          "process_count": 5,
+          "thread_count": 50,
+          "values": [
+            "2"
+          ]
+        },
+        {
+          "label": "final",
+          "process_count": 4,
+          "thread_count": 52,
+          "values": [
+            "2"
+          ]
+        }
+      ],
+      "normal_exit": {
+        "kind": "browser_exit",
+        "close_requested": true,
+        "forced_cleanup": false,
+        "returncode": 0
+      },
+      "guard": {
+        "status": "ok",
+        "returncode": 0,
+        "timed_out": false,
+        "wedged": false,
+        "abort_reason": null,
+        "busy_owner": null
+      },
+      "final_all_holder_state": {
+        "module_loaded": true,
+        "video_node": "/dev/video0",
+        "media_node": "/dev/media0",
+        "holders": [],
+        "stuck_tasks": [],
+        "faults": []
+      },
+      "surviving_guard_group": []
+    },
+    "hardware": {
+      "accepted_execution": true,
+      "started_utc": "2026-09-21T18:24:40.612847+00:00",
+      "ended_utc": "2026-09-21T18:25:03.932600+00:00",
+      "identity": {
+        "clip_sha256": "befc52cf1eabc751f35ba254c47943b252cc93601724f015871f114d3da4dc0a",
+        "boot_id": "d0a40094-af95-4bea-8dc2-85693b2f727f",
+        "kernel": "7.1.13-3-1-ARCH",
+        "packages": "linux-asahi 7.1.13.asahi3-2\nmesa 1:26.2.3-1\nlibva 2.24.1-1\nlibva-v4l2_request-avd 1.3.r11-2\nlibdrm 2.4.134-1\nnss 3.129-1\nglibc 2.43+r22+g8362e8ce10b2-2\nqt6-base 6.11.2-3\n",
+        "browser_sha256": "4ffc59ef85dc2b0eebfc07987655201366c75e1af854003549674510fb6811b1",
+        "launcher_sha256": "b53f3f563e811ccac1e3393404672c77f15e7eeadfbea8a9549c7b702ed68325",
+        "observer_sha256": "a72f3294442ed4fc58cc57c721c4c076862d0f0f4cb8bce47d198139147cf064",
+        "harness_sha256": "88ebb0271fa7616311d6fe2cdd23ee524734d49065d987f451a30333c0d32ebd"
+      },
+      "seek_count": 20,
+      "seek_targets": [
+        1,
+        4,
+        2,
+        6,
+        1,
+        4,
+        2,
+        6,
+        1,
+        4,
+        2,
+        6,
+        1,
+        4,
+        2,
+        6,
+        1,
+        4,
+        2,
+        6
+      ],
+      "full_playback": {
+        "before": {
+          "total": 88,
+          "dropped": 0,
+          "time": 0,
+          "error": null,
+          "width": 640,
+          "height": 360
+        },
+        "after": {
+          "total": 444,
+          "dropped": 0,
+          "time": 12,
+          "error": null,
+          "width": 640,
+          "height": 360
+        }
+      },
+      "full_playback_frame_delta": 356,
+      "full_playback_dropped_delta": 0,
+      "reopen": {
+        "total": 8,
+        "dropped": 0,
+        "time": 1,
+        "error": null,
+        "width": 640,
+        "height": 360,
+        "frame": {
+          "mediaTime": 1,
+          "presentedFrames": 2,
+          "width": 640,
+          "height": 360
+        }
+      },
+      "decoder_samples": [
+        {
+          "label": "loaded",
+          "players": {
+            "020284E2B342A461DEDCE29920642F64": {
+              "kVideoDecoderName": "VaapiVideoDecoder",
+              "kIsPlatformVideoDecoder": "true"
+            }
+          },
+          "retired_players": []
+        },
+        {
+          "label": "after_seeks",
+          "players": {
+            "020284E2B342A461DEDCE29920642F64": {
+              "kVideoDecoderName": "VaapiVideoDecoder",
+              "kIsPlatformVideoDecoder": "true"
+            }
+          },
+          "retired_players": []
+        },
+        {
+          "label": "after_full_playback",
+          "players": {
+            "020284E2B342A461DEDCE29920642F64": {
+              "kVideoDecoderName": "VaapiVideoDecoder",
+              "kIsPlatformVideoDecoder": "true"
+            }
+          },
+          "retired_players": []
+        },
+        {
+          "label": "after_reopen",
+          "players": {
+            "F76BF55B10B90B8EAB864BEEF65072FB": {
+              "kVideoDecoderName": "VaapiVideoDecoder",
+              "kIsPlatformVideoDecoder": "true"
+            }
+          },
+          "retired_players": [
+            "020284E2B342A461DEDCE29920642F64"
+          ]
+        },
+        {
+          "label": "final",
+          "players": {
+            "F76BF55B10B90B8EAB864BEEF65072FB": {
+              "kVideoDecoderName": "VaapiVideoDecoder",
+              "kIsPlatformVideoDecoder": "true"
+            }
+          },
+          "retired_players": [
+            "020284E2B342A461DEDCE29920642F64"
+          ]
+        }
+      ],
+      "gpu_samples": [
+        {
+          "label": "before_media",
+          "sandboxed": true,
+          "renderer": "ANGLE (Mesa, AGX G13/G14, OpenGL ES 3.2 Mesa 26.2.3-arch1.1)",
+          "crashes": 0
+        },
+        {
+          "label": "final",
+          "sandboxed": true,
+          "renderer": "ANGLE (Mesa, AGX G13/G14, OpenGL ES 3.2 Mesa 26.2.3-arch1.1)",
+          "crashes": 0
+        }
+      ],
+      "seccomp_samples": [
+        {
+          "label": "before_media",
+          "process_count": 5,
+          "thread_count": 51,
+          "values": [
+            "2"
+          ]
+        },
+        {
+          "label": "final",
+          "process_count": 4,
+          "thread_count": 52,
+          "values": [
+            "2"
+          ]
+        }
+      ],
+      "normal_exit": {
+        "kind": "browser_exit",
+        "close_requested": true,
+        "forced_cleanup": false,
+        "returncode": 0
+      },
+      "guard": {
+        "status": "ok",
+        "returncode": 0,
+        "timed_out": false,
+        "wedged": false,
+        "abort_reason": null,
+        "busy_owner": null
+      },
+      "final_all_holder_state": {
+        "module_loaded": true,
+        "video_node": "/dev/video0",
+        "media_node": "/dev/media0",
+        "holders": [],
+        "stuck_tasks": [],
+        "faults": []
+      },
+      "surviving_guard_group": []
+    }
+  },
+  "pixel_comparison": {
+    "criterion": "Exact decoded RGB equality of all five same-client captures; no tolerance-adjusted pass",
+    "execution_passed": true,
+    "samples": [
+      {
+        "capture": "seek-1",
+        "exact_rgb_match": false,
+        "mean_absolute_channel_error_255": 6.826917317708333,
+        "max_channel_error_255": 34,
+        "different_pixels": 921495,
+        "pixels_with_channel_error_gt_8": 888308,
+        "pixel_count": 921600,
+        "software_png_sha256": "e619ab8df17bb34914dd1cee1f760bde5dd1d51bd0db5eb084b096bf4796333c",
+        "hardware_png_sha256": "d7b314df5d88a1eb7a5f4f558d7bd8c13528dd9b92056789e897cd7d77a5ea0c"
+      },
+      {
+        "capture": "seek-4",
+        "exact_rgb_match": false,
+        "mean_absolute_channel_error_255": 6.839644820601852,
+        "max_channel_error_255": 35,
+        "different_pixels": 921543,
+        "pixels_with_channel_error_gt_8": 888338,
+        "pixel_count": 921600,
+        "software_png_sha256": "dc9686804129769337aef72771bb5a61f83412e6a44386cc8212579ce8ae084a",
+        "hardware_png_sha256": "1f10972606d730eafc2d76f101a66a8cdb533b0bcb9581ebe55fddb8a659598f"
+      },
+      {
+        "capture": "seek-2",
+        "exact_rgb_match": false,
+        "mean_absolute_channel_error_255": 6.820751229745371,
+        "max_channel_error_255": 34,
+        "different_pixels": 921500,
+        "pixels_with_channel_error_gt_8": 886377,
+        "pixel_count": 921600,
+        "software_png_sha256": "c4b61975c28603d58c6cb8e5cfe9eed35c809a9f8930f76ad01cc4a602d74452",
+        "hardware_png_sha256": "ab8d500a7384088e07003f1d028b01e7643463846f876776c81115b4edefaaf6"
+      },
+      {
+        "capture": "seek-6",
+        "exact_rgb_match": false,
+        "mean_absolute_channel_error_255": 6.829660373263889,
+        "max_channel_error_255": 34,
+        "different_pixels": 921506,
+        "pixels_with_channel_error_gt_8": 888004,
+        "pixel_count": 921600,
+        "software_png_sha256": "bc23644e28ba6ade87dbea8e010caf66ec4b1e056e16b07f68d3215e3c112ed5",
+        "hardware_png_sha256": "6029712fdbb662866b9123cce6e967ba9ed94953ef23d862acecc85cfbdc5ce8"
+      },
+      {
+        "capture": "reopen-1",
+        "exact_rgb_match": false,
+        "mean_absolute_channel_error_255": 6.826917317708333,
+        "max_channel_error_255": 34,
+        "different_pixels": 921495,
+        "pixels_with_channel_error_gt_8": 888308,
+        "pixel_count": 921600,
+        "software_png_sha256": "e619ab8df17bb34914dd1cee1f760bde5dd1d51bd0db5eb084b096bf4796333c",
+        "hardware_png_sha256": "d7b314df5d88a1eb7a5f4f558d7bd8c13528dd9b92056789e897cd7d77a5ea0c"
+      }
+    ],
+    "invariants": {
+      "software": {
+        "four_distinct_seek_frames": true,
+        "reopen_matches_first_seek": true
+      },
+      "hardware": {
+        "four_distinct_seek_frames": true,
+        "reopen_matches_first_seek": true
+      }
+    },
+    "exact_comparison_passed": false,
+    "limit": "Software parity is not independent BT.709 color accuracy, broader format or daily-browser qualification"
+  },
+  "offline_color_diagnostics": {
+    "scope": "Offline retained-frame diagnostics; matrix models exclude transfer/primary conversion and quantization",
+    "fixture_has_colr_bytes": false,
+    "patches": [
+      {
+        "source_xy": [
+          50,
+          100
+        ],
+        "yuv": [
+          62,
+          102,
+          239
+        ],
+        "simple_matrix_rgb": {
+          "bt601": [
+            231,
+            0,
+            1
+          ],
+          "bt709": [
+            253,
+            0,
+            0
+          ]
+        },
+        "browser_rgb": {
+          "software": [
+            253,
+            0,
+            0
+          ],
+          "hardware": [
+            231,
+            0,
+            1
+          ]
+        }
+      },
+      {
+        "source_xy": [
+          160,
+          100
+        ],
+        "yuv": [
+          172,
+          42,
+          26
+        ],
+        "simple_matrix_rgb": {
+          "bt601": [
+            19,
+            255,
+            8
+          ],
+          "bt709": [
+            0,
+            254,
+            0
+          ]
+        },
+        "browser_rgb": {
+          "software": [
+            0,
+            254,
+            0
+          ],
+          "hardware": [
+            19,
+            255,
+            8
+          ]
+        }
+      },
+      {
+        "source_xy": [
+          270,
+          100
+        ],
+        "yuv": [
+          218,
+          16,
+          138
+        ],
+        "simple_matrix_rgb": {
+          "bt601": [
+            251,
+            255,
+            9
+          ],
+          "bt709": [
+            253,
+            254,
+            0
+          ]
+        },
+        "browser_rgb": {
+          "software": [
+            253,
+            254,
+            0
+          ],
+          "hardware": [
+            251,
+            255,
+            9
+          ]
+        }
+      },
+      {
+        "source_xy": [
+          370,
+          100
+        ],
+        "yuv": [
+          31,
+          239,
+          117
+        ],
+        "simple_matrix_rgb": {
+          "bt601": [
+            0,
+            0,
+            241
+          ],
+          "bt709": [
+            0,
+            0,
+            252
+          ]
+        },
+        "browser_rgb": {
+          "software": [
+            0,
+            0,
+            252
+          ],
+          "hardware": [
+            0,
+            0,
+            241
+          ]
+        }
+      },
+      {
+        "source_xy": [
+          480,
+          100
+        ],
+        "yuv": [
+          78,
+          213,
+          229
+        ],
+        "simple_matrix_rgb": {
+          "bt601": [
+            233,
+            0,
+            244
+          ],
+          "bt709": [
+            253,
+            0,
+            252
+          ]
+        },
+        "browser_rgb": {
+          "software": [
+            253,
+            0,
+            252
+          ],
+          "hardware": [
+            233,
+            0,
+            244
+          ]
+        }
+      },
+      {
+        "source_xy": [
+          590,
+          100
+        ],
+        "yuv": [
+          188,
+          153,
+          15
+        ],
+        "simple_matrix_rgb": {
+          "bt601": [
+            20,
+            255,
+            251
+          ],
+          "bt709": [
+            0,
+            255,
+            253
+          ]
+        },
+        "browser_rgb": {
+          "software": [
+            0,
+            255,
+            253
+          ],
+          "hardware": [
+            20,
+            255,
+            251
+          ]
+        }
+      }
+    ],
+    "hardware_access": false
+  },
+  "reviewed_sha256": {
+    "lifecycle-v1.py": "88ebb0271fa7616311d6fe2cdd23ee524734d49065d987f451a30333c0d32ebd",
+    "run-lifecycle.py": "b53f3f563e811ccac1e3393404672c77f15e7eeadfbea8a9549c7b702ed68325",
+    "compare-lifecycle.py": "d123310e6d3aed9408c97ec3404abad6ba3dc5cb3ae5a8bf58e7d08624cb8424",
+    "privileged_observer.py": "a72f3294442ed4fc58cc57c721c4c076862d0f0f4cb8bce47d198139147cf064"
+  },
+  "observer_regression": "New-player selection helper: four offline regression cases passed before both launches",
+  "preparation_failure": "Initial optional NumPy/Pillow imports unavailable; retained failure; switched to installed FFmpeg and standard-library analysis without installing packages",
+  "limits": [
+    "One generated 640x360 H.264 clip,12sec30fps",
+    "Decoder identity sampled at stage boundaries, not continuous per-frame attribution",
+    "No multiple-element/adaptation, C1 comparison, long soak or broad stability qualification",
+    "Color mismatch blocks picture-correctness claim; no tolerance changed",
+    "No installation, module change, persistent settings or reboot",
+    "Earlier full-desktop freeze cause remains unknown"
+  ],
+  "ai_disclosure": "AI-assisted execution/evidence; separate AI source review, not human security certification",
+  "source_diagnosis": {
+    "source_files_sha256": {
+      "ui/ozone/common/native_pixmap_egl_binding.cc": "4ace0a021f9a02f7a61e2295b1cd2af4d6a3566088f9b1ac025c88240c0cc978",
+      "media/gpu/h264_decoder.cc": "9e957abb77b4fae97cf7880910768d467af90b0cfe027170d07c1c536754bf5a",
+      "media/gpu/chromeos/mailbox_video_frame_converter.cc": "a22c52a2c6da07bf1f968bedb877c02a0f4a29b9937e23d047672aad084a0e63"
+    },
+    "local_and_actual_remote_build_source_match": true,
+    "conclusion": "BT709 enters the default EGL REC601 import-hint branch; matches all six measured patch conversions",
+    "live_egl_attributes_instrumented": false
+  }
+}
