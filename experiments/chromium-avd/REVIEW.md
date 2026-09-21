@@ -65,7 +65,8 @@ the earlier separate review SHA; full linking remains pending.
 ## Validation scope and next decision
 
 Current build checkpoint: the complete remote browser/helper link passed on
-2026-09-21. The integrated test build then found distribution `-w` suppression
+2026-09-21; the integrated test binary subsequently linked and all 12 policy
+cases passed at 16:11 UTC. The earlier test build found distribution `-w` suppression
 silencing required thread-safety diagnostics. The test-only wrapper correction,
 actual positive/negative diagnostic checks and remaining integration gates are
 recorded in [REMOTE_BUILD.md](REMOTE_BUILD.md). The following paragraphs retain

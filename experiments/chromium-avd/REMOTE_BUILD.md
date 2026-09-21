@@ -67,7 +67,7 @@ passed (32,229 GN targets, all 83 fonts restored); the first compile refused
 the original broken system-Rust symlink before doing work. That link is
 corrected without changing Rust versions or Chromium code.
 
-## Browser built; integrated test continuation — 2026-09-21
+## Browser and integrated tests complete — 2026-09-21
 
 Remote `browser-02` compiled both modified GPU objects and successfully linked
 `chrome` and `chrome_sandbox` at 09:37 UTC. The content test binary build stopped
@@ -90,7 +90,17 @@ this adapter after the browser overlay. No browser source, browser compiler
 command or runtime sandbox permission changes. Hosted checks execute the actual
 adapted wrapper with Clang: expected warnings pass; missing/unexpected warnings
 and an unrelated unknown option fail. Only its unused Windows depfile import
-is shimmed. Full integrated test linking/execution remains pending.
+is shimmed.
+
+Remote `browser-03` resumed with 746 remaining test-build steps under the same
+CPU/memory limits and a shorter two-hour window. The test binary linked at
+16:11 UTC, and all 12 `AppleAvdPermissions.*` cases executed and passed, with
+no skipped cases. The runner exited zero after 26 minutes 10 seconds. The
+browser/helper hashes match their pre-correction artifacts exactly. No build
+service remains running. [The completion receipt](build-result-2026-09-21.json)
+records executable identities, cases and hashes of the retained raw evidence.
+This completes the build/integrated-policy gate; runtime bundle compatibility
+and M1 playback remain unverified.
 
 ## Return and test
 
@@ -100,4 +110,4 @@ the M1's libraries before launching. Compilation in the VM cannot qualify the
 M1 video decoder or graphics stack. The separate AI review's conditions and
 fresh whole-boot preflight, exclusive finite hardware guard, normal sandbox,
 actual hardware selection, displayed frames and clean teardown remain required.
-PR #133 stays draft while full build/integration and playback are unfinished.
+PR #133 stays draft while runtime verification and playback are unfinished.

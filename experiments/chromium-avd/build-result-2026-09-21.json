@@ -1,0 +1,55 @@
+{
+  "recorded_utc": "2026-09-21T16:11:54.384574+00:00",
+  "scope": "Native ARM64 browser/helper/content_unittests build and 12 integrated offline policy tests; no candidate hardware playback",
+  "browser_recipe_head": "e04b5406f5f5f83b711401ecfc801fec94f51047",
+  "test_build_inputs_head": "a4309835a12f903f2df41eb9e3bd24351e5e0ad4",
+  "chromium_version": "153.0.8010.36",
+  "chromium_archive_sha256": "645f64566cfbb780747430d53ff3656f03639f89fed9544c1eadd4c17e7b1c82",
+  "attempt": "browser-03",
+  "returncode": 0,
+  "stop_reason": null,
+  "elapsed_seconds": 1570.4486189979943,
+  "suite": "AppleAvdPermissions",
+  "passing_cases": [
+    "OnlyRequiredOperations",
+    "RenumberedDevicesAndDynamicMediaMajor",
+    "MissingNodesOrMetadataRejectCompleteSet",
+    "CameraCannotSubstituteForAvd",
+    "UnrelatedCameraDoesNotAcquirePermissions",
+    "MediaMustBelongToSameAvd",
+    "RejectAmbiguousSets",
+    "WrongCompatibleOrDriverRejects",
+    "DeviceNumbersAndCanonicalTopologyMustAgree",
+    "ChangesBeforePublicationRejectCompleteSet",
+    "BoundedDiscovery",
+    "NativeAdapterMetadataAndSymlinkLimits"
+  ],
+  "files": {
+    "chrome": {
+      "bytes": 746494464,
+      "sha256": "4ffc59ef85dc2b0eebfc07987655201366c75e1af854003549674510fb6811b1",
+      "architecture": "AArch64"
+    },
+    "chrome_sandbox": {
+      "bytes": 25848,
+      "sha256": "aaf493240dc31d0a2077df726524e18b03e15e6b15fe616b2c47166746876f7a",
+      "architecture": "AArch64"
+    },
+    "content_unittests": {
+      "bytes": 569929064,
+      "sha256": "1f010a7c2b56de2d37d8b66c8ef43676255716bbe998a45e0f8d0fcd49ddc4e8",
+      "architecture": "AArch64"
+    }
+  },
+  "evidence_sha256": {
+    "browser-03.log": "e8d7f830cf246c902bad2a51b3f6ff63a873d617279e83873399c94f4d2c89d8",
+    "browser-03-stages.jsonl": "e5d1b8df1782c93a893b00fd92c2bbbcb1f3b95db624e0a9132892e9362a4696",
+    "browser-03-result.json": "1aa77a0624fe03d56316174b5449f3d803346b7613d6268f0a8602005d7529f6",
+    "browser-03-policy-tests.xml": "7adbbd4eaac72b95e86115aeedbf4eb9f43887853e72f7e145f3cfd8dc97258d"
+  },
+  "remaining": [
+    "Verify transferable runtime bundle and M1 library compatibility",
+    "Guarded normal-sandbox hardware selection, advancing displayed frames and clean teardown",
+    "Broader pixel, seek/reopen/adaptation, installed/candidate and parent acceptance criteria"
+  ]
+}
