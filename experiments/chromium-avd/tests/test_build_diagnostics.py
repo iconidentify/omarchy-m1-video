@@ -49,7 +49,15 @@ def check(cache, work):
     ]
     for name, text, extra, expected, diagnostic in rows:
         input_path.write_text(text)
-        result = subprocess.run(command + extra, text=True, capture_output=True, timeout=30)
+        row_command = command
+        if name == 'unknown-option':
+            # Older Clang exits nonzero but emits no text for a driver warning
+            # combined with -verify. Check this driver's rejection directly;
+            # all source-diagnostic rows above retain the real verifier.
+            verify = command.index('-verify')
+            assert command[verify - 1] == '-Xclang'
+            row_command = command[:verify - 1] + command[verify + 1:]
+        result = subprocess.run(row_command + extra, text=True, capture_output=True, timeout=30)
         assert result.returncode == expected and diagnostic in result.stderr, (
             name, result.returncode, result.stdout, result.stderr)
         assert output.exists() == (expected == 0), name

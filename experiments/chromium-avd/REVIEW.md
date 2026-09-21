@@ -75,6 +75,10 @@ placed its expected-diagnostic annotation inside `#warning` text; real Clang
 rejected both fixture forms. It now uses the upstream frontend flag sequence
 and a separate next-line annotation. Those failed preparations are retained;
 they do not count as passing regression checks.
+Hosted Clang also returns failure without diagnostic text for an unknown
+driver warning combined with `-verify`; the driver-option regression therefore
+checks that rejection outside the verifier. Source-warning positive, missing
+and unexpected cases retain verification and their exact diagnostic assertions.
 
 The first real local GN configuration exposed a patch defect that the isolated
 test could not cover: the added test dependency used `deps +=` before that target
