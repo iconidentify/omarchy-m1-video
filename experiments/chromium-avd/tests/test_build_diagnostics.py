@@ -39,7 +39,7 @@ def check(cache, work):
                '-w', '-Wno-stringop-overread', '-Wno-unused-but-set-global',
                '-Xclang', '-fsyntax-only', '-Xclang', '-verify', '-Werror', '-x', 'c++']
     rows = [
-        ('expected-warning', '#warning required_warning // expected-error {{required_warning}}\n', [], 0, ''),
+        ('expected-warning', '// expected-error@+1 {{required_warning}}\n#warning required_warning\n', [], 0, ''),
         ('missing-warning', '// expected-error {{missing_warning_sentinel}}\n', [], 1,
          'diagnostics expected but not seen'),
         ('unexpected-warning', '// expected-no-diagnostics\n#warning unexpected_warning_sentinel\n', [], 1,

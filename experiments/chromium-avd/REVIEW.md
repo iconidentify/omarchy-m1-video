@@ -70,6 +70,11 @@ silencing required thread-safety diagnostics. The test-only wrapper correction,
 actual positive/negative diagnostic checks and remaining integration gates are
 recorded in [REMOTE_BUILD.md](REMOTE_BUILD.md). The following paragraphs retain
 the earlier preparation history. The browser policy is unchanged by this fix.
+The added wrapper fixture initially used a driver-level syntax-only flag and
+placed its expected-diagnostic annotation inside `#warning` text; real Clang
+rejected both fixture forms. It now uses the upstream frontend flag sequence
+and a separate next-line annotation. Those failed preparations are retained;
+they do not count as passing regression checks.
 
 The first real local GN configuration exposed a patch defect that the isolated
 test could not cover: the added test dependency used `deps +=` before that target
