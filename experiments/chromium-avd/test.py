@@ -14,6 +14,7 @@ from prepare_source import prepare, TARGETS, VERSION
 from prepare_recipe import recipe
 from source_cache import download, verified
 from tests.test_build_diagnostics import check as check_build_diagnostics
+from tests.test_color_import import check as check_color_import
 
 HERE = Path(__file__).resolve().parent
 COMMON = Path('content/common')
@@ -53,6 +54,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='chromium-avd-offline-') as temporary:
         work = Path(temporary)
         check_build_diagnostics(cache, work)
+        check_color_import(cache, work)
         for relative in TARGETS:
             path = work / relative
             path.parent.mkdir(parents=True, exist_ok=True)

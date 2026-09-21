@@ -24,6 +24,8 @@ def main():
                         help='Explicit worker budget; shared desktop default remains one')
     parser.add_argument('--non-component', action='store_true',
                         help='Use the distribution link layout on a provisioned builder')
+    parser.add_argument('--bt709-import', action='store_true',
+                        help='Include the separate default-off EGL color-import experiment')
     args = parser.parse_args()
     prefix = args.tools.resolve(strict=True)
     rust = args.rust_sysroot.resolve(strict=True)
@@ -78,6 +80,10 @@ def main():
     data = replace_once(data, anchor, anchor + '\n  python3 ' +
                         shlex.quote(str(Path(__file__).resolve().parent / 'prepare_test_build.py')) +
                         ' "$PWD" --apply')
+    if args.bt709_import:
+        data = replace_once(data, anchor, anchor + '\n  python3 ' +
+                            shlex.quote(str(Path(__file__).resolve().parent / 'prepare_color.py')) +
+                            ' "$PWD" --apply')
     with args.output.open('x') as output:
         output.write(data)
     layout = 'non-component' if args.non_component else 'component'
