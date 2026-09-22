@@ -1,0 +1,12 @@
+{
+  "installed_package": "libva-v4l2_request-avd 1.3.r11.r164.g5b5046c-1",
+  "candidate_build_id": "0625ba8aa7e974b9aefabafc4f39afed502a7efe",
+  "state": {
+    "module_loaded": true,
+    "video_node": "/dev/video0",
+    "media_node": "/dev/media0",
+    "holders": [],
+    "stuck_tasks": [],
+    "faults": []
+  }
+}

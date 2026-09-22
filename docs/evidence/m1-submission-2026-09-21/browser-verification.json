@@ -1,0 +1,24 @@
+{
+  "browser_sha256": "4ffc59ef85dc2b0eebfc07987655201366c75e1af854003549674510fb6811b1",
+  "verified_runtime_files": 242,
+  "helper_identities": {
+    "guard": {
+      "path": "/home/chrisk/src/driver-m1-candidate-20260920/tests/hwguard.py",
+      "sha256": "45d65351b33b13dbdd2145b3d37a83bf48c27cc08f1df08c5f37b196d7643d60",
+      "matches_previous_run": true
+    },
+    "websocket_helper": {
+      "path": "/home/chrisk/src/avd-lab/avdlab/chromegpu.py",
+      "sha256": "716c4dfb63066fb3b44c4781b0fc6f2abc0080c7936f9f0e156ab231e5f46a43",
+      "matches_previous_run": true
+    },
+    "process_helper": {
+      "path": "/home/chrisk/src/avd-lab/avdlab/chromeplay.py",
+      "sha256": "a8c0984cf6f2476e916b3f05efd90446a59e4fadb3c3d2ded675ac458a92648c",
+      "matches_previous_run": true
+    }
+  },
+  "source_harness_sha256": "88ebb0271fa7616311d6fe2cdd23ee524734d49065d987f451a30333c0d32ebd",
+  "adapted_harness_sha256": "ea1128aedaefd846c6d02c2d1aa1496d5347c13c4384726fb0ce1e53de2b02ef",
+  "change": "Observer now uses candidate activation receipt; browser binary, flags and acceptance checks unchanged."
+}

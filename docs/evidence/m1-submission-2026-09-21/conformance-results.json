@@ -1,0 +1,38 @@
+[
+  {
+    "suite": "avc",
+    "selected_passed": 73,
+    "selected_total": 73,
+    "original_suite_total": 135,
+    "passing_frames": 10134,
+    "complete": true,
+    "summary": "hardware/conformance-avc-qualified/summary.json",
+    "exact_baseline_pass_set_preserved": true,
+    "baseline_manifest_sha256": "66bc47b2511dfdd8d5d270be028124c343fa00ded6523035598a785b95ad5583",
+    "summary_sha256": "84720cdb80e30c8b0c18adbf184c59e51c6c4f4017da43a7c259489aa68232c0"
+  },
+  {
+    "suite": "hevc",
+    "selected_passed": 144,
+    "selected_total": 144,
+    "original_suite_total": 147,
+    "passing_frames": 8889,
+    "complete": true,
+    "summary": "hardware/conformance-hevc/summary.json",
+    "exact_baseline_pass_set_preserved": true,
+    "baseline_manifest_sha256": "66bc47b2511dfdd8d5d270be028124c343fa00ded6523035598a785b95ad5583",
+    "summary_sha256": "12e07c2a298470a53986b06d1dbb3c00e6a3fc2d6ab1e46a147642523ec17f09"
+  },
+  {
+    "suite": "vp9",
+    "selected_passed": 216,
+    "selected_total": 216,
+    "original_suite_total": 305,
+    "passing_frames": 3334,
+    "complete": true,
+    "summary": "hardware/conformance-vp9/summary.json",
+    "exact_baseline_pass_set_preserved": true,
+    "baseline_manifest_sha256": "66bc47b2511dfdd8d5d270be028124c343fa00ded6523035598a785b95ad5583",
+    "summary_sha256": "d3f09deb77f75d17dd9b7292c02ff9fd3d78c43140ba9d569727bfc923967b96"
+  }
+]

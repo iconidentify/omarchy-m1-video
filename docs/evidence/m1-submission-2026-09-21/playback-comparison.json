@@ -1,0 +1,333 @@
+{
+  "criteria": {
+    "mpv": "Same dimensions; identical PNG or PSNR >= 40, unchanged from existing harness.",
+    "chromium": "Exact RGB equality of all five corresponding captures; no adjusted tolerance."
+  },
+  "mpv": [
+    {
+      "codec": "h264",
+      "software_row": "mpv-h264-no",
+      "hardware_row": "mpv-h264-vaapi",
+      "hardware_seeks": 20,
+      "hardware_reopens": 2,
+      "captures": [
+        {
+          "name": "seek-0",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "8def26421329e2b6e59b597450da2ebf62b603fb88b7c6f4d16c61c8a612c4ff",
+          "hardware_sha256": "8def26421329e2b6e59b597450da2ebf62b603fb88b7c6f4d16c61c8a612c4ff"
+        },
+        {
+          "name": "seek-1",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "799916e521cca26cd0c79c3af4144e0c1a8284230e0e802c66c6e3a67643437a",
+          "hardware_sha256": "799916e521cca26cd0c79c3af4144e0c1a8284230e0e802c66c6e3a67643437a"
+        },
+        {
+          "name": "seek-2",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "d9269727d057654fedcd1845c0d9fe963d575eec82f72f24507ceba65d0d947d",
+          "hardware_sha256": "d9269727d057654fedcd1845c0d9fe963d575eec82f72f24507ceba65d0d947d"
+        },
+        {
+          "name": "seek-3",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "5d5bcaf6e9bdaf1ecd711335d612bb0e852d06ca21cbbed92e1dadc82639fb1c",
+          "hardware_sha256": "5d5bcaf6e9bdaf1ecd711335d612bb0e852d06ca21cbbed92e1dadc82639fb1c"
+        },
+        {
+          "name": "reopen-0",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "8def26421329e2b6e59b597450da2ebf62b603fb88b7c6f4d16c61c8a612c4ff",
+          "hardware_sha256": "8def26421329e2b6e59b597450da2ebf62b603fb88b7c6f4d16c61c8a612c4ff"
+        },
+        {
+          "name": "reopen-1",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "8def26421329e2b6e59b597450da2ebf62b603fb88b7c6f4d16c61c8a612c4ff",
+          "hardware_sha256": "8def26421329e2b6e59b597450da2ebf62b603fb88b7c6f4d16c61c8a612c4ff"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "codec": "hevc-main",
+      "software_row": "mpv-hevc-main-no-complete",
+      "hardware_row": "mpv-hevc-main-vaapi",
+      "hardware_seeks": 20,
+      "hardware_reopens": 2,
+      "captures": [
+        {
+          "name": "seek-0",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "795c8d171f64493d33e849242128b342365cfce468e4c79f185abc505a3a53a6",
+          "hardware_sha256": "795c8d171f64493d33e849242128b342365cfce468e4c79f185abc505a3a53a6"
+        },
+        {
+          "name": "seek-1",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "2df3c824858dfb73a4a307f28c95a070254df932f51ccc43eb9b94cb98098477",
+          "hardware_sha256": "2df3c824858dfb73a4a307f28c95a070254df932f51ccc43eb9b94cb98098477"
+        },
+        {
+          "name": "seek-2",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "ded719623cedcc416348c6fc1f7a49e66b5f8b844ce2d453e4c94a6a80604ce8",
+          "hardware_sha256": "ded719623cedcc416348c6fc1f7a49e66b5f8b844ce2d453e4c94a6a80604ce8"
+        },
+        {
+          "name": "seek-3",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "368a18739e63afb8744d8616dea2380503d979ab53966819f12fc5df665a6604",
+          "hardware_sha256": "368a18739e63afb8744d8616dea2380503d979ab53966819f12fc5df665a6604"
+        },
+        {
+          "name": "reopen-0",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "795c8d171f64493d33e849242128b342365cfce468e4c79f185abc505a3a53a6",
+          "hardware_sha256": "795c8d171f64493d33e849242128b342365cfce468e4c79f185abc505a3a53a6"
+        },
+        {
+          "name": "reopen-1",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "795c8d171f64493d33e849242128b342365cfce468e4c79f185abc505a3a53a6",
+          "hardware_sha256": "795c8d171f64493d33e849242128b342365cfce468e4c79f185abc505a3a53a6"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "codec": "hevc-main10",
+      "software_row": "mpv-hevc-main10-no",
+      "hardware_row": "mpv-hevc-main10-vaapi",
+      "hardware_seeks": 20,
+      "hardware_reopens": 2,
+      "captures": [
+        {
+          "name": "seek-0",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "30233f387a3759ed788ae3a7ad3b8b25905a6f9d4b18b667aeea131a0050b46a",
+          "hardware_sha256": "30233f387a3759ed788ae3a7ad3b8b25905a6f9d4b18b667aeea131a0050b46a"
+        },
+        {
+          "name": "seek-1",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "aebc3819f6c14bdd34411303486addec5978c34e520714430a00bed288fde57e",
+          "hardware_sha256": "aebc3819f6c14bdd34411303486addec5978c34e520714430a00bed288fde57e"
+        },
+        {
+          "name": "seek-2",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "eee2d8c6d4c751ff933055a041ce5e274a12592d55356c8f033a463d4765fa69",
+          "hardware_sha256": "eee2d8c6d4c751ff933055a041ce5e274a12592d55356c8f033a463d4765fa69"
+        },
+        {
+          "name": "seek-3",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "1f54fe9de10f85ed8186d368f858e2ecc0f3844cbd7faf0f052acdfbb57ecd0c",
+          "hardware_sha256": "1f54fe9de10f85ed8186d368f858e2ecc0f3844cbd7faf0f052acdfbb57ecd0c"
+        },
+        {
+          "name": "reopen-0",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "30233f387a3759ed788ae3a7ad3b8b25905a6f9d4b18b667aeea131a0050b46a",
+          "hardware_sha256": "30233f387a3759ed788ae3a7ad3b8b25905a6f9d4b18b667aeea131a0050b46a"
+        },
+        {
+          "name": "reopen-1",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "30233f387a3759ed788ae3a7ad3b8b25905a6f9d4b18b667aeea131a0050b46a",
+          "hardware_sha256": "30233f387a3759ed788ae3a7ad3b8b25905a6f9d4b18b667aeea131a0050b46a"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "codec": "vp9-8",
+      "software_row": "mpv-vp9-8-no",
+      "hardware_row": "mpv-vp9-8-vaapi",
+      "hardware_seeks": 20,
+      "hardware_reopens": 2,
+      "captures": [
+        {
+          "name": "seek-0",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "2d83bf58e53fae78c28d6e814cd980637f7247d6cdd22db3a76890a5c0e058cb",
+          "hardware_sha256": "2d83bf58e53fae78c28d6e814cd980637f7247d6cdd22db3a76890a5c0e058cb"
+        },
+        {
+          "name": "seek-1",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "fef50a7829b76ddbcb38614fcdce596db513b45a7879bd0a0c7cc8ebd60a2569",
+          "hardware_sha256": "fef50a7829b76ddbcb38614fcdce596db513b45a7879bd0a0c7cc8ebd60a2569"
+        },
+        {
+          "name": "seek-2",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "92ac293599fbf7d1cebc28511b4e5ef3ba32da4b476c92455b97ddfba4ae269b",
+          "hardware_sha256": "92ac293599fbf7d1cebc28511b4e5ef3ba32da4b476c92455b97ddfba4ae269b"
+        },
+        {
+          "name": "seek-3",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "19d062e776bc10ad56dcbda34482628ef77d63a5e7d8f8dd7c230dcbcbb12acb",
+          "hardware_sha256": "19d062e776bc10ad56dcbda34482628ef77d63a5e7d8f8dd7c230dcbcbb12acb"
+        },
+        {
+          "name": "reopen-0",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "2d83bf58e53fae78c28d6e814cd980637f7247d6cdd22db3a76890a5c0e058cb",
+          "hardware_sha256": "2d83bf58e53fae78c28d6e814cd980637f7247d6cdd22db3a76890a5c0e058cb"
+        },
+        {
+          "name": "reopen-1",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "2d83bf58e53fae78c28d6e814cd980637f7247d6cdd22db3a76890a5c0e058cb",
+          "hardware_sha256": "2d83bf58e53fae78c28d6e814cd980637f7247d6cdd22db3a76890a5c0e058cb"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "codec": "vp9-10",
+      "software_row": "mpv-vp9-10-no",
+      "hardware_row": "mpv-vp9-10-vaapi",
+      "hardware_seeks": 20,
+      "hardware_reopens": 2,
+      "captures": [
+        {
+          "name": "seek-0",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "c39c8a51d8ea68adb84b80fa2dc45c812855b151a6fa58a0ca2ed0701e32306e",
+          "hardware_sha256": "c39c8a51d8ea68adb84b80fa2dc45c812855b151a6fa58a0ca2ed0701e32306e"
+        },
+        {
+          "name": "seek-1",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "48431ae2c1b278397bd72bd0cbdbbb9bebfc74a2263e508fea2e72c10e1fe565",
+          "hardware_sha256": "48431ae2c1b278397bd72bd0cbdbbb9bebfc74a2263e508fea2e72c10e1fe565"
+        },
+        {
+          "name": "seek-2",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "e33ff507d50b6df47cb8a4a4080c3f5bfebc4319a2c954fc40813afa5dd86c2d",
+          "hardware_sha256": "e33ff507d50b6df47cb8a4a4080c3f5bfebc4319a2c954fc40813afa5dd86c2d"
+        },
+        {
+          "name": "seek-3",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "5e5354725cd4313dec9b8dc3a04937ee328508e7a6ffc986782cb2dbc0eb5ec4",
+          "hardware_sha256": "5e5354725cd4313dec9b8dc3a04937ee328508e7a6ffc986782cb2dbc0eb5ec4"
+        },
+        {
+          "name": "reopen-0",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "c39c8a51d8ea68adb84b80fa2dc45c812855b151a6fa58a0ca2ed0701e32306e",
+          "hardware_sha256": "c39c8a51d8ea68adb84b80fa2dc45c812855b151a6fa58a0ca2ed0701e32306e"
+        },
+        {
+          "name": "reopen-1",
+          "score": "identical",
+          "passed": true,
+          "software_sha256": "c39c8a51d8ea68adb84b80fa2dc45c812855b151a6fa58a0ca2ed0701e32306e",
+          "hardware_sha256": "c39c8a51d8ea68adb84b80fa2dc45c812855b151a6fa58a0ca2ed0701e32306e"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "raw": [
+    {
+      "name": "pixels-hevc-main",
+      "passed": true,
+      "frames": 240
+    },
+    {
+      "name": "pixels-hevc-main10-verified",
+      "passed": true,
+      "frames": 256
+    }
+  ],
+  "chromium": {
+    "lifecycle_passed": true,
+    "samples": [
+      {
+        "capture": "seek-1",
+        "exact_rgb_match": false,
+        "mean_absolute_channel_error_255": 6.826917317708333,
+        "max_channel_error_255": 34,
+        "pixels": 921600
+      },
+      {
+        "capture": "seek-4",
+        "exact_rgb_match": false,
+        "mean_absolute_channel_error_255": 6.839644820601852,
+        "max_channel_error_255": 35,
+        "pixels": 921600
+      },
+      {
+        "capture": "seek-2",
+        "exact_rgb_match": false,
+        "mean_absolute_channel_error_255": 6.820751229745371,
+        "max_channel_error_255": 34,
+        "pixels": 921600
+      },
+      {
+        "capture": "seek-6",
+        "exact_rgb_match": false,
+        "mean_absolute_channel_error_255": 6.829660373263889,
+        "max_channel_error_255": 34,
+        "pixels": 921600
+      },
+      {
+        "capture": "reopen-1",
+        "exact_rgb_match": false,
+        "mean_absolute_channel_error_255": 6.826917317708333,
+        "max_channel_error_255": 34,
+        "pixels": 921600
+      }
+    ],
+    "invariants": {
+      "software": {
+        "distinct_seek_frames": true,
+        "reopen_matches_first": true
+      },
+      "hardware": {
+        "distinct_seek_frames": true,
+        "reopen_matches_first": true
+      }
+    },
+    "presentation_passed": false
+  },
+  "mpv_passed": true,
+  "raw_passed": true
+}

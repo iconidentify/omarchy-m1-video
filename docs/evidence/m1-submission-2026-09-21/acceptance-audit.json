@@ -1,0 +1,116 @@
+{
+  "audit": "pass",
+  "checked_at": "2026-09-22T04:26:26.608377+00:00",
+  "required_guarded_rows": 25,
+  "required_row_names": [
+    "capability-smoke",
+    "resource-smoke",
+    "conformance-avc-qualified",
+    "conformance-hevc",
+    "conformance-vp9",
+    "concurrency",
+    "pixels-hevc-main",
+    "pixels-hevc-main10-verified",
+    "mpv-close-survive",
+    "chromium-software",
+    "chromium-hardware",
+    "resource-early-export",
+    "client-interruption",
+    "post-interruption-smoke",
+    "resource-soak",
+    "mpv-h264-no",
+    "mpv-h264-vaapi",
+    "mpv-hevc-main-no-complete",
+    "mpv-hevc-main-vaapi",
+    "mpv-hevc-main10-no",
+    "mpv-hevc-main10-vaapi",
+    "mpv-vp9-8-no",
+    "mpv-vp9-8-vaapi",
+    "mpv-vp9-10-no",
+    "mpv-vp9-10-vaapi"
+  ],
+  "offline_groups": 8,
+  "baseline_vectors": 433,
+  "conformance_frames": 22357,
+  "mpv_captures_byte_identical": 30,
+  "soak_summary": {
+    "allocator_bytes": {
+      "allocated": {
+        "final": 346032,
+        "initial": 334624,
+        "maximum": 346464,
+        "minimum": 334624
+      },
+      "arena": {
+        "final": 2916352,
+        "initial": 2916352,
+        "maximum": 2916352,
+        "minimum": 2916352
+      },
+      "free": {
+        "final": 2570320,
+        "initial": 2581728,
+        "maximum": 2581728,
+        "minimum": 2569888
+      },
+      "mmap": {
+        "final": 0,
+        "initial": 0,
+        "maximum": 0,
+        "minimum": 0
+      },
+      "releasable": {
+        "final": 1751936,
+        "initial": 1751936,
+        "maximum": 1751936,
+        "minimum": 847472
+      }
+    },
+    "cycles": 17369,
+    "decoded_frames": 834672,
+    "dmabuf_status": "none-observed",
+    "elapsed_seconds": 3600.150185660008,
+    "growth": {
+      "dmabuf_bytes": 0,
+      "dmabuf_objects": 0,
+      "dmabuf_references": 0,
+      "fds": 0,
+      "mapped_bytes": 0,
+      "maps": 0,
+      "vmrss_kib": 0
+    },
+    "held_image_checks": 17389,
+    "limits": {
+      "dmabuf_bytes": 0,
+      "dmabuf_objects": 0,
+      "dmabuf_references": 0,
+      "fds": 0,
+      "heap_allocated_bytes": 65536,
+      "mapped_bytes": 0,
+      "maps": 0,
+      "vmrss_kib": 4096
+    },
+    "mode": "normal",
+    "monotonic_growth": {
+      "dmabuf_bytes": false,
+      "dmabuf_objects": false,
+      "dmabuf_references": false,
+      "fds": false,
+      "mapped_bytes": false,
+      "maps": false,
+      "vmrss_kib": false
+    },
+    "passed": true,
+    "returncode": 0,
+    "sample_span_seconds": 3600.091154937,
+    "samples": 17370,
+    "type": "summary",
+    "violations": [],
+    "warmup_cycles": 20
+  },
+  "soak_single_process": true,
+  "chromium_lifecycle": "pass",
+  "chromium_presentation": "finding",
+  "excluded_attempts": "evidence-notes.json",
+  "elapsed_activation_to_finish_minutes": 86.56701996666668
+}

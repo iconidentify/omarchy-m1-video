@@ -1,0 +1,16 @@
+{
+  "kernel": "7.1.13-3-1-ARCH",
+  "architecture": "aarch64",
+  "machine": "Apple MacBook Pro (13-inch, M1, 2020)",
+  "packages": [
+    "linux-asahi 7.1.13.asahi3-2",
+    "linux-asahi-headers 7.1.13.asahi3-2",
+    "libva-v4l2_request-avd 1.3.r11.r164.g5b5046c-1",
+    "libva 2.24.1-1",
+    "mesa 1:26.2.3-1",
+    "ffmpeg 2:9.0.1-4",
+    "mpv 1:0.41.0-6"
+  ],
+  "module_sha256": "513acbffdc139b782bf22d40c8e9594b9f5b2b29876110ca8a44a357c029562b",
+  "module_parameters": {}
+}

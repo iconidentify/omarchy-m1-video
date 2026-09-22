@@ -1,0 +1,5 @@
+{
+  "conformance-avc": "Launch refused before any decoding: build wrapper dropped the hardware guard environment. Helper compilation was separated; the complete 73-video run passed as conformance-avc-qualified.",
+  "pixels-hevc-main10": "Excluded from Main10 evidence: sample encoder converted the requested 10-bit input to 8-bit. Probe exposed the fallback. File, output and warning are retained; pixels-hevc-main10-verified uses an actual 10-bit reference stream.",
+  "mpv-hevc-main-no": "Incomplete software reference: coordinator stopped during sample correction and the guard ended before final observation. The client exited normally. A fresh complete software reference is recorded as mpv-hevc-main-no-complete."
+}

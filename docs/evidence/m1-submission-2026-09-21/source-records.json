@@ -1,0 +1,69 @@
+{
+  "campaign": "2026-09-21-submission-01",
+  "copied_records": [
+    {
+      "path": "candidate.json",
+      "sha256": "9ca8e0acc834d15c1c752bc11f94cd60cee4cc7ccd347c2bdf0a0693e35258a5"
+    },
+    {
+      "path": "acceptance-audit.json",
+      "sha256": "f752043ea82bd323f4462743a1d65018fb9fc06183e9e295a5a00b3820413014"
+    },
+    {
+      "path": "final-runtime-state.json",
+      "sha256": "8dda89a5d270dcbd2a07123b1a262925093440d876822e9dfa0489307c0d741f"
+    },
+    {
+      "path": "system-identity.json",
+      "sha256": "2f648b6f9a2be3ccb8dc9f4bf25994eca5defb7d1733de0673f4dbd9b0fcf874"
+    },
+    {
+      "path": "playback-comparison.json",
+      "sha256": "d6850f22437a81d72d4893841eaebbfcc3032055b77832a7df05d53c3883096f"
+    },
+    {
+      "path": "evidence-notes.json",
+      "sha256": "3f5f226ebf9bf89029568de8e51402ac896ee12192acc489220726f105434bee"
+    },
+    {
+      "path": "browser-verification.json",
+      "sha256": "8f273961bbe43e3525344b3345a7985ed6f01c0aa2a543e91beffaeed3d3732e"
+    },
+    {
+      "path": "conformance-results.json",
+      "sha256": "a75e746d40648902723361856f68a91eedb3b1e882458e0606f34add828bb336"
+    },
+    {
+      "path": "submission-status.json",
+      "sha256": "b735cce420d06f7799d441a29fc72fde83cc5bf59d7b725a6ed779b59fcf7ed7"
+    }
+  ],
+  "derived_records": {
+    "run-summary.json": {
+      "source": "qualification.json",
+      "source_sha256": "87250c8d55373d4e0d9dd051dc06a8ab1bf3a7b7c25473cd8cc6218e7b3c1137"
+    },
+    "conformance-vectors.json": {
+      "sources": [
+        {
+          "path": "hardware/conformance-avc-qualified/summary.json",
+          "sha256": "84720cdb80e30c8b0c18adbf184c59e51c6c4f4017da43a7c259489aa68232c0"
+        },
+        {
+          "path": "hardware/conformance-hevc/summary.json",
+          "sha256": "12e07c2a298470a53986b06d1dbb3c00e6a3fc2d6ab1e46a147642523ec17f09"
+        },
+        {
+          "path": "hardware/conformance-vp9/summary.json",
+          "sha256": "d3f09deb77f75d17dd9b7292c02ff9fd3d78c43140ba9d569727bfc923967b96"
+        }
+      ]
+    }
+  },
+  "retained_local_archive": {
+    "archive": "confidence-frame-by-frame.zip",
+    "sha256": "0b7ba71f9486a0e74dfb7ce4c7559a8ea87ea7297cb889236f90956a6b5fa289",
+    "bytes": 142920221,
+    "verified_files": 1743
+  }
+}
